@@ -21,11 +21,6 @@ import com.hsnpmt.salahalarm.databinding.ActivityCameraBinding
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-/**
- * Live camera with on-device ML Kit image labeling. When it sees a sink/faucet
- * (any DETECT_KEYWORDS label above CONFIDENCE) it returns RESULT_OK (dismiss mode)
- * or shows a success state (preview mode).
- */
 class CameraActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityCameraBinding
@@ -102,7 +97,7 @@ class CameraActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    @ExperimentalGetImage
+    @androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
     private fun analyze(proxy: ImageProxy) {
         if (handled) { proxy.close(); return }
         val media = proxy.image
