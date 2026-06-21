@@ -18,16 +18,6 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 
-/**
- * Foreground service that actually rings. It:
- *  - plays the chosen (or default) alarm sound on a loop with USAGE_ALARM
- *  - vibrates on a loop
- *  - holds a wake lock
- *  - posts a full-screen-intent notification that launches AlarmActivity (shows even over the lock screen)
- *  - also starts AlarmActivity directly as a backup
- *
- * It keeps ringing until AlarmActivity confirms a sink/faucet photo and calls stop().
- */
 class AlarmService : Service() {
 
     private var player: MediaPlayer? = null
@@ -35,7 +25,6 @@ class AlarmService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
 
     companion object {
-        /** Convenience: stop the ringing service from anywhere. */
         fun stop(ctx: Context) {
             val i = Intent(ctx, AlarmService::class.java).apply { action = Const.ACTION_STOP }
             ctx.startService(i)
@@ -58,9 +47,8 @@ class AlarmService : Service() {
         startSound(sound)
         startVibration()
 
-        // Backup: bring the full-screen alarm up directly too.
         val act = Intent(this, AlarmActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             putExtra(Const.EXTRA_LABEL, label)
         }
         try { startActivity(act) } catch (_: Exception) { }
@@ -109,8 +97,8 @@ class AlarmService : Service() {
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
                     description = "منبّه الصلاة الذي لا يتوقف إلا بتصوير المغسلة"
-                    setSound(null, null)   // sound handled by MediaPlayer for reliable looping
-                    enableVibration(false) // vibration handled manually
+                    setSound(null, null)
+                    enableVibration(false)
                     setBypassDnd(true)
                 }
                 nm.createNotificationChannel(channel)
@@ -138,7 +126,6 @@ class AlarmService : Service() {
                 start()
             }
         } catch (_: Exception) {
-            // Fallback to the default alarm tone if the chosen uri failed.
             try {
                 val fallback = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 player = MediaPlayer().apply {
@@ -174,7 +161,7 @@ class AlarmService : Service() {
         wakeLock = pm.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
             "salahalarm:ring"
-        ).apply { acquire(10 * 60 * 1000L) } // 10-minute safety cap
+        ).apply { acquire(10 * 60 * 1000L) }
     }
 
     private fun stopAlarm() {
