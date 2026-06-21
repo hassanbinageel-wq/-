@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#0A0A0A</color>
+    <color name="surface">#16161A</color>
+    <color name="surface_light">#21212A</color>
+    <color name="gold">#D4AF37</color>
+    <color name="gold_light">#F0CF65</color>
+    <color name="gold_dark">#A67C00</color>
+    <color name="gold_trans">#55D4AF37</color>
+    <color name="text_primary">#F5F1E6</color>
+    <color name="text_muted">#8A8A8F</color>
+    <color name="danger">#E0605C</color>
+    <color name="overlay_dark">#AA000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>
