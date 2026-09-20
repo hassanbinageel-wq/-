@@ -9,3 +9,9 @@
 .cxx
 local.properties
 /app/build
+
+# لا تُرفع مفاتيح أو كلمات مرور
+*.keystore
+*.jks
+secrets.properties
+wifi-credentials.*

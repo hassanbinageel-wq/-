@@ -1,11 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <group android:scaleX="3.2" android:scaleY="3.2"
-        android:translateX="15.6" android:translateY="15.6">
-        <path android:fillColor="#D4AF37"
-            android:pathData="M12,3c-4.97,0 -9,4.03 -9,9s4.03,9 9,9 9,-4.03 9,-9c0,-0.46 -0.04,-0.92 -0.1,-1.36 -0.98,1.37 -2.58,2.26 -4.4,2.26 -2.98,0 -5.4,-2.42 -5.4,-5.4 0,-1.81 0.89,-3.42 2.26,-4.4C12.92,3.04 12.46,3 12,3z"/>
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- جسم كاميرا مبسّط داخل المنطقة الآمنة للأيقونة -->
+    <group android:translateX="18" android:translateY="30">
+        <path
+            android:fillColor="#E6E8EC"
+            android:pathData="M12,10 h20 l6,-6 h12 l6,6 h10 a6,6 0 0 1 6,6 v30 a6,6 0 0 1 -6,6 H12 a6,6 0 0 1 -6,-6 V16 a6,6 0 0 1 6,-6 z" />
+        <path
+            android:fillColor="#0B0B0D"
+            android:pathData="M42,20 m-13,0 a13,13 0 1 0 26,0 a13,13 0 1 0 -26,0 z" />
+        <path
+            android:fillColor="#F2B705"
+            android:pathData="M42,20 m-7,0 a7,7 0 1 0 14,0 a7,7 0 1 0 -14,0 z" />
     </group>
-    <path android:fillColor="#F0CF65"
-        android:pathData="M78,30m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"/>
 </vector>
