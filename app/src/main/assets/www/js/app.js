@@ -65,6 +65,7 @@
       ['حالة البث', lastStream],
       ['إطارات وصلت', String(framesTotal)],
       ['حجم آخر إطار', lastFrameSize],
+      ['حجم لوح العرض', (el.glcanvas.width||0)+'×'+(el.glcanvas.height||0)+' (عرض '+(el.glcanvas.clientWidth||0)+'×'+(el.glcanvas.clientHeight||0)+')'],
       ['وضع الاختبار', testMode ? 'مُفعّل' : 'لا']
     ];
     el.diagSummary.innerHTML = rows.map(([k,v])=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`).join('');
@@ -157,34 +158,54 @@
     wcStatus(null);
   }
 
-  // ============ حلقة العرض (نمط الاختبار فقط يحتاج rAF مستمر) ============
+  // إطار مُعلّق يُعرض داخل rAF (ضروري ليُركّبه WebView على الشاشة)
+  let pendingFrame = null;
+  // لوح 2D وسيط — أكثر مصادر نسيج WebGL موثوقية داخل WebView
+  const scratch = document.createElement('canvas');
+  const sctx = scratch.getContext('2d');
+  function toSource(bmp){
+    if(scratch.width !== bmp.width || scratch.height !== bmp.height){ scratch.width = bmp.width; scratch.height = bmp.height; }
+    sctx.drawImage(bmp, 0, 0);
+    return scratch;
+  }
+
+  // ============ حلقة العرض (كل الرسم داخل rAF) ============
   function loop(){
-    if(testMode && appVisible){
-      const cv = TestPattern.draw();
-      GL.uploadFrame(cv, TestPattern.width, TestPattern.height);
-      GL.render();
-      lastFrameMs = performance.now();
-      tickFps(performance.now());
-      maybeScopes();
+    if(appVisible){
+      if(testMode){
+        const cv = TestPattern.draw();
+        GL.uploadFrame(cv, TestPattern.width, TestPattern.height);
+        GL.render();
+        lastFrameMs = performance.now();
+        tickFps(performance.now());
+        maybeScopes();
+      } else if(pendingFrame){
+        const t = performance.now();
+        const bmp = pendingFrame.bitmap, dec = pendingFrame.decodeMs;
+        try {
+          GL.uploadFrame(toSource(bmp), bmp.width, bmp.height);
+          GL.render();
+        } catch(e){ dlog('خطأ رسم: '+e.message); }
+        lastProcMs = (performance.now()-t) + dec;
+        lastFrameMs = t;
+        el.noSignal.classList.add('hidden');
+        if(bmp.close) bmp.close();
+        pendingFrame = null;
+        tickFps(t);
+        maybeScopes();
+      }
     }
     requestAnimationFrame(loop);
   }
 
-  // ============ إطار حقيقي من الكاميرا ============
+  // ============ إطار حقيقي من الكاميرا (يُخزَّن ثم يُعرض في rAF) ============
   function onNativeFrame(f){
-    if(testMode) return; // نمط الاختبار له الأولوية عند تفعيله
-    const t = performance.now();
-    GL.uploadFrame(f.bitmap, f.bitmap.width, f.bitmap.height);
-    GL.render();
-    lastProcMs = (performance.now()-t) + (f.decodeMs||0);
-    lastFrameMs = t;
+    if(testMode){ if(f.bitmap && f.bitmap.close) f.bitmap.close(); return; }
+    if(pendingFrame && pendingFrame.bitmap && pendingFrame.bitmap.close) pendingFrame.bitmap.close();
+    pendingFrame = { bitmap: f.bitmap, decodeMs: f.decodeMs || 0 };
     framesTotal++;
-    lastFrameSize = f.bitmap.width+'×'+f.bitmap.height;
-    if(framesTotal === 1) dlog('أول إطار وصل ✓ ('+lastFrameSize+')');
-    el.noSignal.classList.add('hidden');
-    tickFps(t);
-    maybeScopes();
-    if(f.bitmap.close) f.bitmap.close();
+    lastFrameSize = f.bitmap.width + '×' + f.bitmap.height;
+    if(framesTotal === 1) dlog('أول إطار وصل ✓ ('+lastFrameSize+') — يُعرض عبر rAF');
   }
 
   // يظهر حالة «لا إشارة» إذا لم تصل إطارات لفترة والمونيتور ظاهر
