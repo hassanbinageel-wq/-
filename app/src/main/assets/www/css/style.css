@@ -99,6 +99,15 @@ body{position:fixed;inset:0;}
   background:radial-gradient(60% 60% at 50% 50%,rgba(20,24,30,.6),rgba(0,0,0,.85));text-align:center;padding:24px;z-index:12;}
 .nosignal b{font-size:18px;}
 .nosignal .note{max-width:320px;}
+.nosignal-actions{display:flex;gap:8px;margin-top:4px;}
+
+/* تشخيص */
+.diag-summary{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;line-height:1.9;}
+.diag-summary b{color:var(--accent);}
+.diag-summary .kv{display:flex;justify-content:space-between;gap:10px;}
+.diag-summary .kv span:last-child{color:var(--muted);font-variant-numeric:tabular-nums;text-align:end;}
+.diag-body{background:#05070a;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:38vh;overflow-y:auto;
+  font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;line-height:1.7;color:#b7c0cd;direction:ltr;text-align:left;white-space:pre-wrap;word-break:break-word;}
 
 /* HUD علوي */
 #topbar{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:8px;flex-wrap:wrap;

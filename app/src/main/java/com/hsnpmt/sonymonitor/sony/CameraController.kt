@@ -68,11 +68,16 @@ class CameraController(
                 WifiConnector.ensureBound(appContext) // إن اتصل عبر QR فهو مربوط أصلًا؛ وإلا يربط أول شبكة Wi‑Fi
 
                 emit("status", JSONObject().put("phase", "discovering"))
-                val dev = SsdpDiscovery.discover(timeoutMs = 5000)
+                var dev = SsdpDiscovery.discover(timeoutMs = 5000)
+                if (dev == null) {
+                    // احتياطي: بعض هواتف Android تحجب SSDP multicast — نجرّب نقاط النهاية المعروفة مباشرةً
+                    emit("status", JSONObject().put("phase", "probing"))
+                    dev = probeDirect()
+                }
                 if (dev == null) {
                     emit("error", JSONObject()
                         .put("code", "no_camera")
-                        .put("message", "لم يُعثر على كاميرا Sony. تأكّد أن الهاتف متصل بشبكة Wi‑Fi الخاصة بالكاميرا وأن وضع التحكّم بالهاتف مفعّل في الكاميرا."))
+                        .put("message", "لم يُعثر على كاميرا Sony (لا عبر SSDP ولا عبر العنوان المباشر). تأكّد أن الهاتف متصل بشبكة Wi‑Fi الخاصة بالكاميرا، وأن وضع «التحكّم بالهاتف» مفعّل في الكاميرا. ملاحظة: بعض موديلات Sony (مثل a7 III) قد لا تدعم هذا البروتوكول (ScalarWebAPI) وتحتاج بروتوكول PTP/IP."))
                     return@launch
                 }
                 device = dev
@@ -110,6 +115,37 @@ class CameraController(
                 emit("error", JSONObject().put("code", "connect_failed").put("message", e.message ?: "فشل الاتصال"))
             }
         }
+    }
+
+    /** محاولة مباشرة لنقاط نهاية Sony المعروفة حين يفشل SSDP. يعيد Result أو null. */
+    private fun probeDirect(): SsdpDiscovery.Result? {
+        val bases = listOf(
+            "http://192.168.122.1:8080/sony",
+            "http://192.168.122.1:10000/sony"
+        )
+        for (base in bases) {
+            try {
+                val endpoint = "$base/camera"
+                val probe = ScalarWebApiClient(apiClientHttp, endpoint)
+                probe.startRecMode()
+                val apis = probe.getAvailableApiList()
+                if (apis.isNotEmpty()) {
+                    Log.i(TAG, "probeDirect نجح على $base")
+                    return SsdpDiscovery.Result(
+                        baseUrl = base,
+                        cameraEndpointUrl = endpoint,
+                        avContentEndpointUrl = "$base/avContent",
+                        friendlyName = "Sony (اتصال مباشر)",
+                        modelName = "Sony",
+                        availableServices = listOf("camera"),
+                        locationUrl = base
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "probeDirect $base: ${e.message}")
+            }
+        }
+        return null
     }
 
     fun disconnect() {

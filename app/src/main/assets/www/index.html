@@ -96,7 +96,10 @@
         <span class="spinner big"></span>
         <b id="noSignalTitle">في انتظار البثّ الحيّ…</b>
         <span id="noSignalMsg" class="note">تأكّد أن الكاميرا في وضع التحكّم بالهاتف والبثّ مفعّل.</span>
-        <button class="btn small" id="noSignalHome">رجوع للاتصال</button>
+        <div class="nosignal-actions">
+          <button class="btn small" id="noSignalDiag">تفاصيل تقنية</button>
+          <button class="btn small ghost" id="noSignalHome">رجوع للاتصال</button>
+        </div>
       </div>
     </div>
 
@@ -136,6 +139,19 @@
 
     <div id="toast" class="hidden"></div>
   </main>
+
+  <!-- ===== شاشة التشخيص ===== -->
+  <section id="diag" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><b>تشخيص الاتصال</b><button class="iconbtn" id="diagClose"><svg class="ic"><use href="#ic-close"/></svg></button></div>
+      <div id="diagSummary" class="diag-summary"></div>
+      <div id="diagBody" class="diag-body"></div>
+      <div class="modal-actions">
+        <button class="btn" id="diagCopy">نسخ السجل</button>
+        <button class="btn ghost" id="diagRetry">إعادة محاولة الاتصال</button>
+      </div>
+    </div>
+  </section>
 
   <!-- ===== قوالب اللوحات ===== -->
   <template id="tpl-scopes">
@@ -238,6 +254,7 @@
   <template id="tpl-settings">
     <div class="stack">
       <button id="btnDisconnectAll" class="btn danger">قطع الاتصال والرجوع للقائمة</button>
+      <button id="btnDiag" class="btn ghost">تشخيص الاتصال</button>
       <div class="hr"></div>
       <label class="row"><span>إبقاء شاشة الهاتف مضاءة</span><input type="checkbox" id="keepOn" checked></label>
       <label class="row"><span>حجم بث الكاميرا المفضّل</span>

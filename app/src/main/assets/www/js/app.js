@@ -9,6 +9,7 @@
     wcStatus: $('#wcStatus'), wcStatusText: $('#wcStatusText'),
     manualWifi: $('#manualWifi'),
     noSignal: $('#noSignal'), noSignalTitle: $('#noSignalTitle'), noSignalMsg: $('#noSignalMsg'),
+    diag: $('#diag'), diagSummary: $('#diagSummary'), diagBody: $('#diagBody'),
     homeBtn: $('#homeBtn'),
     stage: $('#stage'), glcanvas: $('#glcanvas'), flipWrap: $('#flipWrap'),
     guides: $('#guides'), refOverlay: $('#refOverlay'), sourceBadge: $('#sourceBadge'),
@@ -41,6 +42,43 @@
   // FPS
   let frameCount = 0, fpsWindow = [], lastProcMs = 0, lastFrameMs = 0;
   let appVisible = false;
+
+  // تشخيص
+  const diag = [];
+  let framesTotal = 0, lastCaps = null, lastStream = '—', lastWifi = '—', lastFrameSize = '—';
+  function dlog(s){
+    const line = '['+new Date().toLocaleTimeString('en-GB')+'] '+s;
+    diag.push(line);
+    if(diag.length > 400) diag.shift();
+    if(el.diag && !el.diag.classList.contains('hidden')) renderDiag();
+  }
+  function openDiag(){ renderDiag(); el.diag.classList.remove('hidden'); }
+  function renderDiag(){
+    const c = lastCaps || {};
+    const rows = [
+      ['الطبقة الأصلية', Bridge.hasNative ? 'متاحة' : 'غير متاحة (متصفح؟)'],
+      ['شبكة Wi‑Fi', lastWifi],
+      ['متصل بالكاميرا', connected ? 'نعم' : 'لا'],
+      ['الموديل', c.model || '—'],
+      ['يدعم البث (startLiveview)', c.hasLiveview==null?'—':(c.hasLiveview?'نعم':'لا')],
+      ['عدد وظائف الكاميرا', c.apiList ? c.apiList.length : '—'],
+      ['حالة البث', lastStream],
+      ['إطارات وصلت', String(framesTotal)],
+      ['حجم آخر إطار', lastFrameSize],
+      ['وضع الاختبار', testMode ? 'مُفعّل' : 'لا']
+    ];
+    el.diagSummary.innerHTML = rows.map(([k,v])=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`).join('');
+    el.diagBody.textContent = diag.slice(-200).join('\n');
+    el.diagBody.scrollTop = el.diagBody.scrollHeight;
+  }
+  function diagText(){
+    const c = lastCaps || {};
+    return 'SonyMonitor diag\nnative='+Bridge.hasNative+' wifi='+lastWifi+' connected='+connected+
+      '\nmodel='+(c.model||'-')+' hasLiveview='+c.hasLiveview+' apiCount='+(c.apiList?c.apiList.length:'-')+
+      '\napiList='+JSON.stringify(c.apiList||[])+
+      '\nstream='+lastStream+' frames='+framesTotal+' lastFrame='+lastFrameSize+
+      '\n----\n'+diag.join('\n');
+  }
 
   // ============ التهيئة ============
   function boot(){
@@ -106,6 +144,7 @@
     setTestMode(false);
     wcStatus('جارٍ البحث عن الكاميرا…', true);
     if(!Bridge.hasNative) toast('الطبقة الأصلية غير متاحة (تشغيل على المتصفح؟)');
+    dlog('بدء الاتصال بالكاميرا (SSDP)…');
     setConn('warn','جارٍ الاتصال…');
     Bridge.cmd.connect();
   }
@@ -139,6 +178,9 @@
     GL.render();
     lastProcMs = (performance.now()-t) + (f.decodeMs||0);
     lastFrameMs = t;
+    framesTotal++;
+    lastFrameSize = f.bitmap.width+'×'+f.bitmap.height;
+    if(framesTotal === 1) dlog('أول إطار وصل ✓ ('+lastFrameSize+')');
     el.noSignal.classList.add('hidden');
     tickFps(t);
     maybeScopes();
@@ -183,30 +225,36 @@
   function wireBridgeEvents(){
     // أحداث الاتصال بشبكة Wi‑Fi (QR / يدوي)
     Bridge.on('wifi', d=>{
+      lastWifi = d.state + (d.ssid?(' — '+d.ssid):'');
+      dlog('WiFi: '+d.state+(d.ssid?(' ssid='+d.ssid):'')+(d.message?(' — '+d.message):''));
       if(d.state==='connecting') wcStatus('جارٍ الاتصال بشبكة الكاميرا…', true);
       else if(d.state==='connected'){ wcStatus('اتصلت بالشبكة ✓ — جارٍ البحث عن الكاميرا…', true); startCameraConnect(); }
       else if(d.state==='failed'){ wcStatus('تعذّر الاتصال: '+(d.message||''), false); toast(d.message||'تعذّر الاتصال بالشبكة'); }
       else if(d.state==='cancelled') wcStatus(null);
     });
     Bridge.on('status', d=>{
+      dlog('الحالة: '+d.phase);
       if(d.phase==='binding'){ setConn('warn','جارٍ الربط بالشبكة…'); }
       if(d.phase==='discovering'){ setConn('warn','جارٍ البحث عن الكاميرا…'); wcStatus('جارٍ البحث عن الكاميرا…', true); }
     });
     Bridge.on('connected', d=>{
-      caps = d; connected = true; currentModel = d.model || 'default';
+      caps = d; lastCaps = d; connected = true; currentModel = d.model || 'default';
+      dlog('اتصلت بالكاميرا: '+(d.model||'?')+' | hasLiveview='+d.hasLiveview+' | api='+((d.apiList&&d.apiList.length)||0));
+      dlog('apiList='+JSON.stringify(d.apiList||[]));
       setConn('on', 'متصل: ' + (d.model||'كاميرا'));
       wcStatus(null);
       showApp();
       applyCapsToControls(d);
-      if(d.hasLiveview){ Bridge.cmd.startLiveview(); }
-      else toast('هذه الكاميرا لا تُتيح البث الحي عبر هذا الاتصال.');
+      if(d.hasLiveview){ dlog('طلب بدء البث…'); Bridge.cmd.startLiveview(); }
+      else { dlog('الكاميرا لا تُدرج startLiveview في وظائفها المتاحة.'); toast('هذه الكاميرا لا تُتيح البث الحي عبر هذا الاتصال.'); }
       loadFavLutForContext();
-      const summary = 'قدرات '+(d.model||'الكاميرا')+': بث='+yn(d.hasLiveview)+'، التقاط='+yn(d.hasTakePicture)+'، فيديو='+yn(d.hasMovieRec);
-      toast(summary);
+      toast('قدرات '+(d.model||'الكاميرا')+': بث='+yn(d.hasLiveview)+'، التقاط='+yn(d.hasTakePicture)+'، فيديو='+yn(d.hasMovieRec));
     });
-    Bridge.on('disconnected', ()=>{ connected=false; caps=null; setConn('off','غير متصل'); disableControls(); });
-    Bridge.on('error', d=>{ setConn('off', d.message||'خطأ'); wcStatus('خطأ: '+(d.message||''), false); toast(d.message||'خطأ'); });
+    Bridge.on('disconnected', ()=>{ connected=false; caps=null; dlog('قُطع الاتصال'); setConn('off','غير متصل'); disableControls(); });
+    Bridge.on('error', d=>{ dlog('خطأ: '+(d.code||'')+' — '+(d.message||'')); setConn('off', d.message||'خطأ'); wcStatus('خطأ: '+(d.message||''), false); toast(d.message||'خطأ'); });
     Bridge.on('stream', d=>{
+      lastStream = d.state + (d.reason?(' — '+d.reason):'');
+      dlog('البث: '+d.state+(d.url?(' url='+d.url):'')+(d.reason?(' — '+d.reason):'')+(d.attempt?(' محاولة '+d.attempt):''));
       if(d.state==='connected') setConn('on', 'البث حي');
       else if(d.state==='reconnecting') setConn('warn', `انقطع البث — إعادة محاولة (${d.attempt})…`);
       else if(d.state==='lost') setConn('warn', 'انقطع البث: '+(d.reason||''));
@@ -303,8 +351,18 @@
     el.panelClose.onclick = ()=> el.panelHost.classList.add('hidden');
     el.hideUiBtn.onclick = ()=> document.body.classList.toggle('hiddenUi');
     window.addEventListener('resize', drawGuides);
-    // نقرة على المسرح تُظهر/تخفي الواجهة أيضًا
     el.stage.addEventListener('click', ()=>{ if(document.body.classList.contains('hiddenUi')) document.body.classList.remove('hiddenUi'); });
+
+    // التشخيص
+    $('#noSignalDiag').onclick = openDiag;
+    $('#noSignalHome').onclick = goHome;
+    $('#diagClose').onclick = ()=> el.diag.classList.add('hidden');
+    $('#diagRetry').onclick = ()=>{ el.diag.classList.add('hidden'); Bridge.cmd.connect(); };
+    $('#diagCopy').onclick = ()=>{
+      const txt = diagText();
+      try { navigator.clipboard.writeText(txt); toast('نُسخ السجل ✓'); }
+      catch(e){ el.diagBody.textContent = txt; toast('انسخ النص يدويًا'); }
+    };
   }
 
   // زر الرجوع من الأصل: يغلق اللوحة/يُظهر الواجهة قبل الخروج
@@ -481,6 +539,7 @@
   // -------- لوحة الإعدادات --------
   function wireSettings(){
     $('#btnDisconnectAll').onclick=()=>{ goHome(); };
+    $('#btnDiag').onclick=()=>{ openDiag(); };
     $('#keepOn').checked=S.keepOn; $('#keepOn').onchange=e=>{ S.keepOn=e.target.checked; persist(); Bridge.cmd.keepScreenOn(S.keepOn); };
     const lv=$('#lvSize'); lv.value=S.lvSize; lv.onchange=()=>{ S.lvSize=lv.value; persist(); };
     const sr=$('#scopeRate'); sr.value=String(S.scopeRate); sr.onchange=()=>{ S.scopeRate=+sr.value; persist(); };
