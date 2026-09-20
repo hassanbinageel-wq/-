@@ -13,6 +13,9 @@ const Bridge = (() => {
   // أوامر إلى الأصل (تتحمّل غياب SonyBridge أثناء التطوير على المتصفح)
   const N = hasNative ? window.SonyBridge : null;
   const cmd = {
+    scanQrConnect(){ N && N.scanQrConnect(); },
+    connectWifi(ssid, pass){ N && N.connectWifi(String(ssid), String(pass||'')); },
+    disconnectWifi(){ N && N.disconnectWifi(); },
     connect(){ N && N.connect(); },
     disconnect(){ N && N.disconnect(); },
     startLiveview(){ N && N.startLiveview(); },

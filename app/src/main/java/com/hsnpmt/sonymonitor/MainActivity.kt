@@ -2,6 +2,7 @@ package com.hsnpmt.sonymonitor
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -10,6 +11,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -25,6 +27,19 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private var bridge: SonyBridge? = null
+
+    // نتيجة مسح رمز QR → تسليم SSID/كلمة المرور للجسر لإتمام الاتصال بالشبكة
+    private val qrLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val ssid = result.data?.getStringExtra("ssid")
+            val pass = result.data?.getStringExtra("password")
+            bridge?.onWifiScanResult(ssid, pass)
+        } else {
+            bridge?.onWifiScanResult(null, null)
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,7 +67,8 @@ class MainActivity : AppCompatActivity() {
         val b = SonyBridge(
             context = this,
             webView = webView,
-            onKeepScreenOn = { on -> setKeepScreenOn(on) }
+            onKeepScreenOn = { on -> setKeepScreenOn(on) },
+            onScanQr = { qrLauncher.launch(Intent(this, QrScanActivity::class.java)) }
         )
         bridge = b
         webView.addJavascriptInterface(b, "SonyBridge")

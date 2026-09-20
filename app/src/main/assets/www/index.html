@@ -7,83 +7,137 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <!-- طبقة العرض الحي -->
-  <div id="stage">
-    <div id="flipWrap">
-      <canvas id="glcanvas"></canvas>
-    </div>
-    <img id="refOverlay" alt="" />
-    <!-- أدلة التأطير (SVG فوق البث) -->
-    <svg id="guides" preserveAspectRatio="none"></svg>
 
-    <!-- شارة مصدر البث -->
-    <div id="sourceBadge" class="badge hidden"></div>
-  </div>
+  <!-- ===== مجموعة الأيقونات (SVG) ===== -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="ic-qr" viewBox="0 0 24 24"><path fill="currentColor" d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm10-2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm2 2h2v2h-2v-2zm2-2h2v2h-2v-2zm0 4h2v2h-2v-2z"/></symbol>
+    <symbol id="ic-link" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 15l6-6M8 12H6a3 3 0 010-6h2m8 0h2a3 3 0 010 6h-2M8 18H6a3 3 0 010-6"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></symbol>
+    <symbol id="ic-scopes" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 20V10m5 10V4m5 16v-7m5 7V8"/></symbol>
+    <symbol id="ic-lut" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 100 18 3 3 0 003-3c0-1.6 1.3-2 2-2h1a3 3 0 003-3 9 9 0 00-12-9z"/><circle cx="8" cy="10" r="1.3" fill="currentColor"/><circle cx="12" cy="7" r="1.3" fill="currentColor"/><circle cx="16" cy="10" r="1.3" fill="currentColor"/></symbol>
+    <symbol id="ic-focus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 8V5a1 1 0 011-1h3m8 0h3a1 1 0 011 1v3m0 8v3a1 1 0 01-1 1h-3m-8 0H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-control" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M5 6h14M5 12h14M5 18h14"/><circle cx="9" cy="6" r="2.2" fill="var(--surf2)" stroke="currentColor" stroke-width="2"/><circle cx="15" cy="12" r="2.2" fill="var(--surf2)" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="18" r="2.2" fill="var(--surf2)" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-files" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></symbol>
+    <symbol id="ic-gear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19.4 13a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007 19.4a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 004.6 14 1.7 1.7 0 003 12.9H3a2 2 0 110-4h.1A1.7 1.7 0 004.6 7a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 009 2.6h.1A1.7 1.7 0 0010 1a2 2 0 114 0v.1A1.7 1.7 0 0017 2.6a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9v.1A1.7 1.7 0 0021 9h.1a2 2 0 010 4H21a1.7 1.7 0 00-1.6 1z"/></symbol>
+    <symbol id="ic-eye" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="ic-cam" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 8a2 2 0 012-2h2l1.5-2h7L17 6h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/><circle cx="12" cy="12.5" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></symbol>
+  </svg>
 
-  <!-- شريط الحالة العلوي -->
-  <header id="topbar">
-    <div class="statusGroup">
-      <span id="connDot" class="dot dot-off"></span>
-      <span id="connText">غير متصل</span>
-    </div>
-    <div class="statusGroup" id="recGroup">
-      <span id="recDot" class="dot dot-rec hidden"></span>
-      <span id="recTime" class="hidden">00:00</span>
-    </div>
-    <div class="statusGroup metrics">
-      <span id="fps" title="معدّل الإطارات المقيس فعليًا على الهاتف">— fps</span>
-      <span id="latency" title="زمن معالجة الإطار على الهاتف (ليس تأخير الزجاج إلى الزجاج)">— ms</span>
-    </div>
-    <div class="statusGroup batteries">
-      <span id="camBatt" title="بطارية الكاميرا">📷 —</span>
-      <span id="phoneBatt" title="بطارية الهاتف">📱 —</span>
-      <span id="camCard" title="بطاقة الكاميرا">🗂 —</span>
-    </div>
-  </header>
+  <!-- ===== شاشة البداية / الاتصال ===== -->
+  <section id="welcome">
+    <div class="welcome-inner">
+      <div class="brand">
+        <div class="brand-mark"><svg class="ic"><use href="#ic-cam"/></svg></div>
+        <div class="brand-text">
+          <h1>مونيتور Sony</h1>
+          <p>شاشة تصوير احترافية عبر Wi‑Fi</p>
+        </div>
+      </div>
 
-  <!-- زر إخفاء كل الأزرار بلمسة -->
-  <button id="hideUiBtn" class="floatbtn" title="إظهار/إخفاء الأزرار">⤢</button>
+      <div class="connect-cards">
+        <button class="ccard" id="wcQr">
+          <span class="ccard-ic"><svg class="ic"><use href="#ic-qr"/></svg></span>
+          <span class="ccard-body"><b>مسح رمز QR</b><small>اتصال سريع بشبكة الكاميرا</small></span>
+          <span class="ccard-arrow"><svg class="ic"><use href="#ic-back"/></svg></span>
+        </button>
+        <button class="ccard" id="wcManual">
+          <span class="ccard-ic"><svg class="ic"><use href="#ic-link"/></svg></span>
+          <span class="ccard-body"><b>اتصال يدوي</b><small>أنا متصل بشبكة الكاميرا من الإعدادات</small></span>
+          <span class="ccard-arrow"><svg class="ic"><use href="#ic-back"/></svg></span>
+        </button>
+        <button class="ccard ghost-card" id="wcTest">
+          <span class="ccard-ic"><svg class="ic"><use href="#ic-play"/></svg></span>
+          <span class="ccard-body"><b>معاينة تجريبية</b><small>جرّب الأدوات و LUT بدون كاميرا</small></span>
+          <span class="ccard-arrow"><svg class="ic"><use href="#ic-back"/></svg></span>
+        </button>
+      </div>
 
-  <!-- شريط الأوضاع + الأدوات (يسار) -->
-  <nav id="toolrail">
-    <button data-panel="connect" class="tool active" title="الاتصال">🔌</button>
-    <button data-panel="scopes" class="tool" title="أدوات المراقبة">📊</button>
-    <button data-panel="lut" class="tool" title="LUT">🎨</button>
-    <button data-panel="focus" class="tool" title="التركيز والتأطير">🎯</button>
-    <button data-panel="control" class="tool" title="التحكم بالكاميرا">🎬</button>
-    <button data-panel="files" class="tool" title="الملفات والمشاريع">🗂️</button>
-    <button data-panel="settings" class="tool" title="الإعدادات">⚙️</button>
-  </nav>
+      <div id="wcStatus" class="wc-status hidden"><span class="spinner"></span><span id="wcStatusText"></span></div>
 
-  <!-- اللوحات -->
-  <section id="panelHost" class="hidden">
-    <div class="panelHeader">
-      <span id="panelTitle">لوحة</span>
-      <button id="panelClose" class="ghost">إغلاق ✕</button>
+      <details class="wc-help">
+        <summary>كيف أتصل بالكاميرا؟</summary>
+        <ol>
+          <li>في الكاميرا: الشبكة ← «التحكّم بالهاتف / Ctrl w/ Smartphone» ← تشغيل.</li>
+          <li>اعرض رمز QR من الكاميرا، ثم اضغط «مسح رمز QR» هنا وامنح إذن الكاميرا.</li>
+          <li>أو اتصل يدويًا بشبكة الكاميرا من إعدادات Wi‑Fi ثم اضغط «اتصال يدوي».</li>
+        </ol>
+      </details>
+
+      <p class="wc-foot">النسخة 0.2 — البثّ الحيّ والالتقاط يحتاجان تأكيدًا على كاميرا Sony a7 III فعليًا.</p>
     </div>
-    <div id="panelBody"></div>
   </section>
 
-  <!-- تنبيهات -->
-  <div id="toast" class="hidden"></div>
-
-  <!-- قوالب اللوحات -->
-  <template id="tpl-connect">
-    <div class="stack">
-      <p class="note">وصّل الهاتف بشبكة Wi‑Fi الخاصة بالكاميرا من إعدادات Android، ثم فعّل «التحكّم بالهاتف/Ctrl w/ Smartphone» في الكاميرا، ثم اضغط اتصال.</p>
-      <button id="btnConnect" class="primary big">اتصال بالكاميرا</button>
-      <button id="btnDisconnect" class="danger" disabled>قطع الاتصال</button>
-      <div class="hr"></div>
-      <label class="row"><span>مصدر الاختبار (نمط اختبار — ليس بثًا من الكاميرا)</span>
-        <input type="checkbox" id="chkTest" /></label>
-      <p class="note small">نمط الاختبار يتيح تجربة أدوات المونيتور و LUT على الهاتف قبل توفّر الكاميرا. سيظهر تنبيه واضح أنه ليس بثًا حقيقيًا.</p>
-      <div id="capBox" class="capbox hidden">
-        <div class="capTitle">قدرات الكاميرا المكتشَفة</div>
-        <ul id="capList"></ul>
+  <!-- ===== إدخال يدوي لبيانات الشبكة (اختياري) ===== -->
+  <section id="manualWifi" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><b>اتصال يدوي بشبكة</b><button class="iconbtn" id="mwClose"><svg class="ic"><use href="#ic-close"/></svg></button></div>
+      <p class="note small">إن كنت متصلًا بشبكة الكاميرا من إعدادات Android، اضغط «اتصال الآن» مباشرة. أو أدخل بيانات الشبكة ليتصل التطبيق بها.</p>
+      <label class="field"><span>اسم الشبكة (SSID)</span><input id="mwSsid" type="text" placeholder="DIRECT-xxxx:ILCE-7M3" /></label>
+      <label class="field"><span>كلمة المرور</span><input id="mwPass" type="text" placeholder="اتركها فارغة إن كنت متصلًا مسبقًا" /></label>
+      <div class="modal-actions">
+        <button class="btn primary" id="mwConnect">اتصال بالشبكة ثم الكاميرا</button>
+        <button class="btn" id="mwDirect">أنا متصل — ابدأ مباشرة</button>
       </div>
     </div>
-  </template>
+  </section>
 
+  <!-- ===== شاشة المونيتور ===== -->
+  <main id="app" class="hidden">
+    <div id="stage">
+      <div id="flipWrap"><canvas id="glcanvas"></canvas></div>
+      <img id="refOverlay" alt="" />
+      <svg id="guides" preserveAspectRatio="none"></svg>
+      <div id="sourceBadge" class="badge hidden"></div>
+
+      <!-- حالة لا إشارة -->
+      <div id="noSignal" class="nosignal hidden">
+        <span class="spinner big"></span>
+        <b id="noSignalTitle">في انتظار البثّ الحيّ…</b>
+        <span id="noSignalMsg" class="note">تأكّد أن الكاميرا في وضع التحكّم بالهاتف والبثّ مفعّل.</span>
+        <button class="btn small" id="noSignalHome">رجوع للاتصال</button>
+      </div>
+    </div>
+
+    <!-- HUD علوي -->
+    <header id="topbar">
+      <button id="homeBtn" class="hud-btn" title="القائمة"><svg class="ic"><use href="#ic-back"/></svg></button>
+      <div class="pill" id="connPill"><span id="connDot" class="dot dot-off"></span><span id="connText">غير متصل</span></div>
+      <div class="pill rec-pill hidden" id="recGroup"><span id="recDot" class="dot dot-rec"></span><span id="recTime">00:00</span></div>
+      <div class="chips">
+        <span class="chip" id="fps" title="معدّل الإطارات المقيس فعليًا">— fps</span>
+        <span class="chip" id="latency" title="زمن معالجة الإطار على الهاتف (ليس تأخير الزجاج إلى الزجاج)">— ms</span>
+      </div>
+      <div class="chips batteries">
+        <span class="chip" id="camBatt" title="بطارية الكاميرا">📷 —</span>
+        <span class="chip" id="phoneBatt" title="بطارية الهاتف">📱 —</span>
+        <span class="chip" id="camCard" title="بطاقة الكاميرا">🗂 —</span>
+      </div>
+    </header>
+
+    <button id="hideUiBtn" class="fab" title="إظهار/إخفاء الأزرار"><svg class="ic"><use href="#ic-eye"/></svg></button>
+
+    <!-- شريط الأدوات -->
+    <nav id="toolrail">
+      <button data-panel="scopes" class="tool" title="المراقبة"><svg class="ic"><use href="#ic-scopes"/></svg><span>مراقبة</span></button>
+      <button data-panel="lut" class="tool" title="LUT"><svg class="ic"><use href="#ic-lut"/></svg><span>LUT</span></button>
+      <button data-panel="focus" class="tool" title="التركيز"><svg class="ic"><use href="#ic-focus"/></svg><span>تركيز</span></button>
+      <button data-panel="control" class="tool" title="التحكم"><svg class="ic"><use href="#ic-control"/></svg><span>تحكّم</span></button>
+      <button data-panel="files" class="tool" title="الملفات"><svg class="ic"><use href="#ic-files"/></svg><span>ملفات</span></button>
+      <button data-panel="settings" class="tool" title="الإعدادات"><svg class="ic"><use href="#ic-gear"/></svg><span>إعدادات</span></button>
+    </nav>
+
+    <!-- اللوحات -->
+    <section id="panelHost" class="hidden">
+      <div class="panelHeader"><span id="panelTitle">لوحة</span><button id="panelClose" class="iconbtn"><svg class="ic"><use href="#ic-close"/></svg></button></div>
+      <div id="panelBody"></div>
+    </section>
+
+    <div id="toast" class="hidden"></div>
+  </main>
+
+  <!-- ===== قوالب اللوحات ===== -->
   <template id="tpl-scopes">
     <div class="stack">
       <label class="row"><span>Histogram (سطوع)</span><input type="checkbox" id="scHist" checked></label>
@@ -101,7 +155,7 @@
           <option value="pre">قبل LUT (إشارة الكاميرا) — الافتراضي</option>
           <option value="post">بعد LUT (المعاينة)</option>
         </select></label>
-      <p class="note small">هذه القيم تُحسب من بث المعاينة المضغوط الواصل للهاتف، وقد تختلف عن RAW/Log/ملف الفيديو داخل الكاميرا. الوحدات تقريبية (0–100% من قيمة البِكسل) وليست قياسًا مُعايَرًا.</p>
+      <p class="note small">هذه القيم تُحسب من بث المعاينة المضغوط، وقد تختلف عن RAW/Log/ملف الفيديو داخل الكاميرا. الوحدات تقريبية (0–100%) وليست قياسًا مُعايَرًا.</p>
       <div id="scopeCanvases"></div>
     </div>
   </template>
@@ -110,13 +164,13 @@
     <div class="stack">
       <label class="row"><span>تفعيل LUT</span><input type="checkbox" id="lutOn"></label>
       <label class="row"><span>الشدّة</span><input type="range" id="lutIntensity" min="0" max="100" value="100"><b id="lutIntensityV">100%</b></label>
-      <button id="btnLutCompare" class="ghost">اضغط باستمرار: مقارنة قبل/بعد</button>
+      <button id="btnLutCompare" class="btn ghost">اضغط باستمرار: مقارنة قبل/بعد</button>
       <div class="hr"></div>
       <input type="file" id="lutFile" accept=".cube" hidden />
-      <button id="btnLutImport" class="primary">استيراد ملف ‎.cube</button>
+      <button id="btnLutImport" class="btn primary">استيراد ملف ‎.cube</button>
       <div id="lutList" class="lutlist"></div>
       <p class="note small">مهم: LUT هنا للمعاينة على شاشة الهاتف فقط، ولا يُطبَّق على الصور/الفيديو المسجّلة داخل الكاميرا.</p>
-      <p class="note small" id="lutColorNote">البث الواصل غالبًا معالَج بالفعل بملف صورة الكاميرا (Picture Profile). لذلك قد لا يعرض LUT النتيجة النهائية بدقة، وقد يحدث تحويل لوني مزدوج.</p>
+      <p class="note small">البث الواصل قد يكون معالَجًا بالفعل بملف صورة الكاميرا (Picture Profile)، فقد يحدث تحويل لوني مزدوج.</p>
     </div>
   </template>
 
@@ -140,7 +194,7 @@
       <label class="row"><span>قلب المعاينة أفقيًا</span><input type="checkbox" id="flipH"></label>
       <span class="note small">القلب يغيّر عرض الهاتف فقط.</span>
       <div class="hr"></div>
-      <button id="btnSetRef" class="ghost">التقط صورة مرجعية من المعاينة</button>
+      <button id="btnSetRef" class="btn ghost">التقط صورة مرجعية من المعاينة</button>
       <label class="row"><span>عرض الصورة المرجعية</span><input type="checkbox" id="refOn"></label>
       <label class="row"><span>شفافية المرجع</span><input type="range" id="refOpacity" min="10" max="90" value="50"><b id="refOpacityV">50%</b></label>
     </div>
@@ -149,10 +203,10 @@
   <template id="tpl-control">
     <div class="stack">
       <div class="grid2">
-        <button id="btnShot" class="primary big" disabled>التقاط صورة</button>
-        <button id="btnRec" class="rec big" disabled>بدء تسجيل</button>
+        <button id="btnShot" class="btn primary big" disabled>التقاط صورة</button>
+        <button id="btnRec" class="btn rec big" disabled>بدء تسجيل</button>
       </div>
-      <p class="note small" id="controlCaps">سيتم تفعيل الأزرار المدعومة فقط بعد الاتصال واكتشاف قدرات الكاميرا.</p>
+      <p class="note small" id="controlCaps">تُفعَّل الأزرار المدعومة فقط بعد الاتصال واكتشاف قدرات الكاميرا.</p>
       <div class="hr"></div>
       <div class="settingRow"><label>ISO</label><select id="setIso" disabled></select></div>
       <div class="settingRow"><label>سرعة الغالق</label><select id="setShutter" disabled></select></div>
@@ -170,12 +224,12 @@
         <button class="tab" data-tab="projects">المشاريع</button>
       </div>
       <div id="filesBrowse">
-        <button id="btnBrowse" class="primary" disabled>استعراض ملفات الكاميرا</button>
-        <p class="note small">استعراض/استيراد ملفات الكاميرا عبر هذا البروتوكول يتطلّب تبديل الكاميرا لوضع «نقل المحتوى» ولا يعمل أثناء البث الحي. الحالة على a7 III: <b>يحتاج اختبارًا على كاميرا فعلية</b>. الواجهة جاهزة والأمر يُرسَل فعليًا ويُبلّغ بنتيجته دون ادّعاء.</p>
+        <button id="btnBrowse" class="btn primary" disabled>استعراض ملفات الكاميرا</button>
+        <p class="note small">استعراض/استيراد ملفات الكاميرا يتطلّب وضع «نقل المحتوى» ولا يعمل أثناء البث الحي. الحالة على a7 III: <b>يحتاج اختبارًا</b>.</p>
         <div id="browseList"></div>
       </div>
       <div id="filesProjects" class="hidden">
-        <div class="row"><input id="projName" placeholder="اسم المشروع" /><button id="btnAddProj" class="primary">إضافة</button></div>
+        <div class="row"><input id="projName" placeholder="اسم المشروع" /><button id="btnAddProj" class="btn primary">إضافة</button></div>
         <div id="projList"></div>
       </div>
     </div>
@@ -183,16 +237,18 @@
 
   <template id="tpl-settings">
     <div class="stack">
+      <button id="btnDisconnectAll" class="btn danger">قطع الاتصال والرجوع للقائمة</button>
+      <div class="hr"></div>
       <label class="row"><span>إبقاء شاشة الهاتف مضاءة</span><input type="checkbox" id="keepOn" checked></label>
       <label class="row"><span>حجم بث الكاميرا المفضّل</span>
         <select id="lvSize"><option value="L">أكبر (L)</option><option value="M">متوسط (M)</option></select></label>
       <label class="row"><span>معدّل تحديث الأدوات</span>
         <select id="scopeRate"><option value="3">كل 3 إطارات</option><option value="2">كل إطارين</option><option value="1">كل إطار</option></select></label>
       <div class="hr"></div>
-      <button id="btnSaveLayout" class="primary">حفظ توزيع الأدوات الحالي</button>
-      <button id="btnResetLayout" class="ghost">استرجاع الإعدادات الافتراضية</button>
+      <button id="btnSaveLayout" class="btn primary">حفظ توزيع الأدوات</button>
+      <button id="btnResetLayout" class="btn ghost">استرجاع الإعدادات الافتراضية</button>
       <div class="hr"></div>
-      <p class="note small">قياس التأخير: نعرض معدّل الإطارات وزمن المعالجة على الهاتف فقط. تأخير «الزجاج إلى الزجاج» يحتاج قياسًا بطريقة التصفيق/الوميض (مشروحة في README) ولا نزعم أن البث «لحظي بلا تأخير».</p>
+      <p class="note small">قياس التأخير: نعرض معدّل الإطارات وزمن المعالجة على الهاتف فقط. تأخير «الزجاج إلى الزجاج» يحتاج قياسًا بطريقة التصفيق/الوميض (في README).</p>
       <div id="about" class="note small"></div>
     </div>
   </template>

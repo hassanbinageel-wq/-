@@ -36,7 +36,6 @@ class CameraController(
     }
 
     private val appContext = context.applicationContext
-    private val wifi = WifiHelper(appContext)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -66,7 +65,7 @@ class CameraController(
         scope.launch {
             try {
                 emit("status", JSONObject().put("phase", "binding"))
-                wifi.bindToWifi() // قد تكون null إن لم تتوفّر Wi‑Fi — الاكتشاف سيفشل عندها برسالة واضحة
+                WifiConnector.ensureBound(appContext) // إن اتصل عبر QR فهو مربوط أصلًا؛ وإلا يربط أول شبكة Wi‑Fi
 
                 emit("status", JSONObject().put("phase", "discovering"))
                 val dev = SsdpDiscovery.discover(timeoutMs = 5000)
@@ -119,7 +118,7 @@ class CameraController(
         statusJob?.cancel(); statusJob = null
         scope.launch {
             try { api?.stopLiveview() } catch (_: Exception) {}
-            wifi.unbind()
+            WifiConnector.unbind(appContext)
             emit("disconnected", JSONObject())
         }
     }
@@ -270,7 +269,7 @@ class CameraController(
 
     fun release() {
         try { scope.cancel() } catch (_: Exception) {}
-        wifi.unbind()
+        WifiConnector.unbind(appContext)
     }
 
     companion object { private const val TAG = "CameraController" }

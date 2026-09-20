@@ -11,6 +11,7 @@ import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.hsnpmt.sonymonitor.sony.CameraController
+import com.hsnpmt.sonymonitor.sony.WifiConnector
 import org.json.JSONObject
 
 /**
@@ -23,11 +24,40 @@ import org.json.JSONObject
 class SonyBridge(
     private val context: Context,
     private val webView: WebView,
-    private val onKeepScreenOn: (Boolean) -> Unit
+    private val onKeepScreenOn: (Boolean) -> Unit,
+    private val onScanQr: () -> Unit
 ) : CameraController.Callback {
 
     private val main = Handler(Looper.getMainLooper())
     private val controller = CameraController(context, this)
+
+    // -------- الاتصال بشبكة الكاميرا (QR / يدوي) --------
+
+    /** يفتح شاشة مسح رمز QR الخاص بشبكة الكاميرا. النتيجة تصل عبر onWifiScanResult. */
+    @JavascriptInterface fun scanQrConnect() { main.post { onScanQr() } }
+
+    /** اتصال يدوي بشبكة معيّنة (إدخال SSID وكلمة المرور). */
+    @JavascriptInterface fun connectWifi(ssid: String, password: String) = connectWifiInternal(ssid, password)
+
+    /** قطع الاتصال بالشبكة وفكّ الربط. */
+    @JavascriptInterface fun disconnectWifi() {
+        WifiConnector.unbind(context)
+        onEvent("wifi", JSONObject().put("state", "disconnected"))
+    }
+
+    /** يُستدعى من MainActivity بعد مسح QR. */
+    fun onWifiScanResult(ssid: String?, password: String?) {
+        if (ssid.isNullOrBlank()) { onEvent("wifi", JSONObject().put("state", "cancelled")); return }
+        connectWifiInternal(ssid, password ?: "")
+    }
+
+    private fun connectWifiInternal(ssid: String, password: String) {
+        onEvent("wifi", JSONObject().put("state", "connecting").put("ssid", ssid))
+        WifiConnector.connectToSsid(context, ssid, password) { ok, msg ->
+            if (ok) onEvent("wifi", JSONObject().put("state", "connected").put("ssid", ssid))
+            else onEvent("wifi", JSONObject().put("state", "failed").put("message", msg))
+        }
+    }
 
     // -------- أوامر من الويب إلى الأصل --------
 

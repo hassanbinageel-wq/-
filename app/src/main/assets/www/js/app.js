@@ -5,10 +5,15 @@
 (() => {
   const $ = s => document.querySelector(s);
   const el = {
+    welcome: $('#welcome'), app: $('#app'),
+    wcStatus: $('#wcStatus'), wcStatusText: $('#wcStatusText'),
+    manualWifi: $('#manualWifi'),
+    noSignal: $('#noSignal'), noSignalTitle: $('#noSignalTitle'), noSignalMsg: $('#noSignalMsg'),
+    homeBtn: $('#homeBtn'),
     stage: $('#stage'), glcanvas: $('#glcanvas'), flipWrap: $('#flipWrap'),
     guides: $('#guides'), refOverlay: $('#refOverlay'), sourceBadge: $('#sourceBadge'),
     connDot: $('#connDot'), connText: $('#connText'),
-    recDot: $('#recDot'), recTime: $('#recTime'),
+    recDot: $('#recDot'), recTime: $('#recTime'), recGroup: $('#recGroup'),
     fps: $('#fps'), latency: $('#latency'),
     camBatt: $('#camBatt'), phoneBatt: $('#phoneBatt'), camCard: $('#camCard'),
     hideUiBtn: $('#hideUiBtn'), toolrail: $('#toolrail'),
@@ -34,7 +39,8 @@
   let currentModel = 'default';
 
   // FPS
-  let frameCount = 0, fpsWindow = [], lastProcMs = 0;
+  let frameCount = 0, fpsWindow = [], lastProcMs = 0, lastFrameMs = 0;
+  let appVisible = false;
 
   // ============ التهيئة ============
   function boot(){
@@ -45,20 +51,80 @@
     Bridge.setFrameHandler(onNativeFrame);
     wireBridgeEvents();
     wireChrome();
-    // إبقاء الشاشة مضاءة حسب الإعداد
+    wireWelcome();
+    wireManualWifi();
     Bridge.cmd.keepScreenOn(S.keepOn);
     pollPhoneStatus();
     drawGuides();
-    openPanel('connect');
+    setInterval(checkNoSignal, 800);
     requestAnimationFrame(loop);
+  }
+
+  // ============ التنقّل بين شاشة البداية والمونيتور ============
+  function showApp(){
+    appVisible = true;
+    el.welcome.classList.add('hidden');
+    el.manualWifi.classList.add('hidden');
+    el.app.classList.remove('hidden');
+    drawGuides();
+    if(!el.panelHost) return;
+  }
+  function showWelcome(){
+    appVisible = false;
+    el.app.classList.add('hidden');
+    el.welcome.classList.remove('hidden');
+    el.panelHost.classList.add('hidden');
+  }
+
+  function wcStatus(text, spinning){
+    if(!text){ el.wcStatus.classList.add('hidden'); return; }
+    el.wcStatus.classList.remove('hidden');
+    el.wcStatusText.textContent = text;
+    el.wcStatus.querySelector('.spinner').style.visibility = spinning ? 'visible' : 'hidden';
+  }
+
+  // شاشة البداية
+  function wireWelcome(){
+    $('#wcQr').onclick = ()=>{ wcStatus('افتح الكاميرا لمسح رمز QR…', true); Bridge.cmd.scanQrConnect(); };
+    $('#wcManual').onclick = ()=>{ el.manualWifi.classList.remove('hidden'); };
+    $('#wcTest').onclick = ()=>{ setTestMode(true); showApp(); };
+    el.homeBtn.onclick = ()=>{ goHome(); };
+  }
+  function wireManualWifi(){
+    $('#mwClose').onclick = ()=> el.manualWifi.classList.add('hidden');
+    $('#mwDirect').onclick = ()=>{ el.manualWifi.classList.add('hidden'); startCameraConnect(); };
+    $('#mwConnect').onclick = ()=>{
+      const ssid = $('#mwSsid').value.trim();
+      if(!ssid){ toast('أدخل اسم الشبكة'); return; }
+      el.manualWifi.classList.add('hidden');
+      wcStatus('جارٍ الاتصال بشبكة «'+ssid+'»…', true);
+      Bridge.cmd.connectWifi(ssid, $('#mwPass').value);
+    };
+  }
+
+  function startCameraConnect(){
+    setTestMode(false);
+    wcStatus('جارٍ البحث عن الكاميرا…', true);
+    if(!Bridge.hasNative) toast('الطبقة الأصلية غير متاحة (تشغيل على المتصفح؟)');
+    setConn('warn','جارٍ الاتصال…');
+    Bridge.cmd.connect();
+  }
+
+  function goHome(){
+    Bridge.cmd.stopLiveview();
+    Bridge.cmd.disconnect();
+    setTestMode(false);
+    showWelcome();
+    wcStatus(null);
   }
 
   // ============ حلقة العرض (نمط الاختبار فقط يحتاج rAF مستمر) ============
   function loop(){
-    if(testMode){
+    if(testMode && appVisible){
       const cv = TestPattern.draw();
       GL.uploadFrame(cv, TestPattern.width, TestPattern.height);
       GL.render();
+      lastFrameMs = performance.now();
       tickFps(performance.now());
       maybeScopes();
     }
@@ -72,9 +138,28 @@
     GL.uploadFrame(f.bitmap, f.bitmap.width, f.bitmap.height);
     GL.render();
     lastProcMs = (performance.now()-t) + (f.decodeMs||0);
+    lastFrameMs = t;
+    el.noSignal.classList.add('hidden');
     tickFps(t);
     maybeScopes();
     if(f.bitmap.close) f.bitmap.close();
+  }
+
+  // يظهر حالة «لا إشارة» إذا لم تصل إطارات لفترة والمونيتور ظاهر
+  function checkNoSignal(){
+    if(!appVisible || testMode){ el.noSignal.classList.add('hidden'); return; }
+    const stale = performance.now() - lastFrameMs > 2500;
+    if(stale && connected){
+      el.noSignalTitle.textContent = 'في انتظار البثّ الحيّ…';
+      el.noSignalMsg.textContent = caps && !caps.hasLiveview
+        ? 'هذه الكاميرا لا تُتيح البثّ الحيّ عبر هذا الاتصال (حسب قدراتها المكتشَفة).'
+        : 'تأكّد أن الكاميرا في وضع التحكّم بالهاتف والبثّ مفعّل.';
+      el.noSignal.classList.remove('hidden');
+    } else if(stale && !connected){
+      el.noSignalTitle.textContent = 'غير متصل بالكاميرا';
+      el.noSignalMsg.textContent = 'ارجع للقائمة وأعد الاتصال.';
+      el.noSignal.classList.remove('hidden');
+    }
   }
 
   let scopeFrameCtr = 0;
@@ -96,22 +181,31 @@
 
   // ============ أحداث الأصل ============
   function wireBridgeEvents(){
+    // أحداث الاتصال بشبكة Wi‑Fi (QR / يدوي)
+    Bridge.on('wifi', d=>{
+      if(d.state==='connecting') wcStatus('جارٍ الاتصال بشبكة الكاميرا…', true);
+      else if(d.state==='connected'){ wcStatus('اتصلت بالشبكة ✓ — جارٍ البحث عن الكاميرا…', true); startCameraConnect(); }
+      else if(d.state==='failed'){ wcStatus('تعذّر الاتصال: '+(d.message||''), false); toast(d.message||'تعذّر الاتصال بالشبكة'); }
+      else if(d.state==='cancelled') wcStatus(null);
+    });
     Bridge.on('status', d=>{
-      if(d.phase==='binding') setConn('warn','جارٍ الربط بالشبكة…');
-      if(d.phase==='discovering') setConn('warn','جارٍ البحث عن الكاميرا…');
+      if(d.phase==='binding'){ setConn('warn','جارٍ الربط بالشبكة…'); }
+      if(d.phase==='discovering'){ setConn('warn','جارٍ البحث عن الكاميرا…'); wcStatus('جارٍ البحث عن الكاميرا…', true); }
     });
     Bridge.on('connected', d=>{
       caps = d; connected = true; currentModel = d.model || 'default';
       setConn('on', 'متصل: ' + (d.model||'كاميرا'));
-      renderCaps(d);
+      wcStatus(null);
+      showApp();
       applyCapsToControls(d);
-      // ابدأ البث تلقائيًا إن كان مدعومًا
       if(d.hasLiveview){ Bridge.cmd.startLiveview(); }
       else toast('هذه الكاميرا لا تُتيح البث الحي عبر هذا الاتصال.');
       loadFavLutForContext();
+      const summary = 'قدرات '+(d.model||'الكاميرا')+': بث='+yn(d.hasLiveview)+'، التقاط='+yn(d.hasTakePicture)+'، فيديو='+yn(d.hasMovieRec);
+      toast(summary);
     });
     Bridge.on('disconnected', ()=>{ connected=false; caps=null; setConn('off','غير متصل'); disableControls(); });
-    Bridge.on('error', d=>{ setConn('off', d.message||'خطأ'); toast(d.message||'خطأ'); });
+    Bridge.on('error', d=>{ setConn('off', d.message||'خطأ'); wcStatus('خطأ: '+(d.message||''), false); toast(d.message||'خطأ'); });
     Bridge.on('stream', d=>{
       if(d.state==='connected') setConn('on', 'البث حي');
       else if(d.state==='reconnecting') setConn('warn', `انقطع البث — إعادة محاولة (${d.attempt})…`);
@@ -150,8 +244,7 @@
   }
 
   function setRecording(on){
-    el.recDot.classList.toggle('hidden', !on);
-    el.recTime.classList.toggle('hidden', !on);
+    el.recGroup.classList.toggle('hidden', !on);
     const recBtn = $('#btnRec');
     if(recBtn){ recBtn.classList.toggle('recording', on); recBtn.textContent = on?'إيقاف التسجيل':'بدء تسجيل'; }
     if(on && !recTimer){
@@ -201,8 +294,8 @@
     el.panelBody.appendChild(tpl.content.cloneNode(true));
     el.panelHost.classList.remove('hidden');
     [...el.toolrail.children].forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
-    el.panelTitle.textContent = ({connect:'الاتصال',scopes:'أدوات المراقبة',lut:'LUT للمعاينة',focus:'التركيز والتأطير',control:'التحكم بالكاميرا',files:'الملفات والمشاريع',settings:'الإعدادات'})[name]||'لوحة';
-    ({connect:wireConnect,scopes:wireScopes,lut:wireLut,focus:wireFocus,control:wireControl,files:wireFiles,settings:wireSettings})[name]();
+    el.panelTitle.textContent = ({scopes:'أدوات المراقبة',lut:'LUT للمعاينة',focus:'التركيز والتأطير',control:'التحكم بالكاميرا',files:'الملفات والمشاريع',settings:'الإعدادات'})[name]||'لوحة';
+    ({scopes:wireScopes,lut:wireLut,focus:wireFocus,control:wireControl,files:wireFiles,settings:wireSettings})[name]();
   }
 
   function wireChrome(){
@@ -221,30 +314,10 @@
     return false;
   };
 
-  // -------- لوحة الاتصال --------
-  function wireConnect(){
-    const bC = $('#btnConnect'), bD = $('#btnDisconnect'), chk = $('#chkTest');
-    bC.onclick = ()=>{ if(!Bridge.hasNative){ toast('الطبقة الأصلية غير متاحة (تشغيل على المتصفح؟)'); } setConn('warn','جارٍ الاتصال…'); Bridge.cmd.connect(); };
-    bD.onclick = ()=>{ Bridge.cmd.disconnect(); };
-    chk.checked = testMode;
-    chk.onchange = ()=>{ setTestMode(chk.checked); };
-    if(caps) renderCaps(caps);
-  }
   function setTestMode(on){
     testMode = on;
     el.stage.classList.toggle('testmode', on);
-    if(on){ toast('تم تفعيل نمط الاختبار — ليس بثًا من الكاميرا'); }
-  }
-  function renderCaps(d){
-    const box = $('#capBox'), list = $('#capList');
-    if(!box) return;
-    box.classList.remove('hidden'); list.innerHTML='';
-    const rows = [
-      ['البث الحي', d.hasLiveview],['التقاط صور', d.hasTakePicture],['تسجيل فيديو', d.hasMovieRec],
-      ['ضبط ISO', d.canSetIso],['ضبط الغالق', d.canSetShutter],['ضبط الفتحة', d.canSetFNumber],
-      ['تعويض التعريض', d.canSetExposureComp],['توازن الأبيض', d.canSetWhiteBalance],['استعراض الملفات', d.hasAvContent]
-    ];
-    rows.forEach(([n,ok])=>{ const li=document.createElement('li'); li.className=ok?'yes':'no'; li.textContent=n+': '+(ok?'مدعوم':'غير متاح عبر هذا الاتصال'); list.appendChild(li); });
+    if(on){ el.noSignal.classList.add('hidden'); toast('نمط اختبار — ليس بثًا من الكاميرا'); }
   }
 
   // -------- لوحة الأدوات --------
@@ -407,12 +480,13 @@
 
   // -------- لوحة الإعدادات --------
   function wireSettings(){
+    $('#btnDisconnectAll').onclick=()=>{ goHome(); };
     $('#keepOn').checked=S.keepOn; $('#keepOn').onchange=e=>{ S.keepOn=e.target.checked; persist(); Bridge.cmd.keepScreenOn(S.keepOn); };
     const lv=$('#lvSize'); lv.value=S.lvSize; lv.onchange=()=>{ S.lvSize=lv.value; persist(); };
     const sr=$('#scopeRate'); sr.value=String(S.scopeRate); sr.onchange=()=>{ S.scopeRate=+sr.value; persist(); };
     $('#btnSaveLayout').onclick=()=>{ persist(); toast('حُفظ توزيع الأدوات'); };
     $('#btnResetLayout').onclick=()=>{ S=Object.assign({}, defaults); persist(); applyParamsToGL(); drawGuides(); toast('استُرجعت الإعدادات الافتراضية'); openPanel('settings'); };
-    $('#about').innerHTML = 'مونيتور Sony — نسخة أساس 0.1. الاتصال عبر Sony ScalarWebAPI (Camera Remote API). البث الحي والتقاط الصور مؤكدان بالبروتوكول ويحتاجان تأكيدًا على a7 III؛ وظائف أخرى مصنّفة في COMPATIBILITY.md.';
+    $('#about').innerHTML = 'مونيتور Sony — النسخة 0.2. الاتصال عبر Sony ScalarWebAPI (Camera Remote API) بعد الانضمام لشبكة الكاميرا (QR أو يدوي). البث الحي والالتقاط مبنيان على البروتوكول ويحتاجان تأكيدًا على a7 III؛ التفاصيل في COMPATIBILITY.md.';
   }
 
   // ============ أدلة التأطير (SVG) ============

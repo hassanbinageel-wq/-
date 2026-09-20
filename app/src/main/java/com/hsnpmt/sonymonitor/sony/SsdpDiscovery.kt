@@ -19,7 +19,7 @@ import javax.xml.parsers.DocumentBuilderFactory
  *
  * مرجع البروتوكول: Sony Camera Remote API — "Device Discovery".
  * ملاحظة صدق: الاتصال يفترض أن الهاتف متصل مسبقًا بشبكة Wi‑Fi الخاصة بالكاميرا (وضع نقطة الوصول)،
- * وأن العملية مربوطة بتلك الشبكة (انظر WifiHelper).
+ * وأن العملية مربوطة بتلك الشبكة (انظر WifiConnector).
  */
 object SsdpDiscovery {
 
