@@ -11,7 +11,7 @@
     noSignal: $('#noSignal'), noSignalTitle: $('#noSignalTitle'), noSignalMsg: $('#noSignalMsg'),
     diag: $('#diag'), diagSummary: $('#diagSummary'), diagBody: $('#diagBody'),
     homeBtn: $('#homeBtn'),
-    stage: $('#stage'), glcanvas: $('#glcanvas'), flipWrap: $('#flipWrap'),
+    stage: $('#stage'), glcanvas: $('#glcanvas'), view: $('#view'), flipWrap: $('#flipWrap'),
     guides: $('#guides'), refOverlay: $('#refOverlay'), sourceBadge: $('#sourceBadge'),
     connDot: $('#connDot'), connText: $('#connText'),
     recDot: $('#recDot'), recTime: $('#recTime'), recGroup: $('#recGroup'),
@@ -65,7 +65,7 @@
       ['حالة البث', lastStream],
       ['إطارات وصلت', String(framesTotal)],
       ['حجم آخر إطار', lastFrameSize],
-      ['حجم لوح العرض', (el.glcanvas.width||0)+'×'+(el.glcanvas.height||0)+' (عرض '+(el.glcanvas.clientWidth||0)+'×'+(el.glcanvas.clientHeight||0)+')'],
+      ['حجم لوح العرض', (el.view.width||0)+'×'+(el.view.height||0)+' (عرض '+(el.view.clientWidth||0)+'×'+(el.view.clientHeight||0)+')'],
       ['وضع الاختبار', testMode ? 'مُفعّل' : 'لا']
     ];
     el.diagSummary.innerHTML = rows.map(([k,v])=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`).join('');
@@ -160,13 +160,21 @@
 
   // إطار مُعلّق يُعرض داخل rAF (ضروري ليُركّبه WebView على الشاشة)
   let pendingFrame = null;
-  // لوح 2D وسيط — أكثر مصادر نسيج WebGL موثوقية داخل WebView
+  // لوح 2D وسيط لرفع النسيج — أوثق مصدر في WebView
   const scratch = document.createElement('canvas');
   const sctx = scratch.getContext('2d');
   function toSource(bmp){
     if(scratch.width !== bmp.width || scratch.height !== bmp.height){ scratch.width = bmp.width; scratch.height = bmp.height; }
     sctx.drawImage(bmp, 0, 0);
     return scratch;
+  }
+  // لوح العرض المرئي 2D — ننسخ إليه ناتج WebGL (حلّ مشكلة عدم تركيب لوح WebGL في WebView)
+  const vctx = el.view.getContext('2d');
+  function blit(){
+    const g = el.glcanvas;
+    if(!g.width || !g.height) return;
+    if(el.view.width !== g.width || el.view.height !== g.height){ el.view.width = g.width; el.view.height = g.height; }
+    try { vctx.drawImage(g, 0, 0); } catch(e){}
   }
 
   // ============ حلقة العرض (كل الرسم داخل rAF) ============
@@ -176,6 +184,7 @@
         const cv = TestPattern.draw();
         GL.uploadFrame(cv, TestPattern.width, TestPattern.height);
         GL.render();
+        blit();
         lastFrameMs = performance.now();
         tickFps(performance.now());
         maybeScopes();
@@ -185,6 +194,7 @@
         try {
           GL.uploadFrame(toSource(bmp), bmp.width, bmp.height);
           GL.render();
+          blit();
         } catch(e){ dlog('خطأ رسم: '+e.message); }
         lastProcMs = (performance.now()-t) + dec;
         lastFrameMs = t;
@@ -572,8 +582,8 @@
   // ============ أدلة التأطير (SVG) ============
   function drawGuides(){
     const svg=el.guides;
-    // اضبط SVG فوق مستطيل عرض الكانفس
-    const cr=el.glcanvas.getBoundingClientRect(), sr=el.stage.getBoundingClientRect();
+    // اضبط SVG فوق مستطيل عرض لوح العرض المرئي
+    const cr=el.view.getBoundingClientRect(), sr=el.stage.getBoundingClientRect();
     svg.style.left=(cr.left-sr.left)+'px'; svg.style.top=(cr.top-sr.top)+'px';
     svg.style.width=cr.width+'px'; svg.style.height=cr.height+'px';
     svg.setAttribute('viewBox','0 0 1000 1000'); svg.setAttribute('preserveAspectRatio','none');
