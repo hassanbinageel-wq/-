@@ -21,6 +21,10 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # نحدّد الحزم المطلوبة فقط ونتجنّب حزمة "tools" القديمة
+          # التي أزيلت من صور المشغّل الحديثة وتسبّب فشل الإعداد.
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
       - name: Generate Gradle wrapper
         run: gradle wrapper --gradle-version 8.7 --no-daemon
