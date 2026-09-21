@@ -25,7 +25,7 @@
   // الحالة
   const defaults = {
     lutOn:false, lutIntensity:100, activeLutId:null,
-    zebra:false, zebraTh:95, falseColor:false, clipWarn:true, crushWarn:false, crushTh:4,
+    zebra:false, zebraTh:95, falseColor:false, clipWarn:false, crushWarn:false, crushTh:4,
     hist:true, histRGB:false, wave:false, parade:false, scopeSource:'pre', scopeRate:3,
     zoom:100, peaking:false, peakColor:'r', peakStr:30,
     gThirds:false, gCenter:false, gAspect:'', gSafe:false, gOpacity:60,
@@ -45,7 +45,7 @@
 
   // تشخيص
   const diag = [];
-  let framesTotal = 0, lastCaps = null, lastStream = '—', lastWifi = '—', lastFrameSize = '—';
+  let framesTotal = 0, lastCaps = null, lastStream = '—', lastWifi = '—', lastFrameSize = '—', lastDisplayPath = '—';
   function dlog(s){
     const line = '['+new Date().toLocaleTimeString('en-GB')+'] '+s;
     diag.push(line);
@@ -65,6 +65,7 @@
       ['حالة البث', lastStream],
       ['إطارات وصلت', String(framesTotal)],
       ['حجم آخر إطار', lastFrameSize],
+      ['مسار العرض', lastDisplayPath],
       ['حجم لوح العرض', (el.view.width||0)+'×'+(el.view.height||0)+' (عرض '+(el.view.clientWidth||0)+'×'+(el.view.clientHeight||0)+')'],
       ['وضع الاختبار', testMode ? 'مُفعّل' : 'لا']
     ];
@@ -168,7 +169,7 @@
     sctx.drawImage(bmp, 0, 0);
     return scratch;
   }
-  // لوح العرض المرئي 2D — ننسخ إليه ناتج WebGL (حلّ مشكلة عدم تركيب لوح WebGL في WebView)
+  // لوح العرض المرئي 2D
   const vctx = el.view.getContext('2d');
   function blit(){
     const g = el.glcanvas;
@@ -176,33 +177,66 @@
     if(el.view.width !== g.width || el.view.height !== g.height){ el.view.width = g.width; el.view.height = g.height; }
     try { vctx.drawImage(g, 0, 0); } catch(e){}
   }
+  // رسم الإطار الخام مباشرةً إلى لوح 2D (مضمون الظهور في WebView) — المسار الافتراضي
+  function draw2DDirect(src, w, h){
+    if(el.view.width !== w || el.view.height !== h){ el.view.width = w; el.view.height = h; }
+    try { vctx.drawImage(src, 0, 0, w, h); } catch(e){ dlog('خطأ رسم 2D: '+e.message); }
+  }
+  // نستخدم WebGL فقط عند تفعيل مؤثّر يحتاجه؛ وإلا فالعرض 2D مباشر
+  function useGLEffects(){
+    return S.lutOn || S.falseColor || S.zebra || S.peaking || S.clipWarn || S.crushWarn || (S.zoom > 100);
+  }
+  // حساب الأدوات من إطار مصغّر عبر 2D getImageData — مستقلّ عن WebGL
+  const scopeCv = document.createElement('canvas');
+  const scctx = scopeCv.getContext('2d', { willReadFrequently: true });
+  let scopeFrameCtr = 0;
+  function maybeScopes2D(src, w, h){
+    if(!(S.hist||S.histRGB||S.wave||S.parade)) return;
+    if((++scopeFrameCtr % Math.max(1,S.scopeRate)) !== 0) return;
+    const sw = 256, sh = Math.max(48, Math.round(256 * h / w));
+    if(scopeCv.width !== sw || scopeCv.height !== sh){ scopeCv.width = sw; scopeCv.height = sh; }
+    try {
+      scctx.drawImage(src, 0, 0, sw, sh);
+      const img = scctx.getImageData(0, 0, sw, sh);
+      Scopes.update({ width: sw, height: sh, pixels: img.data });
+    } catch(e){}
+  }
 
   // ============ حلقة العرض (كل الرسم داخل rAF) ============
   function loop(){
     if(appVisible){
       if(testMode){
         const cv = TestPattern.draw();
-        GL.uploadFrame(cv, TestPattern.width, TestPattern.height);
-        GL.render();
-        blit();
+        if(useGLEffects()){
+          try { GL.uploadFrame(cv, TestPattern.width, TestPattern.height); GL.render(); blit(); }
+          catch(e){ draw2DDirect(cv, TestPattern.width, TestPattern.height); }
+        } else {
+          draw2DDirect(cv, TestPattern.width, TestPattern.height);
+        }
         lastFrameMs = performance.now();
         tickFps(performance.now());
-        maybeScopes();
+        maybeScopes2D(cv, TestPattern.width, TestPattern.height);
       } else if(pendingFrame){
         const t = performance.now();
         const bmp = pendingFrame.bitmap, dec = pendingFrame.decodeMs;
+        const w = bmp.width, h = bmp.height;
         try {
-          GL.uploadFrame(toSource(bmp), bmp.width, bmp.height);
-          GL.render();
-          blit();
-        } catch(e){ dlog('خطأ رسم: '+e.message); }
+          if(useGLEffects()){
+            GL.uploadFrame(toSource(bmp), w, h);
+            GL.render();
+            blit();
+          } else {
+            draw2DDirect(bmp, w, h);   // المسار الافتراضي: عرض مباشر مضمون
+          }
+          lastDisplayPath = useGLEffects() ? 'WebGL + LUT/أدوات' : '2D مباشر';
+        } catch(e){ dlog('خطأ رسم: '+e.message); try { draw2DDirect(bmp, w, h); lastDisplayPath='2D مباشر (بعد فشل WebGL)'; } catch(_){} }
         lastProcMs = (performance.now()-t) + dec;
         lastFrameMs = t;
         el.noSignal.classList.add('hidden');
+        maybeScopes2D(bmp, w, h);
         if(bmp.close) bmp.close();
         pendingFrame = null;
         tickFps(t);
-        maybeScopes();
       }
     }
     requestAnimationFrame(loop);
@@ -235,13 +269,6 @@
     }
   }
 
-  let scopeFrameCtr = 0;
-  function maybeScopes(){
-    if(!(S.hist||S.histRGB||S.wave||S.parade)) return;
-    if((++scopeFrameCtr % Math.max(1,S.scopeRate)) !== 0) return;
-    const data = GL.readScopePixels(S.scopeSource === 'post');
-    if(data) Scopes.update(data);
-  }
 
   function tickFps(t){
     fpsWindow.push(t);
@@ -489,7 +516,7 @@
     bindChk('#gSafe','gSafe', drawGuides);
     bindRange('#gOpacity','#gOpacityV','gOpacity', v=>v+'%', drawGuides);
     bindChk('#flipH','flipH', ()=>applyParamsToGL());
-    $('#btnSetRef').onclick = ()=>{ const url=GL.captureDataURL(); if(url){ refImageURL=url; el.refOverlay.src=url; S.refOn=true; persist(); applyParamsToGL(); $('#refOn').checked=true; toast('حُفظت صورة معاينة مرجعية (ليست ملف الكاميرا)'); } };
+    $('#btnSetRef').onclick = ()=>{ let url=null; try{ url=el.view.toDataURL('image/jpeg',0.9); }catch(e){} if(url){ refImageURL=url; el.refOverlay.src=url; S.refOn=true; persist(); applyParamsToGL(); $('#refOn').checked=true; toast('حُفظت صورة معاينة مرجعية (ليست ملف الكاميرا)'); } };
     bindChk('#refOn','refOn', ()=>applyParamsToGL());
     bindRange('#refOpacity','#refOpacityV','refOpacity', v=>v+'%', ()=>applyParamsToGL());
   }

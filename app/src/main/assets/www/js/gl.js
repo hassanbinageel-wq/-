@@ -42,13 +42,13 @@ const GL = (() => {
 
   const FRAG = `#version 300 es
   precision highp float;
-  precision highp sampler3D;
   in vec2 vUv;
   out vec4 outColor;
   uniform sampler2D uFrame;
-  uniform sampler3D uLut;
-  uniform vec2 uTexel;      // 1/width, 1/height
-  uniform int uScopePass;   // 1 = تمريرة الأدوات (بلا مؤثرات/تكبير)
+  uniform sampler2D uLut;    // LUT كأطلس ثنائي الأبعاد (عرض N*N، ارتفاع N)
+  uniform float uLutN;       // حجم LUT
+  uniform vec2 uTexel;       // 1/width, 1/height
+  uniform int uScopePass;    // 1 = تمريرة الأدوات (بلا مؤثرات/تكبير)
   uniform int uLutOn;
   uniform float uLutIntensity;
   uniform int uZebra; uniform float uZebraTh;
@@ -58,8 +58,19 @@ const GL = (() => {
 
   float luma(vec3 c){ return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 
+  // LUT ثلاثي عبر أطلس 2D — بديل موثوق لـ sampler3D (الذي يفشل على بعض معالجات Adreno في WebView)
   vec3 applyLut(vec3 c){
-    vec3 lc = texture(uLut, clamp(c, 0.0, 1.0)).rgb;
+    c = clamp(c, 0.0, 1.0);
+    float N = uLutN;
+    float slice = c.b * (N - 1.0);
+    float b0 = floor(slice);
+    float b1 = min(b0 + 1.0, N - 1.0);
+    float f = slice - b0;
+    float gx = clamp(c.r * (N - 1.0) + 0.5, 0.5, N - 0.5);
+    float gy = clamp(c.g * (N - 1.0) + 0.5, 0.5, N - 0.5);
+    vec2 uv0 = vec2((b0 * N + gx) / (N * N), gy / N);
+    vec2 uv1 = vec2((b1 * N + gx) / (N * N), gy / N);
+    vec3 lc = mix(texture(uLut, uv0).rgb, texture(uLut, uv1).rgb, f);
     return mix(c, lc, uLutIntensity);
   }
 
@@ -151,7 +162,7 @@ const GL = (() => {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     // مواقع الـ uniforms
-    ['uFrame','uLut','uTexel','uScopePass','uLutOn','uLutIntensity','uZebra','uZebraTh',
+    ['uFrame','uLut','uLutN','uTexel','uScopePass','uLutOn','uLutIntensity','uZebra','uZebraTh',
      'uFalse','uPeak','uPeakColor','uPeakStr','uClip','uCrush','uCrushTh','uZoom'].forEach(n=>{
       u[n] = gl.getUniformLocation(prog, n);
     });
@@ -182,25 +193,31 @@ const GL = (() => {
   }
 
   function setLut(lut){
-    lutSize = lut.size;
+    const N = lutSize = lut.size;
     if(!lutTex) lutTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_3D, lutTex);
-    // نحوّل RGB float إلى RGBA8
-    const n = lutSize*lutSize*lutSize;
-    const data = new Uint8Array(n*4);
-    for(let i=0;i<n;i++){
-      data[i*4+0] = Math.round(Math.min(1,Math.max(0,lut.rgb[i*3+0]))*255);
-      data[i*4+1] = Math.round(Math.min(1,Math.max(0,lut.rgb[i*3+1]))*255);
-      data[i*4+2] = Math.round(Math.min(1,Math.max(0,lut.rgb[i*3+2]))*255);
-      data[i*4+3] = 255;
+    gl.bindTexture(gl.TEXTURE_2D, lutTex);
+    // أطلس 2D: العرض = N*N (شرائح زرقاء أفقيًا)، الارتفاع = N
+    const W = N*N, H = N;
+    const data = new Uint8Array(W*H*4);
+    for(let b=0;b<N;b++){
+      for(let g=0;g<N;g++){
+        for(let r=0;r<N;r++){
+          const src = (r + g*N + b*N*N)*3;   // ترتيب rgb: الأحمر أسرع
+          const x = b*N + r, yy = g;
+          const dst = (yy*W + x)*4;
+          data[dst+0] = Math.round(Math.min(1,Math.max(0,lut.rgb[src+0]))*255);
+          data[dst+1] = Math.round(Math.min(1,Math.max(0,lut.rgb[src+1]))*255);
+          data[dst+2] = Math.round(Math.min(1,Math.max(0,lut.rgb[src+2]))*255);
+          data[dst+3] = 255;
+        }
+      }
     }
-    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, lutSize, lutSize, lutSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
 
   function uploadFrame(src, w, h){
@@ -226,7 +243,8 @@ const GL = (() => {
     gl.useProgram(prog);
     gl.bindVertexArray(quadVao);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, frameTex); gl.uniform1i(u.uFrame, 0);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_3D, lutTex); gl.uniform1i(u.uLut, 1);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.uniform1i(u.uLut, 1);
+    gl.uniform1f(u.uLutN, lutSize);
     gl.uniform2f(u.uTexel, 1/Math.max(1,frameW), 1/Math.max(1,frameH));
     gl.uniform1i(u.uScopePass, scopePass);
     gl.uniform1i(u.uLutOn, params.lutOn?1:0);
@@ -261,7 +279,8 @@ const GL = (() => {
     gl.useProgram(prog);
     gl.bindVertexArray(quadVao);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, frameTex); gl.uniform1i(u.uFrame,0);
-    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_3D, lutTex); gl.uniform1i(u.uLut,1);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lutTex); gl.uniform1i(u.uLut,1);
+    gl.uniform1f(u.uLutN, lutSize);
     gl.uniform1i(u.uScopePass, 1);
     gl.uniform1i(u.uLutOn, (afterLut && params.lutOn)?1:0);
     gl.uniform1f(u.uLutIntensity, params.lutIntensity);
