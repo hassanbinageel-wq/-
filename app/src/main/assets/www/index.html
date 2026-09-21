@@ -137,6 +137,13 @@
 
     <!-- الشريط السفلي: توغلات سريعة + أزرار التصوير -->
     <footer id="dock">
+      <div class="ctrlrow">
+        <button class="cchip" data-ctl="iso"><small>ISO</small><b id="ccISO">—</b></button>
+        <button class="cchip" data-ctl="fnumber"><small>فتحة</small><b id="ccF">—</b></button>
+        <button class="cchip" data-ctl="shutter"><small>شتر</small><b id="ccSS">—</b></button>
+        <button class="cchip" data-ctl="whitebalance"><small>WB</small><b id="ccWB">—</b></button>
+        <button class="cchip" data-ctl="exposure"><small>EV</small><b id="ccEV">0</b></button>
+      </div>
       <div class="quickrow">
         <button class="qbtn" data-q="hist">Hist</button>
         <button class="qbtn" data-q="wave">Wave</button>
@@ -169,6 +176,12 @@
     <section id="panelHost" class="hidden">
       <div class="panelHeader"><span id="panelTitle">لوحة</span><button id="panelClose" class="iconbtn"><svg class="ic"><use href="#ic-close"/></svg></button></div>
       <div id="panelBody"></div>
+    </section>
+
+    <!-- منتقي قيمة الإعداد -->
+    <section id="valuePicker" class="vp hidden">
+      <div class="vp-head"><b id="vpTitle">إعداد</b><button id="vpClose" class="iconbtn"><svg class="ic"><use href="#ic-close"/></svg></button></div>
+      <div id="vpList" class="vp-list"></div>
     </section>
 
     <div id="toast" class="hidden"></div>
@@ -293,6 +306,7 @@
       <label class="row"><span>إبقاء شاشة الهاتف مضاءة</span><input type="checkbox" id="keepOn" checked></label>
       <label class="row"><span>حجم بث الكاميرا المفضّل</span>
         <select id="lvSize"><option value="L">أكبر (L)</option><option value="M">متوسط (M)</option></select></label>
+      <div class="settingRow"><label>وضع/جودة التسجيل</label><select id="setMovieQuality" disabled></select></div>
       <label class="row"><span>معدّل تحديث الأدوات</span>
         <select id="scopeRate"><option value="3">كل 3 إطارات</option><option value="2">كل إطارين</option><option value="1">كل إطار</option></select></label>
       <div class="hr"></div>

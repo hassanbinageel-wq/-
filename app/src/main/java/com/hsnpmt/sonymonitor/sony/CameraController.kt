@@ -105,6 +105,12 @@ class CameraController(
                     .put("canSetFNumber", capabilities.contains("setFNumber"))
                     .put("canSetExposureComp", capabilities.contains("setExposureCompensation"))
                     .put("canSetWhiteBalance", capabilities.contains("setWhiteBalance"))
+                if (capabilities.contains("getAvailableWhiteBalance")) {
+                    try { caps.put("wbCandidates", JSONArray(client.getAvailableWhiteBalance())) } catch (_: Exception) {}
+                }
+                if (capabilities.contains("setMovieQuality")) {
+                    try { caps.put("movieQualityCandidates", JSONArray(client.getAvailableStringList("getAvailableMovieQuality"))) } catch (_: Exception) {}
+                }
                 emit("connected", caps)
 
                 startStatusPolling()
@@ -213,19 +219,34 @@ class CameraController(
 
     // -------- التحكم --------
 
-    fun takePicture() = guarded("actTakePicture", "التقاط الصور") {
+    // نحاول التنفيذ مباشرةً (قائمة الوظائف المتاحة تتغيّر مع وضع الكاميرا)،
+    // ونبلّغ بالنتيجة أو الخطأ الحقيقي من الكاميرا — أدق من الاعتماد على لقطة قديمة.
+    fun takePicture() = attempt("التقاط الصور") {
         val urls = api!!.actTakePicture()
         emit("action", JSONObject().put("action", "takePicture").put("ok", true).put("postview", JSONArray(urls)))
     }
 
-    fun startMovieRec() = guarded("startMovieRec", "تسجيل الفيديو") {
+    fun startMovieRec() = attempt("تسجيل الفيديو") {
         api!!.startMovieRec()
         emit("action", JSONObject().put("action", "startMovieRec").put("ok", true))
     }
 
-    fun stopMovieRec() = guarded("stopMovieRec", "إيقاف التسجيل") {
+    fun stopMovieRec() = attempt("إيقاف التسجيل") {
         api!!.stopMovieRec()
         emit("action", JSONObject().put("action", "stopMovieRec").put("ok", true))
+    }
+
+    private fun attempt(label: String, block: () -> Unit) {
+        scope.launch {
+            if (api == null) {
+                emit("action", JSONObject().put("ok", false).put("label", label).put("message", "غير متصل بالكاميرا"))
+                return@launch
+            }
+            try { block() } catch (e: Exception) {
+                emit("action", JSONObject().put("ok", false).put("label", label)
+                    .put("message", (e.message ?: "فشل التنفيذ") + " — تأكّد أن دايل الكاميرا في الوضع المناسب (صورة/فيديو)."))
+            }
+        }
     }
 
     fun setSetting(kind: String, value: String) = guarded(apiForKind(kind), "ضبط $kind") {
@@ -236,6 +257,7 @@ class CameraController(
             "fnumber" -> c.setFNumber(value)
             "exposure" -> c.setExposureCompensation(value.toInt())
             "whitebalance" -> c.setWhiteBalance(value, false, 0)
+            "moviequality" -> c.setMovieQuality(value)
             else -> throw IllegalArgumentException("إعداد غير معروف: $kind")
         }
         emit("action", JSONObject().put("action", "set").put("kind", kind).put("value", value).put("ok", true))
@@ -247,6 +269,7 @@ class CameraController(
         "fnumber" -> "setFNumber"
         "exposure" -> "setExposureCompensation"
         "whitebalance" -> "setWhiteBalance"
+        "moviequality" -> "setMovieQuality"
         else -> kind
     }
 

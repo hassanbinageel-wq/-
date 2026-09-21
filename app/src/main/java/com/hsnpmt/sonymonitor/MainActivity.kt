@@ -4,9 +4,11 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -27,6 +29,15 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private var bridge: SonyBridge? = null
+
+    // اختيار الملفات من الويب (استيراد LUT ‎.cube ونصوص التيليبرومبتر)
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private val fileChooserLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val cb = filePathCallback; filePathCallback = null
+        cb?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data))
+    }
 
     // نتيجة مسح رمز QR → تسليم SSID/كلمة المرور للجسر لإتمام الاتصال بالشبكة
     private val qrLauncher = registerForActivityResult(
@@ -62,7 +73,23 @@ class MainActivity : AppCompatActivity() {
             // تمكين WebGL / تسريع عتادي مفعّل افتراضيًا على مستوى النافذة
         }
         webView.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
-        webView.webChromeClient = WebChromeClient()
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                view: WebView?,
+                callback: ValueCallback<Array<Uri>>?,
+                params: FileChooserParams?
+            ): Boolean {
+                filePathCallback?.onReceiveValue(null)
+                filePathCallback = callback
+                return try {
+                    fileChooserLauncher.launch(params?.createIntent())
+                    true
+                } catch (e: Exception) {
+                    filePathCallback = null
+                    false
+                }
+            }
+        }
 
         val b = SonyBridge(
             context = this,

@@ -135,6 +135,23 @@ class ScalarWebApiClient(
 
     fun startMovieRec() { call("startMovieRec") }
     fun stopMovieRec() { call("stopMovieRec") }
+    fun setMovieQuality(value: String) { call("setMovieQuality", JSONArray().put(value)) }
+
+    /** مساعد عام: يعيد المصفوفة الموجودة في result[1] كقائمة نصوص (لقوائم getAvailable*). */
+    fun getAvailableStringList(method: String): List<String> {
+        return try {
+            val r = call(method)
+            val out = ArrayList<String>()
+            if (r.length() > 1) {
+                val arr = r.optJSONArray(1) ?: JSONArray()
+                for (i in 0 until arr.length()) {
+                    val v = arr.optString(i)
+                    if (v.isNotEmpty()) out.add(v)
+                }
+            }
+            out
+        } catch (e: ApiError) { emptyList() }
+    }
 
     // ضبط الإعدادات — تُستدعى فقط إن كانت ضمن getAvailableApiList
     fun setIso(value: String) { call("setIsoSpeedRate", JSONArray().put(value)) }
@@ -143,6 +160,23 @@ class ScalarWebApiClient(
     fun setExposureCompensation(indexValue: Int) { call("setExposureCompensation", JSONArray().put(indexValue)) }
     fun setWhiteBalance(mode: String, colorTempEnabled: Boolean, colorTemp: Int) {
         call("setWhiteBalance", JSONArray().put(mode).put(colorTempEnabled).put(colorTemp))
+    }
+
+    /** أوضاع توازن الأبيض المتاحة على الكاميرا (أسماء دقيقة تُرسل لـ setWhiteBalance). */
+    fun getAvailableWhiteBalance(): List<String> {
+        return try {
+            val r = call("getAvailableWhiteBalance")
+            val out = ArrayList<String>()
+            if (r.length() > 1) {
+                val arr = r.optJSONArray(1) ?: JSONArray()
+                for (i in 0 until arr.length()) {
+                    val o = arr.optJSONObject(i)
+                    val m = o?.optString("whiteBalanceMode")
+                    if (!m.isNullOrEmpty()) out.add(m)
+                }
+            }
+            out
+        } catch (e: ApiError) { emptyList() }
     }
 
     /**

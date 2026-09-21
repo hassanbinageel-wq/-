@@ -20,6 +20,8 @@
     hideUiBtn: $('#hideUiBtn'),
     menuBtn: $('#menuBtn'), menu: $('#menu'),
     rdF: $('#rdF'), rdSS: $('#rdSS'), rdISO: $('#rdISO'), rdWB: $('#rdWB'), rdFocus: $('#rdFocus'), rdMode: $('#rdMode'),
+    ccISO: $('#ccISO'), ccF: $('#ccF'), ccSS: $('#ccSS'), ccWB: $('#ccWB'), ccEV: $('#ccEV'),
+    valuePicker: $('#valuePicker'), vpTitle: $('#vpTitle'), vpList: $('#vpList'),
     btnPhoto: $('#btnPhoto'), btnRecDock: $('#btnRecDock'), filesBtn: $('#filesBtn'), ctrlBtn: $('#ctrlBtn'),
     panelHost: $('#panelHost'), panelTitle: $('#panelTitle'), panelBody: $('#panelBody'), panelClose: $('#panelClose'),
     toast: $('#toast')
@@ -37,6 +39,7 @@
   };
   let S = Object.assign({}, defaults, Store.getSettings());
   let caps = null;               // قدرات الكاميرا المكتشَفة
+  let lastStatus = {};           // آخر حالة كاميرا (للمنتقي)
   let connected = false, testMode = false;
   let refImageURL = null;
   let recStartMs = 0, recTimer = null;
@@ -163,34 +166,94 @@
     wcStatus(null);
   }
 
-  // إطار مُعلّق يُعرض داخل rAF (ضروري ليُركّبه WebView على الشاشة)
+  // إطار مُعلّق يُعرض داخل rAF
   let pendingFrame = null;
-  // لوح 2D وسيط لرفع النسيج — أوثق مصدر في WebView
-  const scratch = document.createElement('canvas');
-  const sctx = scratch.getContext('2d');
-  function toSource(bmp){
-    if(scratch.width !== bmp.width || scratch.height !== bmp.height){ scratch.width = bmp.width; scratch.height = bmp.height; }
-    sctx.drawImage(bmp, 0, 0);
-    return scratch;
-  }
-  // لوح العرض المرئي 2D
   const vctx = el.view.getContext('2d');
-  function blit(){
-    const g = el.glcanvas;
-    if(!g.width || !g.height) return;
-    if(el.view.width !== g.width || el.view.height !== g.height){ el.view.width = g.width; el.view.height = g.height; }
-    try { vctx.drawImage(g, 0, 0); } catch(e){}
+  // LUT نشط للمعالجة على المعالج المركزي (2D) — أوثق من WebGL على هذا الجهاز
+  let activeLut = null;
+
+  // لوح معالجة المؤثّرات
+  const fx = document.createElement('canvas');
+  const fxctx = fx.getContext('2d', { willReadFrequently: true });
+  let lastVW = 0, lastVH = 0;
+
+  function anyEffect(){ return S.lutOn || S.falseColor || S.zebra || S.peaking || S.clipWarn || S.crushWarn; }
+
+  function renderFrame(src, w, h){
+    if(fx.width !== w || fx.height !== h){ fx.width = w; fx.height = h; }
+    fxctx.drawImage(src, 0, 0, w, h);
+    if(anyEffect()){
+      try {
+        const img = fxctx.getImageData(0, 0, w, h);
+        applyEffects2D(img.data, w, h);
+        fxctx.putImageData(img, 0, 0);
+      } catch(e){ dlog('خطأ مؤثّرات: '+e.message); }
+    }
+    drawToView(fx, w, h);
+    if(w !== lastVW || h !== lastVH){ lastVW = w; lastVH = h; drawGuides(); }
   }
-  // رسم الإطار الخام مباشرةً إلى لوح 2D (مضمون الظهور في WebView) — المسار الافتراضي
-  function draw2DDirect(src, w, h){
+  function drawToView(canvasSrc, w, h){
     if(el.view.width !== w || el.view.height !== h){ el.view.width = w; el.view.height = h; }
-    try { vctx.drawImage(src, 0, 0, w, h); } catch(e){ dlog('خطأ رسم 2D: '+e.message); }
+    const z = S.zoom/100;
+    try {
+      if(z <= 1.001){ vctx.drawImage(canvasSrc, 0, 0); }
+      else { const sw=w/z, sh=h/z, sx=(w-sw)/2, sy=(h-sh)/2; vctx.drawImage(canvasSrc, sx,sy,sw,sh, 0,0,w,h); }
+    } catch(e){}
   }
-  // نستخدم WebGL فقط عند تفعيل مؤثّر يحتاجه؛ وإلا فالعرض 2D مباشر
-  function useGLEffects(){
-    return S.lutOn || S.falseColor || S.zebra || S.peaking || S.clipWarn || S.crushWarn || (S.zoom > 100);
+
+  // ---- مؤثّرات المونيتور على المعالج (تعمل على كل الأجهزة) ----
+  function applyEffects2D(d, w, h){
+    const lut = (S.lutOn && activeLut) ? activeLut : null;
+    const N = lut ? lut.size : 0;
+    const inten = S.lutIntensity/100;
+    const zth = S.zebraTh/100*255;
+    const cth = S.crushTh/100*255;
+    let peak = null, pc = null;
+    if(S.peaking){ peak = computeEdges(d, w, h); pc = peakColor255(S.peakColor); }
+    for(let i=0, p=0; i<d.length; i+=4, p++){
+      let r=d[i], g=d[i+1], b=d[i+2];
+      if(lut){
+        const ri=Math.min(N-1,(r*(N-1)/255+0.5)|0), gi=Math.min(N-1,(g*(N-1)/255+0.5)|0), bi=Math.min(N-1,(b*(N-1)/255+0.5)|0);
+        const li=(ri+gi*N+bi*N*N)*3;
+        let lr=lut.rgb[li]*255, lg=lut.rgb[li+1]*255, lb=lut.rgb[li+2]*255;
+        if(inten<1){ lr=r+(lr-r)*inten; lg=g+(lg-g)*inten; lb=b+(lb-b)*inten; }
+        r=lr; g=lg; b=lb;
+      }
+      const y=0.2126*r+0.7152*g+0.0722*b;
+      if(S.falseColor){ const c=falseColor255(y); r=c[0]; g=c[1]; b=c[2]; }
+      else {
+        if(S.clipWarn && (r>=252||g>=252||b>=252)){ r=255; g=0; b=0; }
+        else if(S.crushWarn && y<=cth){ r=0; g=48; b=255; }
+        if(S.zebra && y>=zth){ if((((p%w)+((p/w)|0))%12)<6){ r=r*0.3+178.5; g=g*0.3+178.5; b=b*0.3+178.5; } }
+        if(peak && peak[p]){ r=pc[0]; g=pc[1]; b=pc[2]; }
+      }
+      d[i]=r; d[i+1]=g; d[i+2]=b;
+    }
   }
-  // حساب الأدوات من إطار مصغّر عبر 2D getImageData — مستقلّ عن WebGL
+  function computeEdges(d, w, h){
+    const out=new Uint8Array(w*h);
+    const th=(0.62 - S.peakStr/100*0.55)*255;
+    for(let y=0;y<h-1;y++){
+      for(let x=0;x<w-1;x++){
+        const p=y*w+x, i=p*4;
+        const l=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
+        const ir=i+4, lr=0.2126*d[ir]+0.7152*d[ir+1]+0.0722*d[ir+2];
+        const id=i+w*4, ld=0.2126*d[id]+0.7152*d[id+1]+0.0722*d[id+2];
+        if(Math.abs(l-lr)+Math.abs(l-ld) > th) out[p]=1;
+      }
+    }
+    return out;
+  }
+  function falseColor255(y){
+    const f=y/255;
+    if(f<0.02) return [128,0,128]; if(f<0.10) return [0,0,204]; if(f<0.20) return [0,153,204];
+    if(f<0.38) return [0,153,51]; if(f<0.44) return [102,230,77]; if(f<0.52) return [153,153,153];
+    if(f<0.56) return [242,128,153]; if(f<0.70) return [204,204,204]; if(f<0.90) return [242,217,51];
+    if(f<0.97) return [242,140,26]; return [242,26,26];
+  }
+  function peakColor255(c){ return c==='g'?[0,255,0]:c==='b'?[0,102,255]:c==='y'?[255,230,0]:[255,0,0]; }
+
+  // حساب الأدوات من إطار مصغّر
   const scopeCv = document.createElement('canvas');
   const scctx = scopeCv.getContext('2d', { willReadFrequently: true });
   let scopeFrameCtr = 0;
@@ -211,12 +274,7 @@
     if(appVisible){
       if(testMode){
         const cv = TestPattern.draw();
-        if(useGLEffects()){
-          try { GL.uploadFrame(cv, TestPattern.width, TestPattern.height); GL.render(); blit(); }
-          catch(e){ draw2DDirect(cv, TestPattern.width, TestPattern.height); }
-        } else {
-          draw2DDirect(cv, TestPattern.width, TestPattern.height);
-        }
+        renderFrame(cv, TestPattern.width, TestPattern.height);
         lastFrameMs = performance.now();
         tickFps(performance.now());
         maybeScopes2D(cv, TestPattern.width, TestPattern.height);
@@ -224,19 +282,11 @@
         const t = performance.now();
         const bmp = pendingFrame.bitmap, dec = pendingFrame.decodeMs;
         const w = bmp.width, h = bmp.height;
-        try {
-          if(useGLEffects()){
-            GL.uploadFrame(toSource(bmp), w, h);
-            GL.render();
-            blit();
-          } else {
-            draw2DDirect(bmp, w, h);   // المسار الافتراضي: عرض مباشر مضمون
-          }
-          lastDisplayPath = useGLEffects() ? 'WebGL + LUT/أدوات' : '2D مباشر';
-        } catch(e){ dlog('خطأ رسم: '+e.message); try { draw2DDirect(bmp, w, h); lastDisplayPath='2D مباشر (بعد فشل WebGL)'; } catch(_){} }
+        try { renderFrame(bmp, w, h); } catch(e){ dlog('خطأ رسم: '+e.message); }
         lastProcMs = (performance.now()-t) + dec;
         lastFrameMs = t;
         el.noSignal.classList.add('hidden');
+        lastDisplayPath = anyEffect() ? '2D + مؤثّرات' : '2D مباشر';
         maybeScopes2D(bmp, w, h);
         if(bmp.close) bmp.close();
         pendingFrame = null;
@@ -259,7 +309,9 @@
   // يظهر حالة «لا إشارة» إذا لم تصل إطارات لفترة والمونيتور ظاهر + إعادة اتصال تلقائية
   let lastAutoConnect = 0;
   function checkNoSignal(){
-    if(!appVisible || testMode){ el.noSignal.classList.add('hidden'); return; }
+    if(!appVisible){ el.noSignal.classList.add('hidden'); return; }
+    drawGuides(); // إعادة محاذاة الأدلة (مثلًا بعد قلب الشاشة)
+    if(testMode){ el.noSignal.classList.add('hidden'); return; }
     const staleMs = performance.now() - lastFrameMs;
     const stale = staleMs > 2500;
     // إعادة اتصال تلقائية عند انقطاع طويل (مثلًا بعد تبديل وضع الكاميرا فوتو/فيديو)
@@ -355,13 +407,16 @@
     if(st.isRecordingMovie===true) setRecording(true);
     if(st.isRecordingMovie===false) setRecording(false);
 
-    // شريط إعدادات الكاميرا الحيّة أعلى الشاشة
-    if(st.fnumber) el.rdF.textContent = 'F' + String(st.fnumber).replace(/^F/i,'');
-    if(st.shutter) el.rdSS.textContent = st.shutter;
-    if(st.iso) el.rdISO.textContent = 'ISO ' + String(st.iso).replace(/^ISO\s*/i,'');
-    if(st.whiteBalance) el.rdWB.textContent = shortWB(st.whiteBalance);
+    Object.assign(lastStatus, st);
+
+    // شريط إعدادات الكاميرا الحيّة أعلى الشاشة + شريط التحكّم السفلي
+    if(st.fnumber){ const v='F'+String(st.fnumber).replace(/^F/i,''); el.rdF.textContent=v; el.ccF.textContent=v; }
+    if(st.shutter){ el.rdSS.textContent=st.shutter; el.ccSS.textContent=st.shutter; }
+    if(st.iso){ const v=String(st.iso).replace(/^ISO\s*/i,''); el.rdISO.textContent='ISO '+v; el.ccISO.textContent=v; }
+    if(st.whiteBalance){ el.rdWB.textContent=shortWB(st.whiteBalance); el.ccWB.textContent=shortWB(st.whiteBalance); }
     if(st.focusMode) el.rdFocus.textContent = st.focusMode;
     if(st.exposureMode) el.rdMode.textContent = shortMode(st.exposureMode);
+    if(st.exposureCompIndex!=null){ const step=(st.exposureCompStep===1)?0.5:(1/3); const ev=st.exposureCompIndex*step; el.ccEV.textContent=(ev>0?'+':'')+ev.toFixed(1).replace('.0',''); }
 
     // تحديث القيم الظاهرة في لوحة التحكم (القيمة الحالية فقط — تأكيد من الكاميرا)
     fillSelectCurrent('setIso', st.iso, st.isoCandidates);
@@ -427,8 +482,8 @@
   function loadActiveLut(){
     const luts = Store.getLuts();
     const active = luts.find(l=>l.id===S.activeLutId);
-    if(active){ try { GL.setLut(LutParser.fromStorable(active.lut)); } catch(e){} }
-    else { GL.setLut(LutParser.identity(2)); }
+    if(active){ try { activeLut = LutParser.fromStorable(active.lut); } catch(e){ activeLut = null; } }
+    else { activeLut = null; }
   }
   function loadFavLutForContext(){
     const favId = Store.getFavLut(currentModel);
@@ -453,7 +508,8 @@
     $('#menuHome').onclick = ()=>{ el.menu.classList.add('hidden'); goHome(); };
     el.panelClose.onclick = ()=> el.panelHost.classList.add('hidden');
     el.hideUiBtn.onclick = ()=> document.body.classList.toggle('hiddenUi');
-    window.addEventListener('resize', drawGuides);
+    window.addEventListener('resize', ()=> setTimeout(drawGuides, 60));
+    window.addEventListener('orientationchange', ()=> setTimeout(drawGuides, 120));
     el.stage.addEventListener('click', ()=>{
       if(document.body.classList.contains('hiddenUi')) document.body.classList.remove('hiddenUi');
       el.menu.classList.add('hidden');
@@ -462,11 +518,13 @@
     // الشريط السفلي: توغلات سريعة + أزرار التصوير
     document.querySelectorAll('.qbtn').forEach(b=> b.onclick = ()=> toggleQuick(b.dataset.q));
     refreshQuick();
-    el.btnPhoto.onclick = ()=> Bridge.cmd.takePicture();
+    el.btnPhoto.onclick = ()=>{ toast('جارٍ الالتقاط…'); Bridge.cmd.takePicture(); };
     el.btnRecDock.onclick = ()=>{ if(el.btnRecDock.classList.contains('recording')) Bridge.cmd.stopMovieRec(); else Bridge.cmd.startMovieRec(); };
     el.filesBtn.onclick = ()=> openPanel('files');
     el.ctrlBtn.onclick = ()=> openPanel('control');
-    document.querySelectorAll('#readout .rd[data-ctl]').forEach(b=> b.onclick = ()=> openPanel('control'));
+    // منتقي القيمة من شريط التحكّم السفلي وشريط الإعدادات العلوي
+    document.querySelectorAll('.cchip[data-ctl], #readout .rd[data-ctl]').forEach(b=> b.onclick = ()=> openValuePicker(b.dataset.ctl));
+    $('#vpClose').onclick = ()=> el.valuePicker.classList.add('hidden');
 
     // التشخيص
     $('#noSignalDiag').onclick = openDiag;
@@ -493,8 +551,39 @@
     document.querySelectorAll('.qbtn').forEach(b=> b.classList.toggle('on', !!st[b.dataset.q]));
   }
 
+  // منتقي قيمة الإعداد (يفتح من الشريط السفلي/العلوي)
+  function openValuePicker(kind){
+    if(!connected){ toast('اتصل بالكاميرا أولًا'); return; }
+    const info = {
+      iso:      { title:'ISO', cand:lastStatus.isoCandidates, cur:lastStatus.iso },
+      shutter:  { title:'سرعة الغالق', cand:lastStatus.shutterCandidates, cur:lastStatus.shutter },
+      fnumber:  { title:'فتحة العدسة', cand:lastStatus.fnumberCandidates, cur:lastStatus.fnumber },
+      whitebalance:{ title:'توازن الأبيض', cand:(caps&&caps.wbCandidates)||[], cur:lastStatus.whiteBalance },
+      exposure: { title:'تعويض التعريض', cand:exposureCandidates(), cur:(lastStatus.exposureCompIndex||0) }
+    }[kind];
+    if(!info){ return; }
+    const list = Array.isArray(info.cand) ? info.cand : [];
+    if(!list.length){ toast('لا خيارات متاحة الآن — قد يكون الإعداد مقفولًا على الكاميرا'); return; }
+    el.vpTitle.textContent = info.title;
+    el.vpList.innerHTML = '';
+    list.forEach(v=>{
+      const b=document.createElement('button'); b.className='vpitem'+(String(v)===String(info.cur)?' cur':'');
+      b.textContent = kind==='exposure' ? evLabel(v) : v;
+      b.onclick = ()=>{ Bridge.cmd.setSetting(kind, v); toast('أُرسل — بانتظار تأكيد الكاميرا…'); el.valuePicker.classList.add('hidden'); };
+      el.vpList.appendChild(b);
+    });
+    el.valuePicker.classList.remove('hidden');
+  }
+  function exposureCandidates(){
+    const mn = lastStatus.exposureCompMin, mx = lastStatus.exposureCompMax;
+    if(mn==null||mx==null) return [];
+    const out=[]; for(let i=mn;i<=mx;i++) out.push(i); return out;
+  }
+  function evLabel(i){ const step=(lastStatus.exposureCompStep===1)?0.5:(1/3); const ev=i*step; return (ev>0?'+':'')+ev.toFixed(1).replace('.0',''); }
+
   // زر الرجوع من الأصل: يغلق القائمة/اللوحة/يُظهر الواجهة قبل الخروج
   window.__onBackPressed = function(){
+    if(!el.valuePicker.classList.contains('hidden')){ el.valuePicker.classList.add('hidden'); return true; }
     if(!el.menu.classList.contains('hidden')){ el.menu.classList.add('hidden'); return true; }
     if(!el.diag.classList.contains('hidden')){ el.diag.classList.add('hidden'); return true; }
     if(document.body.classList.contains('hiddenUi')){ document.body.classList.remove('hiddenUi'); return true; }
@@ -531,10 +620,11 @@
   // -------- لوحة LUT --------
   function wireLut(){
     $('#lutOn').checked = S.lutOn;
-    $('#lutOn').onchange = e=>{ S.lutOn=e.target.checked; persist(); applyParamsToGL(); };
-    bindRange('#lutIntensity','#lutIntensityV','lutIntensity', v=>v+'%', ()=>applyParamsToGL());
+    $('#lutOn').onchange = e=>{ S.lutOn=e.target.checked; persist(); refreshQuick(); };
+    bindRange('#lutIntensity','#lutIntensityV','lutIntensity', v=>v+'%', ()=>{});
     const cmp=$('#btnLutCompare');
-    const down=()=>{ GL.setParams({lutOn:false}); }; const up=()=>{ GL.setParams({lutOn:S.lutOn}); };
+    let prev=false;
+    const down=()=>{ prev=S.lutOn; S.lutOn=false; }; const up=()=>{ S.lutOn=prev; };
     cmp.addEventListener('touchstart',e=>{e.preventDefault();down();}); cmp.addEventListener('touchend',up);
     cmp.addEventListener('mousedown',down); cmp.addEventListener('mouseup',up); cmp.addEventListener('mouseleave',up);
     $('#btnLutImport').onclick = ()=> $('#lutFile').click();
@@ -578,10 +668,10 @@
   // -------- لوحة التركيز والتأطير --------
   function wireFocus(){
     bindRange('#zoom','#zoomV','zoom', v=>(v/100).toFixed(1)+'x', ()=>applyParamsToGL());
-    bindChk('#peakOn','peaking', ()=>applyParamsToGL());
-    const pc=$('#peakColor'); pc.value=S.peakColor; pc.onchange=()=>{ S.peakColor=pc.value; persist(); applyParamsToGL(); };
-    bindRange('#peakStr','#peakStrV','peakStr', v=>v, ()=>applyParamsToGL());
-    bindChk('#gThirds','gThirds', drawGuides);
+    bindChk('#peakOn','peaking', ()=>{applyParamsToGL(); refreshQuick();});
+    const pc=$('#peakColor'); pc.value=S.peakColor; pc.onchange=()=>{ S.peakColor=pc.value; persist(); };
+    bindRange('#peakStr','#peakStrV','peakStr', v=>v, ()=>{});
+    bindChk('#gThirds','gThirds', ()=>{drawGuides(); refreshQuick();});
     bindChk('#gCenter','gCenter', drawGuides);
     const ga=$('#gAspect'); ga.value=S.gAspect; ga.onchange=()=>{ S.gAspect=ga.value; persist(); drawGuides(); };
     bindChk('#gSafe','gSafe', drawGuides);
@@ -609,10 +699,15 @@
     const shot=$('#btnShot'), rec=$('#btnRec');
     if(shot) shot.disabled = !d.hasTakePicture;
     if(rec) rec.disabled = !d.hasMovieRec;
-    // أزرار الشريط السفلي على المونيتور
-    if(el.btnPhoto) el.btnPhoto.disabled = !d.hasTakePicture;
-    if(el.btnRecDock) el.btnRecDock.disabled = !d.hasMovieRec;
+    // أزرار الشريط السفلي — نُفعّلها عند الاتصال (التوفّر يعتمد على وضع الكاميرا وقت الضغط)
+    if(el.btnPhoto) el.btnPhoto.disabled = false;
+    if(el.btnRecDock) el.btnRecDock.disabled = false;
     setSel('setIso', d.canSetIso); setSel('setShutter', d.canSetShutter); setSel('setF', d.canSetFNumber); setSel('setWB', d.canSetWhiteBalance);
+    const wbSel=$('#setWB');
+    if(wbSel && Array.isArray(d.wbCandidates) && d.wbCandidates.length){
+      wbSel.innerHTML=''; d.wbCandidates.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; wbSel.appendChild(o); });
+      if(lastStatus.whiteBalance) wbSel.value=lastStatus.whiteBalance;
+    }
     const cc=$('#controlCaps'); if(cc) cc.textContent = 'مفعّل حسب قدرات '+(d.model||'الكاميرا')+': التقاط='+yn(d.hasTakePicture)+'، فيديو='+yn(d.hasMovieRec)+'، ISO='+yn(d.canSetIso)+'، غالق='+yn(d.canSetShutter)+'، فتحة='+yn(d.canSetFNumber)+'.';
   }
   function setSel(id, on){ const s=$('#'+id); if(s) s.disabled=!on; }
@@ -675,6 +770,12 @@
     $('#keepOn').checked=S.keepOn; $('#keepOn').onchange=e=>{ S.keepOn=e.target.checked; persist(); Bridge.cmd.keepScreenOn(S.keepOn); };
     const lv=$('#lvSize'); lv.value=S.lvSize; lv.onchange=()=>{ S.lvSize=lv.value; persist(); };
     const sr=$('#scopeRate'); sr.value=String(S.scopeRate); sr.onchange=()=>{ S.scopeRate=+sr.value; persist(); };
+    const mq=$('#setMovieQuality');
+    if(mq){
+      const cand = (caps && caps.movieQualityCandidates) || [];
+      if(cand.length){ mq.innerHTML=''; cand.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; mq.appendChild(o); }); mq.disabled=false; mq.onchange=()=>{ Bridge.cmd.setSetting('moviequality', mq.value); toast('أُرسل وضع التسجيل — بانتظار الكاميرا'); }; }
+      else { mq.innerHTML='<option>غير متاح (اتصل بالكاميرا)</option>'; mq.disabled=true; }
+    }
     $('#btnSaveLayout').onclick=()=>{ persist(); toast('حُفظ توزيع الأدوات'); };
     $('#btnResetLayout').onclick=()=>{ S=Object.assign({}, defaults); persist(); applyParamsToGL(); drawGuides(); toast('استُرجعت الإعدادات الافتراضية'); openPanel('settings'); };
     $('#about').innerHTML = 'مونيتور Sony — النسخة 0.2. الاتصال عبر Sony ScalarWebAPI (Camera Remote API) بعد الانضمام لشبكة الكاميرا (QR أو يدوي). البث الحي والالتقاط مبنيان على البروتوكول ويحتاجان تأكيدًا على a7 III؛ التفاصيل في COMPATIBILITY.md.';
@@ -698,7 +799,7 @@
     svg.innerHTML=g;
   }
   function aspectFrame(aspect, op){
-    const cw=el.glcanvas.width, ch=el.glcanvas.height; if(!cw||!ch) return '';
+    const cw=el.view.width, ch=el.view.height; if(!cw||!ch) return '';
     const canvasAR=cw/ch;
     const [a,b]=aspect.split(':').map(Number); const targetAR=a/b;
     let x=0,y=0,w=1000,h=1000;
