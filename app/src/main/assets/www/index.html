@@ -23,6 +23,9 @@
     <symbol id="ic-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
     <symbol id="ic-cam" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 8a2 2 0 012-2h2l1.5-2h7L17 6h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/><circle cx="12" cy="12.5" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
     <symbol id="ic-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="ic-menu" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="ic-grid" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></symbol>
+    <symbol id="ic-photo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="currentColor"/></symbol>
   </svg>
 
   <!-- ===== شاشة البداية / الاتصال ===== -->
@@ -90,7 +93,10 @@
       <canvas id="glcanvas"></canvas>
       <img id="refOverlay" alt="" />
       <svg id="guides" preserveAspectRatio="none"></svg>
-      <div id="sourceBadge" class="badge hidden"></div>
+
+      <!-- طبقات أدوات المراقبة فوق الصورة -->
+      <div id="ovHist" class="scope-ov ov-topright hidden"><canvas width="200" height="96"></canvas></div>
+      <div id="ovWave" class="scope-ov ov-bottom hidden"><canvas width="384" height="90"></canvas></div>
 
       <!-- حالة لا إشارة -->
       <div id="noSignal" class="nosignal hidden">
@@ -104,32 +110,59 @@
       </div>
     </div>
 
-    <!-- HUD علوي -->
+    <!-- الشريط العلوي: إعدادات الكاميرا الحيّة -->
     <header id="topbar">
-      <button id="homeBtn" class="hud-btn" title="القائمة"><svg class="ic"><use href="#ic-back"/></svg></button>
-      <div class="pill" id="connPill"><span id="connDot" class="dot dot-off"></span><span id="connText">غير متصل</span></div>
-      <div class="pill rec-pill hidden" id="recGroup"><span id="recDot" class="dot dot-rec"></span><span id="recTime">00:00</span></div>
-      <div class="chips">
-        <span class="chip" id="fps" title="معدّل الإطارات المقيس فعليًا">— fps</span>
-        <span class="chip" id="latency" title="زمن معالجة الإطار على الهاتف (ليس تأخير الزجاج إلى الزجاج)">— ms</span>
+      <button id="menuBtn" class="hud-btn" title="القائمة"><svg class="ic"><use href="#ic-menu"/></svg></button>
+      <div class="readout" id="readout">
+        <button class="rd" data-ctl="fnumber"><b id="rdF">F—</b></button>
+        <button class="rd" data-ctl="shutter"><b id="rdSS">—</b></button>
+        <button class="rd" data-ctl="iso"><b id="rdISO">ISO —</b></button>
+        <button class="rd" data-ctl="whitebalance"><b id="rdWB">— K</b></button>
+        <span class="rd static" id="rdFocus">AF</span>
+        <span class="rd static" id="rdMode">—</span>
       </div>
-      <div class="chips batteries">
+      <div class="topright">
+        <span class="pill rec-pill hidden" id="recGroup"><span class="dot dot-rec" id="recDot"></span><span id="recTime">00:00</span></span>
+        <span class="chip" id="fps" title="معدّل الإطارات">— fps</span>
+        <span class="chip hidden" id="latency"></span>
         <span class="chip" id="camBatt" title="بطارية الكاميرا">📷 —</span>
         <span class="chip" id="phoneBatt" title="بطارية الهاتف">📱 —</span>
-        <span class="chip" id="camCard" title="بطاقة الكاميرا">🗂 —</span>
+        <span class="chip hidden" id="camCard"></span>
+        <span class="dot dot-off" id="connDot" title="حالة الاتصال"></span>
+        <span class="hidden" id="connText"></span>
       </div>
     </header>
 
     <button id="hideUiBtn" class="fab" title="إظهار/إخفاء الأزرار"><svg class="ic"><use href="#ic-eye"/></svg></button>
 
-    <!-- شريط الأدوات -->
-    <nav id="toolrail">
-      <button data-panel="scopes" class="tool" title="المراقبة"><svg class="ic"><use href="#ic-scopes"/></svg><span>مراقبة</span></button>
-      <button data-panel="lut" class="tool" title="LUT"><svg class="ic"><use href="#ic-lut"/></svg><span>LUT</span></button>
-      <button data-panel="focus" class="tool" title="التركيز"><svg class="ic"><use href="#ic-focus"/></svg><span>تركيز</span></button>
-      <button data-panel="control" class="tool" title="التحكم"><svg class="ic"><use href="#ic-control"/></svg><span>تحكّم</span></button>
-      <button data-panel="files" class="tool" title="الملفات"><svg class="ic"><use href="#ic-files"/></svg><span>ملفات</span></button>
-      <button data-panel="settings" class="tool" title="الإعدادات"><svg class="ic"><use href="#ic-gear"/></svg><span>إعدادات</span></button>
+    <!-- الشريط السفلي: توغلات سريعة + أزرار التصوير -->
+    <footer id="dock">
+      <div class="quickrow">
+        <button class="qbtn" data-q="hist">Hist</button>
+        <button class="qbtn" data-q="wave">Wave</button>
+        <button class="qbtn" data-q="false">False</button>
+        <button class="qbtn" data-q="peak">Peak</button>
+        <button class="qbtn" data-q="zebra">Zebra</button>
+        <button class="qbtn" data-q="grid">Grid</button>
+        <button class="qbtn" data-q="lut">LUT</button>
+      </div>
+      <div class="actionrow">
+        <button id="filesBtn" class="act" title="الملفات"><svg class="ic"><use href="#ic-files"/></svg></button>
+        <button id="btnPhoto" class="act photo" title="التقاط صورة" disabled><svg class="ic"><use href="#ic-photo"/></svg></button>
+        <button id="btnRecDock" class="act recbtn" title="تسجيل فيديو" disabled><span class="recsquare"></span></button>
+        <button id="ctrlBtn" class="act" title="إعدادات الكاميرا"><svg class="ic"><use href="#ic-control"/></svg></button>
+      </div>
+    </footer>
+
+    <!-- قائمة التنقّل -->
+    <nav id="menu" class="hidden">
+      <button data-panel="scopes"><svg class="ic"><use href="#ic-scopes"/></svg><span>المراقبة</span></button>
+      <button data-panel="lut"><svg class="ic"><use href="#ic-lut"/></svg><span>LUT</span></button>
+      <button data-panel="focus"><svg class="ic"><use href="#ic-focus"/></svg><span>التركيز والتأطير</span></button>
+      <button data-panel="control"><svg class="ic"><use href="#ic-control"/></svg><span>التحكّم بالكاميرا</span></button>
+      <button data-panel="files"><svg class="ic"><use href="#ic-files"/></svg><span>الملفات والمشاريع</span></button>
+      <button data-panel="settings"><svg class="ic"><use href="#ic-gear"/></svg><span>الإعدادات</span></button>
+      <button id="menuHome" class="menu-home"><svg class="ic"><use href="#ic-back"/></svg><span>قطع الاتصال والرجوع</span></button>
     </nav>
 
     <!-- اللوحات -->

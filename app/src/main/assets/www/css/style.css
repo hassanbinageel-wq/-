@@ -112,9 +112,17 @@ body{position:fixed;inset:0;}
   font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;line-height:1.7;color:#b7c0cd;direction:ltr;text-align:left;white-space:pre-wrap;word-break:break-word;}
 
 /* HUD علوي */
-#topbar{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top));
-  background:linear-gradient(180deg,rgba(0,0,0,.72),transparent);}
+#topbar{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:8px;
+  padding:6px 10px;padding-top:max(6px,env(safe-area-inset-top));
+  background:linear-gradient(180deg,rgba(0,0,0,.82),rgba(0,0,0,.15) 80%,transparent);}
+/* شريط إعدادات الكاميرا الحيّة */
+.readout{display:flex;align-items:center;gap:5px;flex:1;overflow-x:auto;scrollbar-width:none;}
+.readout::-webkit-scrollbar{display:none;}
+.rd{display:inline-flex;align-items:center;padding:5px 9px;border-radius:9px;border:1px solid var(--line);
+  background:rgba(15,18,23,.7);color:var(--text);font-size:13px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.rd.static{color:var(--accent);}
+.rd b{font-weight:800;}
+.topright{display:flex;align-items:center;gap:6px;margin-inline-start:auto;}
 .hud-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:rgba(20,24,30,.6);backdrop-filter:blur(8px);color:var(--text);display:flex;align-items:center;justify-content:center;}
 .hud-btn .ic{transform:scaleX(-1);}
 .pill{display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:20px;font-size:12.5px;font-weight:600;
@@ -132,16 +140,42 @@ body{position:fixed;inset:0;}
   backdrop-filter:blur(8px);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
 
 /* FAB إخفاء */
-.fab{position:absolute;z-index:25;bottom:max(18px,env(safe-area-inset-bottom));left:16px;width:52px;height:52px;border-radius:50%;
-  border:1px solid var(--line2);background:rgba(20,24,30,.75);backdrop-filter:blur(10px);color:var(--text);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
+.fab{position:absolute;z-index:26;top:50%;transform:translateY(-50%);left:12px;width:46px;height:46px;border-radius:50%;
+  border:1px solid var(--line2);background:rgba(20,24,30,.72);backdrop-filter:blur(10px);color:var(--text);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
 
-/* شريط الأدوات */
-#toolrail{position:absolute;z-index:20;top:50%;transform:translateY(-50%);right:8px;display:flex;flex-direction:column;gap:6px;
-  background:rgba(16,20,26,.7);border:1px solid var(--line);border-radius:18px;padding:8px;backdrop-filter:blur(12px);box-shadow:var(--shadow);}
-#toolrail .tool{width:56px;height:52px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--muted);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:.15s;}
-#toolrail .tool span{font-size:9.5px;font-weight:700;}
-#toolrail .tool.active{background:rgba(245,179,1,.14);border-color:rgba(245,179,1,.45);color:var(--accent);}
+/* طبقات المراقبة فوق الصورة */
+.scope-ov{position:absolute;z-index:15;background:rgba(0,0,0,.55);border:1px solid var(--line);border-radius:10px;padding:4px;backdrop-filter:blur(4px);pointer-events:none;}
+.scope-ov canvas{display:block;width:100%;height:auto;border-radius:6px;}
+.ov-topright{top:52px;right:10px;width:38vw;max-width:220px;}
+.ov-bottom{left:50%;transform:translateX(-50%);bottom:132px;width:min(70vw,420px);}
+
+/* الشريط السفلي (dock) */
+#dock{position:absolute;z-index:22;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:8px;
+  padding:8px 12px;padding-bottom:max(8px,env(safe-area-inset-bottom));
+  background:linear-gradient(0deg,rgba(0,0,0,.85),rgba(0,0,0,.15) 80%,transparent);}
+.quickrow{display:flex;gap:6px;overflow-x:auto;justify-content:center;scrollbar-width:none;}
+.quickrow::-webkit-scrollbar{display:none;}
+.qbtn{flex:0 0 auto;padding:7px 12px;border-radius:16px;border:1px solid var(--line);background:rgba(20,24,30,.7);
+  color:var(--muted);font-size:12.5px;font-weight:800;}
+.qbtn.on{background:rgba(245,179,1,.18);border-color:var(--accent);color:var(--accent);}
+.actionrow{display:flex;align-items:center;justify-content:center;gap:22px;}
+.act{width:52px;height:52px;border-radius:50%;border:1px solid var(--line2);background:rgba(20,24,30,.75);color:var(--text);
+  display:flex;align-items:center;justify-content:center;}
+.act .ic{width:24px;height:24px;}
+.act.photo{background:#fff;color:#111;border-color:#fff;}
+.act.photo .ic{width:30px;height:30px;}
+.act.recbtn{width:60px;height:60px;background:transparent;border:3px solid #fff;}
+.recsquare{width:26px;height:26px;border-radius:50%;background:var(--rec);transition:.15s;}
+.act.recbtn.recording .recsquare{border-radius:5px;width:22px;height:22px;}
+.act:disabled{opacity:.35;}
+
+/* قائمة التنقّل */
+#menu{position:absolute;z-index:31;top:52px;left:10px;display:flex;flex-direction:column;gap:2px;padding:8px;
+  background:rgba(16,20,26,.97);border:1px solid var(--line2);border-radius:16px;box-shadow:var(--shadow);min-width:210px;}
+#menu button{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:0;background:transparent;color:var(--text);font-size:15px;font-weight:600;justify-content:flex-start;}
+#menu button:active{background:var(--surf2);}
+#menu button.active{background:rgba(245,179,1,.14);color:var(--accent);}
+#menu .menu-home{color:var(--danger);border-top:1px solid var(--line);border-radius:0;margin-top:4px;}
 
 /* اللوحات */
 #panelHost{position:absolute;z-index:30;top:0;bottom:0;right:0;width:min(390px,90vw);
@@ -152,9 +186,10 @@ body{position:fixed;inset:0;}
 #panelTitle{font-weight:800;font-size:16px;}
 #panelBody{padding:14px 16px;overflow-y:auto;}
 
-/* حالة إخفاء الواجهة */
-#topbar,#toolrail,#panelHost,#hideUiBtn{transition:opacity .2s;}
-.hiddenUi #topbar,.hiddenUi #toolrail,.hiddenUi #panelHost,.hiddenUi #hideUiBtn{opacity:0;pointer-events:none;}
+/* حالة إخفاء الواجهة — تُخفي كل شيء لرؤية الكادر نظيفًا */
+#topbar,#dock,#menu,#panelHost,#hideUiBtn,.scope-ov{transition:opacity .2s;}
+.hiddenUi #topbar,.hiddenUi #dock,.hiddenUi #menu,.hiddenUi #panelHost,.hiddenUi .scope-ov{opacity:0;pointer-events:none;}
+.hiddenUi #hideUiBtn{opacity:.25;}
 
 /* عناصر النماذج */
 .stack{display:flex;flex-direction:column;gap:13px;}

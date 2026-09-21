@@ -10,14 +10,17 @@
     manualWifi: $('#manualWifi'),
     noSignal: $('#noSignal'), noSignalTitle: $('#noSignalTitle'), noSignalMsg: $('#noSignalMsg'),
     diag: $('#diag'), diagSummary: $('#diagSummary'), diagBody: $('#diagBody'),
-    homeBtn: $('#homeBtn'),
     stage: $('#stage'), glcanvas: $('#glcanvas'), view: $('#view'), flipWrap: $('#flipWrap'),
-    guides: $('#guides'), refOverlay: $('#refOverlay'), sourceBadge: $('#sourceBadge'),
+    guides: $('#guides'), refOverlay: $('#refOverlay'),
+    ovHist: $('#ovHist'), ovWave: $('#ovWave'),
     connDot: $('#connDot'), connText: $('#connText'),
-    recDot: $('#recDot'), recTime: $('#recTime'), recGroup: $('#recGroup'),
+    recTime: $('#recTime'), recGroup: $('#recGroup'),
     fps: $('#fps'), latency: $('#latency'),
     camBatt: $('#camBatt'), phoneBatt: $('#phoneBatt'), camCard: $('#camCard'),
-    hideUiBtn: $('#hideUiBtn'), toolrail: $('#toolrail'),
+    hideUiBtn: $('#hideUiBtn'),
+    menuBtn: $('#menuBtn'), menu: $('#menu'),
+    rdF: $('#rdF'), rdSS: $('#rdSS'), rdISO: $('#rdISO'), rdWB: $('#rdWB'), rdFocus: $('#rdFocus'), rdMode: $('#rdMode'),
+    btnPhoto: $('#btnPhoto'), btnRecDock: $('#btnRecDock'), filesBtn: $('#filesBtn'), ctrlBtn: $('#ctrlBtn'),
     panelHost: $('#panelHost'), panelTitle: $('#panelTitle'), panelBody: $('#panelBody'), panelClose: $('#panelClose'),
     toast: $('#toast')
   };
@@ -88,6 +91,8 @@
     catch(e){ toast('خطأ WebGL: '+e.message); }
     applyParamsToGL();
     loadActiveLut();
+    Scopes.attach(el.ovHist.querySelector('canvas'), el.ovWave.querySelector('canvas'));
+    Scopes.setEnabled({hist:S.hist, histRGB:S.histRGB, wave:S.wave, parade:S.parade});
     Bridge.setFrameHandler(onNativeFrame);
     wireBridgeEvents();
     wireChrome();
@@ -128,7 +133,6 @@
     $('#wcQr').onclick = ()=>{ wcStatus('افتح الكاميرا لمسح رمز QR…', true); Bridge.cmd.scanQrConnect(); };
     $('#wcManual').onclick = ()=>{ el.manualWifi.classList.remove('hidden'); };
     $('#wcTest').onclick = ()=>{ setTestMode(true); showApp(); };
-    el.homeBtn.onclick = ()=>{ goHome(); };
   }
   function wireManualWifi(){
     $('#mwClose').onclick = ()=> el.manualWifi.classList.add('hidden');
@@ -252,10 +256,18 @@
     if(framesTotal === 1) dlog('أول إطار وصل ✓ ('+lastFrameSize+') — يُعرض عبر rAF');
   }
 
-  // يظهر حالة «لا إشارة» إذا لم تصل إطارات لفترة والمونيتور ظاهر
+  // يظهر حالة «لا إشارة» إذا لم تصل إطارات لفترة والمونيتور ظاهر + إعادة اتصال تلقائية
+  let lastAutoConnect = 0;
   function checkNoSignal(){
     if(!appVisible || testMode){ el.noSignal.classList.add('hidden'); return; }
-    const stale = performance.now() - lastFrameMs > 2500;
+    const staleMs = performance.now() - lastFrameMs;
+    const stale = staleMs > 2500;
+    // إعادة اتصال تلقائية عند انقطاع طويل (مثلًا بعد تبديل وضع الكاميرا فوتو/فيديو)
+    if(staleMs > 6000 && Bridge.hasNative && (performance.now() - lastAutoConnect > 9000)){
+      lastAutoConnect = performance.now();
+      dlog('إعادة اتصال تلقائية بعد انقطاع البثّ…');
+      Bridge.cmd.connect();
+    }
     if(stale && connected){
       el.noSignalTitle.textContent = 'في انتظار البثّ الحيّ…';
       el.noSignalMsg.textContent = caps && !caps.hasLiveview
@@ -343,14 +355,45 @@
     if(st.isRecordingMovie===true) setRecording(true);
     if(st.isRecordingMovie===false) setRecording(false);
 
+    // شريط إعدادات الكاميرا الحيّة أعلى الشاشة
+    if(st.fnumber) el.rdF.textContent = 'F' + String(st.fnumber).replace(/^F/i,'');
+    if(st.shutter) el.rdSS.textContent = st.shutter;
+    if(st.iso) el.rdISO.textContent = 'ISO ' + String(st.iso).replace(/^ISO\s*/i,'');
+    if(st.whiteBalance) el.rdWB.textContent = shortWB(st.whiteBalance);
+    if(st.focusMode) el.rdFocus.textContent = st.focusMode;
+    if(st.exposureMode) el.rdMode.textContent = shortMode(st.exposureMode);
+
     // تحديث القيم الظاهرة في لوحة التحكم (القيمة الحالية فقط — تأكيد من الكاميرا)
     fillSelectCurrent('setIso', st.iso, st.isoCandidates);
     fillSelectCurrent('setShutter', st.shutter, st.shutterCandidates);
     fillSelectCurrent('setF', st.fnumber, st.fnumberCandidates);
   }
+  function shortWB(w){
+    const s=String(w);
+    if(/auto/i.test(s)) return 'AWB';
+    if(/color\s*temp/i.test(s)) return 'K';
+    if(/daylight|sunny/i.test(s)) return '☀';
+    if(/cloud/i.test(s)) return '☁';
+    if(/shade/i.test(s)) return 'Shade';
+    if(/incand|tungsten/i.test(s)) return 'Tung';
+    if(/fluor/i.test(s)) return 'Fluo';
+    if(/flash/i.test(s)) return 'Flash';
+    return s.length>6 ? s.slice(0,6) : s;
+  }
+  function shortMode(m){
+    const s=String(m);
+    if(/manual/i.test(s)) return 'M';
+    if(/aperture/i.test(s)) return 'A';
+    if(/shutter/i.test(s)) return 'S';
+    if(/program/i.test(s)) return 'P';
+    if(/intelligent|auto/i.test(s)) return 'AUTO';
+    if(/movie/i.test(s)) return 'MOV';
+    return s.length>4 ? s.slice(0,4) : s;
+  }
 
   function setRecording(on){
     el.recGroup.classList.toggle('hidden', !on);
+    el.btnRecDock.classList.toggle('recording', on);
     const recBtn = $('#btnRec');
     if(recBtn){ recBtn.classList.toggle('recording', on); recBtn.textContent = on?'إيقاف التسجيل':'بدء تسجيل'; }
     if(on && !recTimer){
@@ -399,17 +442,31 @@
     el.panelBody.innerHTML = '';
     el.panelBody.appendChild(tpl.content.cloneNode(true));
     el.panelHost.classList.remove('hidden');
-    [...el.toolrail.children].forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
+    el.menu.querySelectorAll('button[data-panel]').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
     el.panelTitle.textContent = ({scopes:'أدوات المراقبة',lut:'LUT للمعاينة',focus:'التركيز والتأطير',control:'التحكم بالكاميرا',files:'الملفات والمشاريع',settings:'الإعدادات'})[name]||'لوحة';
     ({scopes:wireScopes,lut:wireLut,focus:wireFocus,control:wireControl,files:wireFiles,settings:wireSettings})[name]();
   }
 
   function wireChrome(){
-    [...el.toolrail.children].forEach(b=> b.onclick = ()=> openPanel(b.dataset.panel));
+    el.menuBtn.onclick = ()=> el.menu.classList.toggle('hidden');
+    [...el.menu.querySelectorAll('button[data-panel]')].forEach(b=> b.onclick = ()=>{ el.menu.classList.add('hidden'); openPanel(b.dataset.panel); });
+    $('#menuHome').onclick = ()=>{ el.menu.classList.add('hidden'); goHome(); };
     el.panelClose.onclick = ()=> el.panelHost.classList.add('hidden');
     el.hideUiBtn.onclick = ()=> document.body.classList.toggle('hiddenUi');
     window.addEventListener('resize', drawGuides);
-    el.stage.addEventListener('click', ()=>{ if(document.body.classList.contains('hiddenUi')) document.body.classList.remove('hiddenUi'); });
+    el.stage.addEventListener('click', ()=>{
+      if(document.body.classList.contains('hiddenUi')) document.body.classList.remove('hiddenUi');
+      el.menu.classList.add('hidden');
+    });
+
+    // الشريط السفلي: توغلات سريعة + أزرار التصوير
+    document.querySelectorAll('.qbtn').forEach(b=> b.onclick = ()=> toggleQuick(b.dataset.q));
+    refreshQuick();
+    el.btnPhoto.onclick = ()=> Bridge.cmd.takePicture();
+    el.btnRecDock.onclick = ()=>{ if(el.btnRecDock.classList.contains('recording')) Bridge.cmd.stopMovieRec(); else Bridge.cmd.startMovieRec(); };
+    el.filesBtn.onclick = ()=> openPanel('files');
+    el.ctrlBtn.onclick = ()=> openPanel('control');
+    document.querySelectorAll('#readout .rd[data-ctl]').forEach(b=> b.onclick = ()=> openPanel('control'));
 
     // التشخيص
     $('#noSignalDiag').onclick = openDiag;
@@ -423,8 +480,23 @@
     };
   }
 
-  // زر الرجوع من الأصل: يغلق اللوحة/يُظهر الواجهة قبل الخروج
+  // توغلات الشريط السفلي السريعة
+  function toggleQuick(q){
+    const map = { hist:'hist', wave:'wave', 'false':'falseColor', peak:'peaking', zebra:'zebra', grid:'gThirds', lut:'lutOn' };
+    const key = map[q]; if(!key) return;
+    S[key] = !S[key]; persist();
+    if(q==='hist' || q==='wave') Scopes.setEnabled({ hist:S.hist, wave:S.wave });
+    applyParamsToGL(); drawGuides(); refreshQuick();
+  }
+  function refreshQuick(){
+    const st = { hist:S.hist, wave:S.wave, 'false':S.falseColor, peak:S.peaking, zebra:S.zebra, grid:S.gThirds, lut:S.lutOn };
+    document.querySelectorAll('.qbtn').forEach(b=> b.classList.toggle('on', !!st[b.dataset.q]));
+  }
+
+  // زر الرجوع من الأصل: يغلق القائمة/اللوحة/يُظهر الواجهة قبل الخروج
   window.__onBackPressed = function(){
+    if(!el.menu.classList.contains('hidden')){ el.menu.classList.add('hidden'); return true; }
+    if(!el.diag.classList.contains('hidden')){ el.diag.classList.add('hidden'); return true; }
     if(document.body.classList.contains('hiddenUi')){ document.body.classList.remove('hiddenUi'); return true; }
     if(!el.panelHost.classList.contains('hidden')){ el.panelHost.classList.add('hidden'); return true; }
     return false;
@@ -438,23 +510,22 @@
 
   // -------- لوحة الأدوات --------
   function wireScopes(){
-    const host = $('#scopeCanvases');
-    Scopes.init(host);
     Scopes.setEnabled({hist:S.hist,histRGB:S.histRGB,wave:S.wave,parade:S.parade});
-    bindChk('#scHist','hist', v=>Scopes.setEnabled({hist:v}));
+    bindChk('#scHist','hist', v=>{Scopes.setEnabled({hist:v}); refreshQuick();});
     bindChk('#scHistRGB','histRGB', v=>Scopes.setEnabled({histRGB:v}));
-    bindChk('#scWave','wave', v=>Scopes.setEnabled({wave:v}));
+    bindChk('#scWave','wave', v=>{Scopes.setEnabled({wave:v}); refreshQuick();});
     bindChk('#scParade','parade', v=>Scopes.setEnabled({parade:v}));
-    bindChk('#scZebra','zebra', ()=>applyParamsToGL());
-    bindChk('#scFalse','falseColor', ()=>applyParamsToGL());
+    bindChk('#scZebra','zebra', ()=>{applyParamsToGL(); refreshQuick();});
+    bindChk('#scFalse','falseColor', ()=>{applyParamsToGL(); refreshQuick();});
     bindChk('#scClip','clipWarn', ()=>applyParamsToGL());
     bindRange('#zebraTh','#zebraThV','zebraTh', v=>v, ()=>applyParamsToGL());
     bindRange('#crushTh','#crushThV','crushTh', v=>v, ()=>applyParamsToGL());
-    const src=$('#scopeSource'); src.value=S.scopeSource; src.onchange=()=>{ S.scopeSource=src.value; persist(); };
-    // دليل False Color
-    const legend = document.createElement('div'); legend.className='note small';
-    legend.innerHTML = '<b>دليل False Color:</b><br>' + Scopes.falseColorLegend.map(([c,t])=>`<span style="display:inline-block;width:10px;height:10px;background:${c};margin-inline-end:4px;border-radius:2px"></span>${t}`).join('<br>');
-    $('#scopeCanvases').before(legend);
+    const src=$('#scopeSource'); if(src){ src.value=S.scopeSource; src.onchange=()=>{ S.scopeSource=src.value; persist(); }; }
+    const host = $('#scopeCanvases');
+    if(host){
+      host.innerHTML = '<b>دليل False Color:</b><br>' + Scopes.falseColorLegend.map(([c,t])=>`<span style="display:inline-block;width:11px;height:11px;background:${c};margin-inline-end:5px;border-radius:2px;vertical-align:middle"></span>${t}`).join('<br>');
+      host.className = 'note small';
+    }
   }
 
   // -------- لوحة LUT --------
@@ -538,12 +609,15 @@
     const shot=$('#btnShot'), rec=$('#btnRec');
     if(shot) shot.disabled = !d.hasTakePicture;
     if(rec) rec.disabled = !d.hasMovieRec;
+    // أزرار الشريط السفلي على المونيتور
+    if(el.btnPhoto) el.btnPhoto.disabled = !d.hasTakePicture;
+    if(el.btnRecDock) el.btnRecDock.disabled = !d.hasMovieRec;
     setSel('setIso', d.canSetIso); setSel('setShutter', d.canSetShutter); setSel('setF', d.canSetFNumber); setSel('setWB', d.canSetWhiteBalance);
     const cc=$('#controlCaps'); if(cc) cc.textContent = 'مفعّل حسب قدرات '+(d.model||'الكاميرا')+': التقاط='+yn(d.hasTakePicture)+'، فيديو='+yn(d.hasMovieRec)+'، ISO='+yn(d.canSetIso)+'، غالق='+yn(d.canSetShutter)+'، فتحة='+yn(d.canSetFNumber)+'.';
   }
   function setSel(id, on){ const s=$('#'+id); if(s) s.disabled=!on; }
   function yn(b){ return b?'نعم':'لا'; }
-  function disableControls(){ ['btnShot','btnRec','setIso','setShutter','setF','setWB'].forEach(id=>{ const e=document.getElementById(id); if(e) e.disabled=true; }); }
+  function disableControls(){ ['btnShot','btnRec','setIso','setShutter','setF','setWB'].forEach(id=>{ const e=document.getElementById(id); if(e) e.disabled=true; }); if(el.btnPhoto) el.btnPhoto.disabled=true; if(el.btnRecDock) el.btnRecDock.disabled=true; }
   function fillSelectCurrent(id, current, candidates){
     const s=document.getElementById(id); if(!s||current==null) return;
     // اعمر القائمة من الخيارات المتاحة القادمة من الكاميرا (إن وُجدت)
