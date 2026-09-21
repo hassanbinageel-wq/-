@@ -22,7 +22,8 @@
     rdF: $('#rdF'), rdSS: $('#rdSS'), rdISO: $('#rdISO'), rdWB: $('#rdWB'), rdFocus: $('#rdFocus'), rdMode: $('#rdMode'),
     ccISO: $('#ccISO'), ccF: $('#ccF'), ccSS: $('#ccSS'), ccWB: $('#ccWB'), ccEV: $('#ccEV'),
     valuePicker: $('#valuePicker'), vpTitle: $('#vpTitle'), vpList: $('#vpList'),
-    btnPhoto: $('#btnPhoto'), btnRecDock: $('#btnRecDock'), filesBtn: $('#filesBtn'), ctrlBtn: $('#ctrlBtn'),
+    btnPhoto: $('#btnPhoto'), btnRecDock: $('#btnRecDock'), filesBtn: $('#filesBtn'), teleBtn: $('#teleBtn'),
+    teleprompter: $('#teleprompter'), teleText: $('#teleText'), focusMark: $('#focusMark'),
     panelHost: $('#panelHost'), panelTitle: $('#panelTitle'), panelBody: $('#panelBody'), panelClose: $('#panelClose'),
     toast: $('#toast')
   };
@@ -35,6 +36,8 @@
     zoom:100, peaking:false, peakColor:'r', peakStr:30,
     gThirds:false, gCenter:false, gAspect:'', gSafe:false, gOpacity:60,
     flipH:false, refOn:false, refOpacity:50,
+    lutSplit:false,
+    teleOn:false, teleRun:false, teleTextContent:'', teleSpeed:40, teleSize:34, telePos:'center', teleMirror:false, teleBg:35,
     keepOn:true, lvSize:'L'
   };
   let S = Object.assign({}, defaults, Store.getSettings());
@@ -104,6 +107,7 @@
     Bridge.cmd.keepScreenOn(S.keepOn);
     pollPhoneStatus();
     drawGuides();
+    applyTele();
     setInterval(checkNoSignal, 800);
     requestAnimationFrame(loop);
   }
@@ -171,6 +175,18 @@
   const vctx = el.view.getContext('2d');
   // LUT نشط للمعالجة على المعالج المركزي (2D) — أوثق من WebGL على هذا الجهاز
   let activeLut = null;
+  let splitX = 0.5; // موضع شريط المقارنة قبل/بعد (0..1 من عرض الكادر)
+  function updateSplitHandle(){
+    const sh = document.getElementById('splitHandle'); if(!sh) return;
+    const show = S.lutOn && S.lutSplit && appVisible;
+    sh.classList.toggle('hidden', !show);
+    if(show){
+      const cr = el.view.getBoundingClientRect(), sr = el.stage.getBoundingClientRect();
+      sh.style.top = (cr.top - sr.top) + 'px';
+      sh.style.height = cr.height + 'px';
+      sh.style.left = (cr.left - sr.left + splitX * cr.width) + 'px';
+    }
+  }
 
   // لوح معالجة المؤثّرات
   const fx = document.createElement('canvas');
@@ -190,7 +206,21 @@
       } catch(e){ dlog('خطأ مؤثّرات: '+e.message); }
     }
     drawToView(fx, w, h);
+    // مقارنة قبل/بعد بشريط قابل للسحب (عند تفعيل LUT + وضع المقارنة)
+    if(S.lutOn && S.lutSplit){ drawSplitRaw(src, w, h); }
+    updateSplitHandle();
     if(w !== lastVW || h !== lastVH){ lastVW = w; lastVH = h; drawGuides(); }
+  }
+  function drawSplitRaw(src, w, h){
+    const sx = Math.round(splitX * w);
+    const z = S.zoom/100;
+    try {
+      vctx.save(); vctx.beginPath(); vctx.rect(sx, 0, w - sx, h); vctx.clip();
+      if(z <= 1.001){ vctx.drawImage(src, 0, 0, w, h); }
+      else { const sw=w/z, sh=h/z, ox=(w-sw)/2, oy=(h-sh)/2; vctx.drawImage(src, ox,oy,sw,sh, 0,0,w,h); }
+      vctx.restore();
+      vctx.fillStyle = '#f5b301'; vctx.fillRect(sx-1, 0, 2, h);
+    } catch(e){ try{ vctx.restore(); }catch(_){}}
   }
   function drawToView(canvasSrc, w, h){
     if(el.view.width !== w || el.view.height !== h){ el.view.width = w; el.view.height = h; }
@@ -224,7 +254,7 @@
       else {
         if(S.clipWarn && (r>=252||g>=252||b>=252)){ r=255; g=0; b=0; }
         else if(S.crushWarn && y<=cth){ r=0; g=48; b=255; }
-        if(S.zebra && y>=zth){ if((((p%w)+((p/w)|0))%12)<6){ r=r*0.3+178.5; g=g*0.3+178.5; b=b*0.3+178.5; } }
+        if(S.zebra && y>=zth){ if((((p%w)+((p/w)|0))%14)<7){ r*=0.12; g*=0.12; b*=0.12; } } // خطوط داكنة مائلة تظهر على المناطق الساطعة
         if(peak && peak[p]){ r=pc[0]; g=pc[1]; b=pc[2]; }
       }
       d[i]=r; d[i+1]=g; d[i+2]=b;
@@ -388,6 +418,7 @@
       if(d.action==='startMovieRec' && d.ok) setRecording(true);
       if(d.action==='stopMovieRec' && d.ok) setRecording(false);
       if(d.action==='takePicture' && d.ok) toast('تم الالتقاط ✓');
+      if(!d.ok) toast('✗ '+(d.label||d.action||'أمر')+': '+(d.message||'فشل'));
     });
   }
 
@@ -498,8 +529,8 @@
     el.panelBody.appendChild(tpl.content.cloneNode(true));
     el.panelHost.classList.remove('hidden');
     el.menu.querySelectorAll('button[data-panel]').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
-    el.panelTitle.textContent = ({scopes:'أدوات المراقبة',lut:'LUT للمعاينة',focus:'التركيز والتأطير',control:'التحكم بالكاميرا',files:'الملفات والمشاريع',settings:'الإعدادات'})[name]||'لوحة';
-    ({scopes:wireScopes,lut:wireLut,focus:wireFocus,control:wireControl,files:wireFiles,settings:wireSettings})[name]();
+    el.panelTitle.textContent = ({scopes:'أدوات المراقبة',lut:'LUT للمعاينة',focus:'التركيز والتأطير',tele:'التيليبرومتر',control:'التحكم بالكاميرا',files:'الملفات والمشاريع',settings:'الإعدادات'})[name]||'لوحة';
+    ({scopes:wireScopes,lut:wireLut,focus:wireFocus,tele:wireTele,control:wireControl,files:wireFiles,settings:wireSettings})[name]();
   }
 
   function wireChrome(){
@@ -510,9 +541,12 @@
     el.hideUiBtn.onclick = ()=> document.body.classList.toggle('hiddenUi');
     window.addEventListener('resize', ()=> setTimeout(drawGuides, 60));
     window.addEventListener('orientationchange', ()=> setTimeout(drawGuides, 120));
-    el.stage.addEventListener('click', ()=>{
-      if(document.body.classList.contains('hiddenUi')) document.body.classList.remove('hiddenUi');
-      el.menu.classList.add('hidden');
+    el.stage.addEventListener('click', (e)=>{
+      if(!el.menu.classList.contains('hidden')){ el.menu.classList.add('hidden'); return; }
+      if(document.body.classList.contains('hiddenUi')){ document.body.classList.remove('hiddenUi'); return; }
+      if(!el.valuePicker.classList.contains('hidden')){ el.valuePicker.classList.add('hidden'); return; }
+      // نقرة على الصورة = نقل التركيز لتلك النقطة (إن دعمت الكاميرا)
+      if(connected && !testMode) focusAtEvent(e);
     });
 
     // الشريط السفلي: توغلات سريعة + أزرار التصوير
@@ -521,10 +555,13 @@
     el.btnPhoto.onclick = ()=>{ toast('جارٍ الالتقاط…'); Bridge.cmd.takePicture(); };
     el.btnRecDock.onclick = ()=>{ if(el.btnRecDock.classList.contains('recording')) Bridge.cmd.stopMovieRec(); else Bridge.cmd.startMovieRec(); };
     el.filesBtn.onclick = ()=> openPanel('files');
-    el.ctrlBtn.onclick = ()=> openPanel('control');
+    el.teleBtn.onclick = ()=>{ S.teleOn=!S.teleOn; persist(); applyTele(); };
     // منتقي القيمة من شريط التحكّم السفلي وشريط الإعدادات العلوي
     document.querySelectorAll('.cchip[data-ctl], #readout .rd[data-ctl]').forEach(b=> b.onclick = ()=> openValuePicker(b.dataset.ctl));
     $('#vpClose').onclick = ()=> el.valuePicker.classList.add('hidden');
+    // سحب شريط مقارنة LUT
+    wireSplitDrag();
+    if(window.ResizeObserver){ try{ new ResizeObserver(()=>{ drawGuides(); updateSplitHandle(); }).observe(el.view); }catch(e){} }
 
     // التشخيص
     $('#noSignalDiag').onclick = openDiag;
@@ -581,6 +618,55 @@
   }
   function evLabel(i){ const step=(lastStatus.exposureCompStep===1)?0.5:(1/3); const ev=i*step; return (ev>0?'+':'')+ev.toFixed(1).replace('.0',''); }
 
+  // ---- النقر للتركيز ----
+  let focusMarkTimer=null;
+  function focusAtEvent(e){
+    const cr=el.view.getBoundingClientRect();
+    let x=(e.clientX-cr.left)/cr.width, y=(e.clientY-cr.top)/cr.height;
+    if(x<0||x>1||y<0||y>1) return;
+    if(S.flipH) x=1-x;
+    const sr=el.stage.getBoundingClientRect();
+    el.focusMark.style.left=(e.clientX-sr.left)+'px'; el.focusMark.style.top=(e.clientY-sr.top)+'px';
+    el.focusMark.classList.remove('hidden'); el.focusMark.style.animation='none'; void el.focusMark.offsetWidth; el.focusMark.style.animation='';
+    clearTimeout(focusMarkTimer); focusMarkTimer=setTimeout(()=>el.focusMark.classList.add('hidden'),1300);
+    Bridge.cmd.touchFocus(Math.round(x*100), Math.round(y*100));
+  }
+
+  // ---- سحب شريط مقارنة LUT ----
+  function wireSplitDrag(){
+    const sh=document.getElementById('splitHandle'); if(!sh) return;
+    let dragging=false;
+    const move=(cx)=>{ const cr=el.view.getBoundingClientRect(); splitX=Math.min(0.98,Math.max(0.02,(cx-cr.left)/cr.width)); updateSplitHandle(); };
+    const start=e=>{ dragging=true; e.stopPropagation(); };
+    sh.addEventListener('touchstart',start,{passive:true}); sh.addEventListener('mousedown',start);
+    window.addEventListener('touchmove',e=>{ if(dragging&&e.touches[0]) move(e.touches[0].clientX); },{passive:true});
+    window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientX); });
+    window.addEventListener('touchend',()=>dragging=false); window.addEventListener('mouseup',()=>dragging=false);
+  }
+
+  // ---- التيليبرومتر ----
+  let teleY=0, teleRAF=null, teleLastT=0;
+  function applyTele(){
+    const tp=el.teleprompter;
+    tp.classList.toggle('hidden', !S.teleOn);
+    tp.classList.remove('pos-center','pos-top','pos-bottom'); tp.classList.add('pos-'+(S.telePos||'center'));
+    tp.classList.toggle('mirror', !!S.teleMirror);
+    tp.style.background='rgba(0,0,0,'+((S.teleBg||0)/100)+')';
+    el.teleText.style.fontSize=(S.teleSize||34)+'px';
+    el.teleText.textContent=S.teleTextContent||'';
+    if(S.teleOn && S.teleRun) startTele(); else stopTele();
+  }
+  function startTele(){ if(teleRAF) return; teleLastT=performance.now(); teleRAF=requestAnimationFrame(teleStep); }
+  function stopTele(){ if(teleRAF){ cancelAnimationFrame(teleRAF); teleRAF=null; } }
+  function teleStep(t){
+    const dt=(t-teleLastT)/1000; teleLastT=t;
+    teleY -= (S.teleSpeed||40)*dt;
+    const tp=el.teleprompter, contentH=el.teleText.scrollHeight, wrapH=tp.clientHeight;
+    if(teleY < -(contentH+wrapH)) teleY=0;
+    el.teleText.style.top=(wrapH+teleY)+'px';
+    teleRAF=requestAnimationFrame(teleStep);
+  }
+
   // زر الرجوع من الأصل: يغلق القائمة/اللوحة/يُظهر الواجهة قبل الخروج
   window.__onBackPressed = function(){
     if(!el.valuePicker.classList.contains('hidden')){ el.valuePicker.classList.add('hidden'); return true; }
@@ -621,6 +707,8 @@
   function wireLut(){
     $('#lutOn').checked = S.lutOn;
     $('#lutOn').onchange = e=>{ S.lutOn=e.target.checked; persist(); refreshQuick(); };
+    $('#lutSplit').checked = S.lutSplit;
+    $('#lutSplit').onchange = e=>{ S.lutSplit=e.target.checked; persist(); updateSplitHandle(); };
     bindRange('#lutIntensity','#lutIntensityV','lutIntensity', v=>v+'%', ()=>{});
     const cmp=$('#btnLutCompare');
     let prev=false;
@@ -680,6 +768,21 @@
     $('#btnSetRef').onclick = ()=>{ let url=null; try{ url=el.view.toDataURL('image/jpeg',0.9); }catch(e){} if(url){ refImageURL=url; el.refOverlay.src=url; S.refOn=true; persist(); applyParamsToGL(); $('#refOn').checked=true; toast('حُفظت صورة معاينة مرجعية (ليست ملف الكاميرا)'); } };
     bindChk('#refOn','refOn', ()=>applyParamsToGL());
     bindRange('#refOpacity','#refOpacityV','refOpacity', v=>v+'%', ()=>applyParamsToGL());
+  }
+
+  // -------- لوحة التيليبرومتر --------
+  function wireTele(){
+    $('#teleOn').checked=S.teleOn; $('#teleOn').onchange=e=>{ S.teleOn=e.target.checked; persist(); applyTele(); };
+    $('#teleRun').checked=S.teleRun; $('#teleRun').onchange=e=>{ S.teleRun=e.target.checked; persist(); applyTele(); };
+    const ta=$('#teleTextInput'); ta.value=S.teleTextContent||''; ta.oninput=()=>{ S.teleTextContent=ta.value; persist(); el.teleText.textContent=ta.value; };
+    $('#btnTeleImport').onclick=()=> $('#teleFile').click();
+    $('#teleFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ S.teleTextContent=String(rd.result||''); persist(); ta.value=S.teleTextContent; el.teleText.textContent=S.teleTextContent; toast('استُورد النص ✓'); }; rd.readAsText(f); };
+    bindRange('#teleSpeed','#teleSpeedV','teleSpeed', v=>v, ()=>{});
+    bindRange('#teleSize','#teleSizeV','teleSize', v=>v, ()=>applyTele());
+    bindRange('#teleBg','#teleBgV','teleBg', v=>v+'%', ()=>applyTele());
+    const tp=$('#telePos'); tp.value=S.telePos||'center'; tp.onchange=()=>{ S.telePos=tp.value; persist(); applyTele(); };
+    $('#teleMirror').checked=!!S.teleMirror; $('#teleMirror').onchange=e=>{ S.teleMirror=e.target.checked; persist(); applyTele(); };
+    $('#teleReset').onclick=()=>{ teleY=0; };
   }
 
   // -------- لوحة التحكم --------

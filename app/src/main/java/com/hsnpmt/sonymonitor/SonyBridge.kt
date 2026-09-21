@@ -69,6 +69,7 @@ class SonyBridge(
     @JavascriptInterface fun startMovieRec() = controller.startMovieRec()
     @JavascriptInterface fun stopMovieRec() = controller.stopMovieRec()
     @JavascriptInterface fun setSetting(kind: String, value: String) = controller.setSetting(kind, value)
+    @JavascriptInterface fun touchFocus(x: Int, y: Int) = controller.touchFocus(x, y)
     @JavascriptInterface fun refreshStatus() = controller.refreshStatus()
 
     @JavascriptInterface fun keepScreenOn(on: Boolean) { main.post { onKeepScreenOn(on) } }

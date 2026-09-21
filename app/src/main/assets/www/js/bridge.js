@@ -24,6 +24,7 @@ const Bridge = (() => {
     startMovieRec(){ N && N.startMovieRec(); },
     stopMovieRec(){ N && N.stopMovieRec(); },
     setSetting(k,v){ N && N.setSetting(k, String(v)); },
+    touchFocus(x,y){ N && N.touchFocus(x|0, y|0); },
     refreshStatus(){ N && N.refreshStatus(); },
     keepScreenOn(b){ N && N.keepScreenOn(!!b); },
     phoneStatus(){ try { return N ? JSON.parse(N.getPhoneStatus()) : {}; } catch(e){ return {}; } }

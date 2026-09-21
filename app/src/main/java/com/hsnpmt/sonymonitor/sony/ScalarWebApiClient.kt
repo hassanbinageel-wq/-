@@ -133,6 +133,16 @@ class ScalarWebApiClient(
         return out
     }
 
+    fun awaitTakePicture(): List<String> {
+        val r = call("awaitTakePicture")
+        val out = ArrayList<String>()
+        if (r.length() > 0) {
+            val a = r.optJSONArray(0) ?: JSONArray()
+            for (i in 0 until a.length()) out.add(a.optString(i))
+        }
+        return out
+    }
+
     fun startMovieRec() { call("startMovieRec") }
     fun stopMovieRec() { call("stopMovieRec") }
     fun setMovieQuality(value: String) { call("setMovieQuality", JSONArray().put(value)) }
@@ -158,6 +168,10 @@ class ScalarWebApiClient(
     fun setShutterSpeed(value: String) { call("setShutterSpeed", JSONArray().put(value)) }
     fun setFNumber(value: String) { call("setFNumber", JSONArray().put(value)) }
     fun setExposureCompensation(indexValue: Int) { call("setExposureCompensation", JSONArray().put(indexValue)) }
+    /** نقطة التركيز باللمس (نسبة مئوية 0–100). قد لا تدعمها كل الموديلات. */
+    fun setTouchAFPosition(xPercent: Double, yPercent: Double) {
+        call("setTouchAFPosition", JSONArray().put(xPercent).put(yPercent))
+    }
     fun setWhiteBalance(mode: String, colorTempEnabled: Boolean, colorTemp: Int) {
         call("setWhiteBalance", JSONArray().put(mode).put(colorTempEnabled).put(colorTemp))
     }

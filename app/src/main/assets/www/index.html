@@ -97,6 +97,12 @@
       <!-- طبقات أدوات المراقبة فوق الصورة -->
       <div id="ovHist" class="scope-ov ov-topright hidden"><canvas width="200" height="96"></canvas></div>
       <div id="ovWave" class="scope-ov ov-bottom hidden"><canvas width="384" height="90"></canvas></div>
+      <!-- شريط مقارنة LUT قبل/بعد -->
+      <div id="splitHandle" class="hidden"><span class="grip">‹ ›</span></div>
+      <!-- علامة نقطة التركيز -->
+      <div id="focusMark" class="hidden"></div>
+      <!-- التيليبرومتر -->
+      <div id="teleprompter" class="hidden"><div id="teleText"></div></div>
 
       <!-- حالة لا إشارة -->
       <div id="noSignal" class="nosignal hidden">
@@ -154,10 +160,10 @@
         <button class="qbtn" data-q="lut">LUT</button>
       </div>
       <div class="actionrow">
-        <button id="filesBtn" class="act" title="الملفات"><svg class="ic"><use href="#ic-files"/></svg></button>
+        <button id="teleBtn" class="act" title="التيليبرومتر"><b style="font-size:13px">Aa</b></button>
         <button id="btnPhoto" class="act photo" title="التقاط صورة" disabled><svg class="ic"><use href="#ic-photo"/></svg></button>
         <button id="btnRecDock" class="act recbtn" title="تسجيل فيديو" disabled><span class="recsquare"></span></button>
-        <button id="ctrlBtn" class="act" title="إعدادات الكاميرا"><svg class="ic"><use href="#ic-control"/></svg></button>
+        <button id="filesBtn" class="act" title="ملفات الكاميرا"><svg class="ic"><use href="#ic-files"/></svg></button>
       </div>
     </footer>
 
@@ -166,6 +172,7 @@
       <button data-panel="scopes"><svg class="ic"><use href="#ic-scopes"/></svg><span>المراقبة</span></button>
       <button data-panel="lut"><svg class="ic"><use href="#ic-lut"/></svg><span>LUT</span></button>
       <button data-panel="focus"><svg class="ic"><use href="#ic-focus"/></svg><span>التركيز والتأطير</span></button>
+      <button data-panel="tele"><b style="width:1.35em;text-align:center">Aa</b><span>التيليبرومتر</span></button>
       <button data-panel="control"><svg class="ic"><use href="#ic-control"/></svg><span>التحكّم بالكاميرا</span></button>
       <button data-panel="files"><svg class="ic"><use href="#ic-files"/></svg><span>الملفات والمشاريع</span></button>
       <button data-panel="settings"><svg class="ic"><use href="#ic-gear"/></svg><span>الإعدادات</span></button>
@@ -227,7 +234,8 @@
     <div class="stack">
       <label class="row"><span>تفعيل LUT</span><input type="checkbox" id="lutOn"></label>
       <label class="row"><span>الشدّة</span><input type="range" id="lutIntensity" min="0" max="100" value="100"><b id="lutIntensityV">100%</b></label>
-      <button id="btnLutCompare" class="btn ghost">اضغط باستمرار: مقارنة قبل/بعد</button>
+      <label class="row"><span>مقارنة قبل/بعد بشريط قابل للسحب</span><input type="checkbox" id="lutSplit"></label>
+      <button id="btnLutCompare" class="btn ghost">أو: اضغط باستمرار لإخفاء LUT مؤقتًا</button>
       <div class="hr"></div>
       <input type="file" id="lutFile" accept=".cube" hidden />
       <button id="btnLutImport" class="btn primary">استيراد ملف ‎.cube</button>
@@ -260,6 +268,24 @@
       <button id="btnSetRef" class="btn ghost">التقط صورة مرجعية من المعاينة</button>
       <label class="row"><span>عرض الصورة المرجعية</span><input type="checkbox" id="refOn"></label>
       <label class="row"><span>شفافية المرجع</span><input type="range" id="refOpacity" min="10" max="90" value="50"><b id="refOpacityV">50%</b></label>
+    </div>
+  </template>
+
+  <template id="tpl-tele">
+    <div class="stack">
+      <label class="row"><span>إظهار التيليبرومتر</span><input type="checkbox" id="teleOn"></label>
+      <label class="row"><span>تشغيل التمرير</span><input type="checkbox" id="teleRun"></label>
+      <textarea id="teleTextInput" rows="5" placeholder="اكتب النص هنا…" style="width:100%;background:#0f1114;color:#fff;border:1px solid var(--line2);border-radius:10px;padding:10px;font-size:15px;"></textarea>
+      <input type="file" id="teleFile" accept=".txt,text/plain" hidden />
+      <button id="btnTeleImport" class="btn">استيراد ملف ‎.txt</button>
+      <p class="note small">دعم ‎.docx و PDF يحتاج تحويلها إلى نص؛ حاليًا ‎.txt أو الكتابة المباشرة. (سيُضاف لاحقًا)</p>
+      <label class="row"><span>السرعة</span><input type="range" id="teleSpeed" min="5" max="120" value="40"><b id="teleSpeedV">40</b></label>
+      <label class="row"><span>حجم الخط</span><input type="range" id="teleSize" min="16" max="72" value="34"><b id="teleSizeV">34</b></label>
+      <label class="row"><span>الموضع</span>
+        <select id="telePos"><option value="center">المنتصف</option><option value="top">أعلى</option><option value="bottom">أسفل</option></select></label>
+      <label class="row"><span>عكس أفقي (مرآة)</span><input type="checkbox" id="teleMirror"></label>
+      <label class="row"><span>شفافية الخلفية</span><input type="range" id="teleBg" min="0" max="90" value="35"><b id="teleBgV">35%</b></label>
+      <div class="row"><button id="teleReset" class="btn ghost">إرجاع للأعلى</button></div>
     </div>
   </template>
 

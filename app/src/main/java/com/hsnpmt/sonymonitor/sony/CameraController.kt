@@ -42,7 +42,7 @@ class CameraController(
     // عملاء HTTP: واحد قصير للطلبات، وواحد بلا مهلة قراءة للبث المستمر
     private val apiClientHttp = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
-        .readTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS) // الالتقاط قد يستغرق وقتًا (تركيز + غالق)
         .build()
     private val streamHttp = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
@@ -222,7 +222,13 @@ class CameraController(
     // نحاول التنفيذ مباشرةً (قائمة الوظائف المتاحة تتغيّر مع وضع الكاميرا)،
     // ونبلّغ بالنتيجة أو الخطأ الحقيقي من الكاميرا — أدق من الاعتماد على لقطة قديمة.
     fun takePicture() = attempt("التقاط الصور") {
-        val urls = api!!.actTakePicture()
+        val c = api!!
+        val urls = try {
+            c.actTakePicture()
+        } catch (e: ScalarWebApiClient.ApiError) {
+            // 40403 = "Long shooting" — الكاميرا ما زالت تلتقط؛ ننتظر النتيجة
+            if (e.code == 40403) c.awaitTakePicture() else throw e
+        }
         emit("action", JSONObject().put("action", "takePicture").put("ok", true).put("postview", JSONArray(urls)))
     }
 
@@ -247,6 +253,11 @@ class CameraController(
                     .put("message", (e.message ?: "فشل التنفيذ") + " — تأكّد أن دايل الكاميرا في الوضع المناسب (صورة/فيديو)."))
             }
         }
+    }
+
+    fun touchFocus(xPercent: Int, yPercent: Int) = attempt("نقل التركيز") {
+        api!!.setTouchAFPosition(xPercent.toDouble(), yPercent.toDouble())
+        emit("action", JSONObject().put("action", "touchFocus").put("ok", true).put("x", xPercent).put("y", yPercent))
     }
 
     fun setSetting(kind: String, value: String) = guarded(apiForKind(kind), "ضبط $kind") {
