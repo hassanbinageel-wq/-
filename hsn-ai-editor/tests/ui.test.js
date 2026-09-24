@@ -108,7 +108,7 @@ test("panel boots, streams a reply, executes a plan from its card, switches lang
     const card = await until(() => doc.querySelector(".card.plan"));
     assert.match(card.textContent, /Quick cut/);
     const before = (await mock.project.getSequences()).length;
-    card.querySelector("button.primary").click();
+    card.querySelector(".btn.primary").click();
     await until(async () => (await mock.project.getSequences()).length === before + 1);
     await until(() => [...doc.querySelectorAll(".msg.system")].some((m) => /Execution done/.test(m.textContent)));
 

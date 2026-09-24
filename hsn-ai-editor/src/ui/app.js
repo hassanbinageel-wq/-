@@ -20,9 +20,18 @@ import { ticksToSeconds } from "../core/time.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...kids) => {
-  const n = document.createElement(tag);
+  // UXP renders native <button> with fixed Spectrum sizing that clips our
+  // labels, so buttons are styled divs; <details>/<b> aren't supported either.
+  const isBtn = tag === "button";
+  const n = document.createElement(isBtn ? "div" : tag);
+  if (isBtn) {
+    n.className = "btn";
+    n.setAttribute("role", "button");
+  }
   for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") n.className = v;
+    if (k === "class") n.className = isBtn ? `btn ${v}` : v;
+    else if (k === "disabled") setDisabled(n, !!v);
+    else if (isBtn && k === "onclick") n.addEventListener("click", (e) => !n.classList.contains("disabled") && v(e));
     else if (k === "text") n.textContent = v;
     else if (k === "html") n.innerHTML = v;
     else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
@@ -31,15 +40,44 @@ const el = (tag, attrs = {}, ...kids) => {
   for (const k of kids.flat()) if (k != null) n.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
   return n;
 };
+function setDisabled(n, d) {
+  if (!n) return;
+  if (d) n.classList.add("disabled");
+  else n.classList.remove("disabled");
+}
+// UXP's classList.toggle ignores the "force" argument; set display directly.
+function show(n, visible) {
+  if (n) n.style.display = visible ? "" : "none";
+}
+/** Collapsible section (replacement for <details>, which UXP lacks). */
+function collapsible(title, body, cls = "") {
+  const b = document.createElement("div");
+  b.className = "collBody";
+  b.style.display = "none";
+  if (body) b.appendChild(body);
+  const h = document.createElement("div");
+  h.className = "collHead";
+  h.textContent = `▸ ${title}`;
+  h.addEventListener("click", () => {
+    const open = b.style.display === "none";
+    b.style.display = open ? "" : "none";
+    h.textContent = `${open ? "▾" : "▸"} ${title}`;
+  });
+  const w = document.createElement("div");
+  w.className = `coll ${cls}`;
+  w.append(h, b);
+  w.body = b;
+  return w;
+}
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const isRtl = (s) => /[֐-ࣿ]/.test(s || "");
 
 /** Minimal, safe markdown: escapes HTML, then **bold**, `code`, line breaks, "- " bullets. */
 function md(text) {
   return esc(text)
-    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/\*\*([^*]+)\*\*/g, '<span class="b">$1</span>')
     .replace(/`([^`]+)`/g, '<span class="code">$1</span>')
-    .replace(/^#{1,4} (.+)$/gm, "<b>$1</b>")
+    .replace(/^#{1,4} (.+)$/gm, '<span class="b">$1</span>')
     .replace(/^[-•] (.+)$/gm, "• $1")
     .replace(/\n/g, "<br>");
 }
@@ -166,11 +204,11 @@ export class App {
       el("div", { class: "tabs" }, ...tabs.map((k) => el("button", { class: `tab${k === "chat" ? " active" : ""}`, "data-tab": k, text: this.tr(tabKey[k]), onclick: () => this.showTab(k) }))),
       el("div", { class: "views" },
         this.chatView(),
-        el("div", { class: "view hidden", id: "view-media" }),
-        el("div", { class: "view hidden", id: "view-versions" }),
-        el("div", { class: "view hidden", id: "view-styles" }),
-        el("div", { class: "view hidden", id: "view-log" }),
-        el("div", { class: "view hidden", id: "view-settings" })
+        el("div", { class: "view", id: "view-media", style: "display:none" }),
+        el("div", { class: "view", id: "view-versions", style: "display:none" }),
+        el("div", { class: "view", id: "view-styles", style: "display:none" }),
+        el("div", { class: "view", id: "view-log", style: "display:none" }),
+        el("div", { class: "view", id: "view-settings", style: "display:none" })
       )
     );
     this.refreshStatus();
@@ -193,9 +231,9 @@ export class App {
       el("div", { id: "messages", class: "messages" }),
       el("div", { class: "statusBar" },
         el("span", { id: "phase", class: "phase", text: this.tr("idle") }),
-        el("progress", { id: "prog", max: "100", value: "0", class: "hidden" }),
+        el("progress", { id: "prog", max: "100", value: "0", style: "display:none" }),
         el("span", { id: "usage", class: "muted small" }),
-        el("button", { id: "stopBtn", class: "danger small hidden", text: this.tr("stop"), onclick: () => this.stopAll() })
+        el("button", { id: "stopBtn", class: "danger small", style: "display:none", text: this.tr("stop"), onclick: () => this.stopAll() })
       ),
       el("div", { id: "quick", class: "quick" }),
       el("div", { id: "attachList", class: "attachList" }),
@@ -222,8 +260,8 @@ export class App {
   }
 
   showTab(k) {
-    document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.getAttribute("data-tab") === k));
-    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("hidden", v.id !== `view-${k}`));
+    document.querySelectorAll(".tab").forEach((b) => (b.getAttribute("data-tab") === k ? b.classList.add("active") : b.classList.remove("active")));
+    document.querySelectorAll(".view").forEach((v) => show(v, v.id === `view-${k}`));
     if (k !== "chat") this.renderSideTabs(k);
   }
 
@@ -286,7 +324,7 @@ export class App {
     a.on("thinking", (d) => {
       if (!this.settings.get("showThinking")) return;
       if (!thinking) {
-        thinking = el("details", { class: "thinking" }, el("summary", { text: this.lang === "ar" ? "ملخص التفكير" : "Thinking summary" }), el("div", { class: "tbody" }));
+        thinking = collapsible(this.lang === "ar" ? "ملخص التفكير" : "Thinking summary", el("div", { class: "tbody" }), "thinking");
         $("#messages").appendChild(thinking);
       }
       $(".tbody", thinking).textContent += d;
@@ -319,8 +357,7 @@ export class App {
         this.toolChip.className = `tool ${x.ok ? "ok" : "fail"}`;
         this.toolChip.textContent = `${x.ok ? "✓" : "✗"} ${toolLabel(x.name, this.lang)}${x.images ? ` · ${x.images} 🖼` : ""}`;
         this.toolChip.title = truncate(x.text, 800);
-        const det = el("details", { class: "toolDetail" }, el("summary", { text: "…" }), el("pre", { text: truncate(x.text, 4000) }));
-        this.toolChip.appendChild(det);
+        this.toolChip.appendChild(collapsible(this.lang === "ar" ? "التفاصيل" : "details", el("pre", { text: truncate(x.text, 4000) }), "toolDetail"));
       }
       this.toolChip = null;
       this.renderSideTabs();
@@ -332,11 +369,11 @@ export class App {
     });
     a.on("notice", (n) => this.addBubble("system", n, { kind: "notice" }));
     a.on("busy", (b) => {
-      $("#stopBtn").classList.toggle("hidden", !b);
-      $("#sendBtn").disabled = b;
+      show($("#stopBtn"), b);
+      setDisabled($("#sendBtn"), b);
       if (!b) {
         this.setPhase(this.tr("idle"));
-        $("#prog").classList.add("hidden");
+        show($("#prog"), false);
       }
     });
     a.on("phase", (p) => p.phase !== "idle" && this.setPhase(this.tr(p.phase) || p.phase));
@@ -350,7 +387,7 @@ export class App {
   onProgress(p) {
     const bar = $("#prog");
     if (p.total) {
-      bar.classList.remove("hidden");
+      show(bar, true);
       bar.value = String(Math.round((100 * (p.index || 0)) / p.total));
     }
     const name = p.phase === "execute" ? this.tr("executing") : p.phase === "analyze" ? this.tr("analyzing") : this.tr("editing");
@@ -419,11 +456,11 @@ export class App {
       el("div", { class: "muted small", text: `${s.duration_s ?? "?"}s · ${s.shots ?? "?"} shots · avg ${s.avg_shot_s ?? "?"}s · ${s.transitions ?? 0} transitions · ${p.style_id || ""}${p.intent?.aspect ? ` · ${p.intent.aspect}` : ""}` })
     );
     if (p.style_notes) card.append(el("div", { class: "small", text: p.style_notes }));
-    if (p.assumptions?.length) card.append(el("div", { class: "small" }, el("b", { text: `${this.tr("assumptions")}: ` }), p.assumptions.join(" · ")));
+    if (p.assumptions?.length) card.append(el("div", { class: "small", text: `${this.tr("assumptions")}: ${p.assumptions.join(" · ")}` }));
     if (p.structure?.length) card.append(el("div", { class: "structure" }, ...p.structure.map((x) => el("span", { class: "seg", text: `${x.section}${x.target_s ? ` ${x.target_s}s` : ""}` }))));
     if (rec.fixes?.length) card.append(el("div", { class: "small warnText", text: `${this.tr("autoFixes")}: ${rec.fixes.join(" · ")}` }));
     if (rec.warnings?.length) card.append(el("div", { class: "small warnText", text: `${this.tr("warnings")}: ${rec.warnings.join(" · ")}` }));
-    const det = el("details", {}, el("summary", { text: this.tr("details") }), el("pre", { class: "planLines", text: rec.summary || "" }));
+    const det = collapsible(this.tr("details"), el("pre", { class: "planLines", text: rec.summary || "" }));
     card.append(det);
     const status = el("div", { class: "small muted", id: `status-${rec.id}`, text: rec.status === "executed" ? "✓ executed" : "" });
     const btns = el("div", { class: "cardBtns" },
@@ -453,7 +490,7 @@ export class App {
     this.cardRunning = true;
     rec.status = "approved";
     this.cardStop = new StopToken();
-    $("#stopBtn").classList.remove("hidden");
+    show($("#stopBtn"), true);
     const ctx = this.agent.makeContext({ stop: this.cardStop, signal: undefined, userText: "execute plan" });
     try {
       const r = await executePlanRecord(ctx, rec);
@@ -466,9 +503,9 @@ export class App {
     } finally {
       this.cardRunning = false;
       this.cardStop = null;
-      $("#stopBtn").classList.add("hidden");
+      show($("#stopBtn"), false);
       this.setPhase(this.tr("idle"));
-      $("#prog").classList.add("hidden");
+      show($("#prog"), false);
       this.renderSideTabs();
     }
   }
@@ -648,7 +685,7 @@ export class App {
     } }));
     for (const m of Object.values(this.index.media)) {
       const cov = this.index.coverage(m.id);
-      v.append(el("details", { class: "mediaItem" }, el("summary", { text: `${m.name} · ${m.duration_s?.toFixed?.(1) ?? "?"}s · ${m.notes.length} notes · ${cov.frames_sampled} frames · ${m.transcript ? "📝" : ""}` }), el("pre", { class: "small", text: this.index.describe(m.id, { maxNotes: 40, maxSegs: 20 }) + `\n\ncoverage: ${JSON.stringify(cov)}` })));
+      v.append(collapsible(`${m.name} · ${m.duration_s?.toFixed?.(1) ?? "?"}s · ${m.notes.length} notes · ${cov.frames_sampled} frames · ${m.transcript ? "📝" : ""}`, el("pre", { class: "small", text: this.index.describe(m.id, { maxNotes: 40, maxSegs: 20 }) + `\n\ncoverage: ${JSON.stringify(cov)}` }), "mediaItem"));
     }
   }
 
@@ -668,7 +705,7 @@ export class App {
     v.append(el("div", { class: "sectionTitle", text: `${this.tr("styles")} — ${this.tr("saved")}` }));
     for (const s of this.memory.data.styles) v.append(el("div", { class: "row" }, el("div", { class: "grow" }, el("div", { text: s.name }), el("div", { class: "muted small", text: truncate(s.summary, 160) })), fav(s.id), use(s)));
     v.append(el("div", { class: "sectionTitle", text: this.tr("references") }));
-    for (const r of this.memory.data.references) v.append(el("details", {}, el("summary", { text: `${r.name} · ${r.influence}` }), el("pre", { class: "small", text: `Observed: ${r.observed}\n\nInferred: ${r.inferred}\n\n${r.adaptations || ""}` })));
+    for (const r of this.memory.data.references) v.append(collapsible(`${r.name} · ${r.influence}`, el("pre", { class: "small", text: `Observed: ${r.observed}\n\nInferred: ${r.inferred}\n\n${r.adaptations || ""}` })));
     v.append(el("div", { class: "sectionTitle", text: `${this.tr("styles")} — ${this.tr("builtIn")}` }));
     for (const s of BUILTIN_STYLES) v.append(el("div", { class: "row" }, el("div", { class: "grow" }, el("div", { text: s.name }), el("div", { class: "muted small", text: truncate(s.summary, 160) })), fav(s.id), use(s)));
   }
@@ -679,7 +716,7 @@ export class App {
     v.innerHTML = "";
     v.append(el("div", { class: "sectionTitle", text: this.tr("tabLog") }));
     for (const c of [...this.memory.data.changeLog].reverse().slice(0, 200)) v.append(el("div", { class: `logLine ${c.ok ? "" : "fail"}`, text: `${new Date(c.ts).toLocaleTimeString()} ${c.ok ? "✓" : "✗"} ${c.text}` }));
-    v.append(el("details", {}, el("summary", { text: "Diagnostics" }), el("pre", { class: "small", text: (this.logLines || []).slice(-150).join("\n") })));
+    v.append(collapsible("Diagnostics", el("pre", { class: "small", text: (this.logLines || []).slice(-150).join("\n") })));
   }
 
   async renderSettings() {
