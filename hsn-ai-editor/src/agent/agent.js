@@ -56,7 +56,7 @@ export class Agent extends Emitter {
     try {
       const pr = await ctx.host.project();
       lines.push(`Project: "${pr.name}"`);
-      const tl = await ctx.host.readTimeline();
+      const tl = await ctx.host.readTimeline(undefined, { updateCache: false });
       const fp = fingerprintTimeline(tl);
       const change = this.lastTimeline && fp !== this.lastTimelineFp ? diffTimelines(this.lastTimeline, tl) : null;
       lines.push(`Active sequence: "${tl.sequence.name}" [${tl.sequence.id}] ${tl.sequence.fps}fps ${tl.sequence.width}x${tl.sequence.height}, ${ticksToSeconds(tl.sequence.endTicks).toFixed(2)}s, ${[...tl.tracks.video, ...tl.tracks.audio].reduce((a, t) => a + t.items.length, 0)} clips, In/Out ${tl.sequence.inOut ? "set" : "not set"}, ${tl.selection.length} selected`);

@@ -204,12 +204,15 @@ export class PremiereHost {
    * Keys look like "V1:12.40" (kind+track:start-seconds) and are resolved
    * against a fresh read before every edit, so stale keys are detected.
    */
-  async readTimeline(seqId) {
+  async readTimeline(seqId, { updateCache = true } = {}) {
     const seq = await this.sequence(seqId);
     const info = await this.seqInfo(seq);
     const C = this.ppro.Constants;
     const tracks = { video: [], audio: [] };
-    this.itemCache.clear();
+    // Background reads (status polling, change detection) must not refresh the
+    // cache that stale-key detection compares against.
+    const cache = updateCache ? this.itemCache : new Map();
+    cache.clear();
     for (const kind of ["video", "audio"]) {
       const count = kind === "video" ? await seq.getVideoTrackCount() : await seq.getAudioTrackCount();
       for (let i = 0; i < count; i++) {
@@ -231,7 +234,7 @@ export class PremiereHost {
             name, path, projectItemId: pid(pi), speed, disabled,
           };
           info.fp = fingerprint(info);
-          this.itemCache.set(info.key, { obj, info, seq });
+          cache.set(info.key, { obj, info, seq });
           infos.push(info);
         }
         let muted = false;
@@ -260,7 +263,7 @@ export class PremiereHost {
     try {
       const sel = await seq.getSelection();
       const its = await sel.getTrackItems();
-      selection = [...this.itemCache.values()].filter((c) => its.includes(c.obj)).map((c) => c.info.key);
+      selection = [...cache.values()].filter((c) => its.includes(c.obj)).map((c) => c.info.key);
     } catch { /* ignore */ }
     return { sequence: info, tracks, markers, selection, readAt: Date.now() };
   }

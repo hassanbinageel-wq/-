@@ -140,3 +140,13 @@ test("transcript from Premiere is normalized; frames export", async () => {
   const p = await host.exportFrame({ time: sec(2), dir: "/tmp/frames", filename: "f1.jpg" });
   assert.ok(files.has(p));
 });
+
+test("stale keys are detected even if a background poll read the timeline", async () => {
+  const { host, project } = demoProject();
+  await host.readTimeline(); // what Claude saw
+  const seq = await project.getActiveSequence();
+  seq.video[0].items[0].end -= sec(2); // user trims in Premiere
+  seq.video[0].items[0].outPoint -= sec(2);
+  await host.readTimeline(undefined, { updateCache: false }); // panel status poll
+  await assert.rejects(host.setEnabled(["V1:0.000"], false), /changed since it was read/);
+});

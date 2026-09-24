@@ -1138,12 +1138,13 @@
      * Keys look like "V1:12.40" (kind+track:start-seconds) and are resolved
      * against a fresh read before every edit, so stale keys are detected.
      */
-    async readTimeline(seqId) {
+    async readTimeline(seqId, { updateCache = true } = {}) {
       const seq = await this.sequence(seqId);
       const info = await this.seqInfo(seq);
       const C = this.ppro.Constants;
       const tracks = { video: [], audio: [] };
-      this.itemCache.clear();
+      const cache = updateCache ? this.itemCache : /* @__PURE__ */ new Map();
+      cache.clear();
       for (const kind of ["video", "audio"]) {
         const count = kind === "video" ? await seq.getVideoTrackCount() : await seq.getAudioTrackCount();
         for (let i = 0; i < count; i++) {
@@ -1179,7 +1180,7 @@
               disabled
             };
             info2.fp = fingerprint(info2);
-            this.itemCache.set(info2.key, { obj, info: info2, seq });
+            cache.set(info2.key, { obj, info: info2, seq });
             infos.push(info2);
           }
           let muted = false;
@@ -1210,7 +1211,7 @@
       try {
         const sel = await seq.getSelection();
         const its = await sel.getTrackItems();
-        selection = [...this.itemCache.values()].filter((c) => its.includes(c.obj)).map((c) => c.info.key);
+        selection = [...cache.values()].filter((c) => its.includes(c.obj)).map((c) => c.info.key);
       } catch {
       }
       return { sequence: info, tracks, markers, selection, readAt: Date.now() };
@@ -3434,7 +3435,7 @@ Keep chat replies compact. After proposing a plan in preview mode, give a 3\u201
       try {
         const pr = await ctx.host.project();
         lines.push(`Project: "${pr.name}"`);
-        const tl = await ctx.host.readTimeline();
+        const tl = await ctx.host.readTimeline(void 0, { updateCache: false });
         const fp = fingerprintTimeline(tl);
         const change = this.lastTimeline && fp !== this.lastTimelineFp ? diffTimelines(this.lastTimeline, tl) : null;
         lines.push(`Active sequence: "${tl.sequence.name}" [${tl.sequence.id}] ${tl.sequence.fps}fps ${tl.sequence.width}x${tl.sequence.height}, ${ticksToSeconds(tl.sequence.endTicks).toFixed(2)}s, ${[...tl.tracks.video, ...tl.tracks.audio].reduce((a, t2) => a + t2.items.length, 0)} clips, In/Out ${tl.sequence.inOut ? "set" : "not set"}, ${tl.selection.length} selected`);
@@ -5458,7 +5459,7 @@ Preset: ${i.preset_path}` : ""}`, kind: "export" });
     async pollProject(force = false) {
       try {
         await this.loadProject();
-        const tl = await this.host.readTimeline().catch(() => null);
+        const tl = await this.host.readTimeline(void 0, { updateCache: false }).catch(() => null);
         const pr = await this.host.project().catch(() => null);
         $("#projName").textContent = pr ? pr.name : this.tr("noProject");
         $("#seqName").textContent = tl ? `${tl.sequence.name} \xB7 ${tl.sequence.fps}fps \xB7 ${ticksToSeconds(tl.sequence.endTicks).toFixed(1)}s` : this.tr("noSequence");

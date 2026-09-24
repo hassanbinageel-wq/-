@@ -129,7 +129,7 @@ export class App {
   async pollProject(force = false) {
     try {
       await this.loadProject();
-      const tl = await this.host.readTimeline().catch(() => null);
+      const tl = await this.host.readTimeline(undefined, { updateCache: false }).catch(() => null);
       const pr = await this.host.project().catch(() => null);
       $("#projName").textContent = pr ? pr.name : this.tr("noProject");
       $("#seqName").textContent = tl ? `${tl.sequence.name} · ${tl.sequence.fps}fps · ${ticksToSeconds(tl.sequence.endTicks).toFixed(1)}s` : this.tr("noSequence");

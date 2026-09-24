@@ -1,0 +1,31 @@
+name: HSN AI Editor
+
+on:
+  push:
+    paths: [ "hsn-ai-editor/**", ".github/workflows/hsn-ai-editor.yml" ]
+  pull_request:
+    paths: [ "hsn-ai-editor/**" ]
+  workflow_dispatch:
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hsn-ai-editor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install ffmpeg (for helper tests)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci || npm install
+      - run: npm run build
+      - run: npm run check
+      - run: npm test
+      - run: node scripts/package.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hsn-ai-editor-packages
+          path: hsn-ai-editor/dist-package/
