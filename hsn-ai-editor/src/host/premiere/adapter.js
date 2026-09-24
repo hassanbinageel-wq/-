@@ -813,6 +813,23 @@ export class PremiereHost {
     return true;
   }
 
+  /** Temporary sequence holding one full clip (used to export source frames without the helper). */
+  async tempSequenceFor(source) {
+    const pr = await this.project();
+    const entry = await this.findClip(source);
+    const seq = await pr.createSequenceFromMedia(`HSN temp — ${entry.name}`, [entry.obj]);
+    if (!seq) throw new HostError("rejected", "Could not create a temporary analysis sequence.");
+    const tl = await this.readTimeline(String(seq.guid));
+    const item = [...tl.tracks.video, ...tl.tracks.audio].flatMap((t) => t.items)[0];
+    return { id: String(seq.guid), map: (srcTicks) => (item ? item.start + (srcTicks - item.in) : srcTicks) };
+  }
+
+  async deleteSequence(seqId) {
+    const pr = await this.project();
+    const seq = await this.sequence(seqId);
+    return pr.deleteSequence(seq);
+  }
+
   async setActiveSequence(seqId) {
     const pr = await this.project();
     const seq = await this.sequence(seqId);
