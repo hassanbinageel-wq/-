@@ -13,8 +13,11 @@
     "check": "node scripts/check-bundle.mjs"
   },
   "devDependencies": {
+    "@adobe/premierepro": "26.5.1",
     "esbuild": "^0.25.0",
-    "@adobe/premierepro": "26.5.1"
+    "jsdom": "^25.0.1"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

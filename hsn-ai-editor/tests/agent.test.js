@@ -11,7 +11,7 @@ import { ClaudeClient } from "../src/claude/client.js";
 import { Agent } from "../src/agent/agent.js";
 import { createRegistry } from "../src/agent/tools/index.js";
 import { makeContextFactory } from "../src/agent/context.js";
-import { createNodeFs } from "../src/storage/fsio.js";
+import { createNodeFs } from "../src/storage/fsio-node.js";
 import { SettingsStore, ProjectMemory, SecretStore } from "../src/storage/store.js";
 import { FootageIndex } from "../src/editing/footage-index.js";
 import { Analyzer } from "../src/editing/analyzer.js";

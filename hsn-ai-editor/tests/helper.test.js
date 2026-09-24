@@ -13,7 +13,7 @@ import { render } from "../helper/lib/render.js";
 import { analyzeReference } from "../helper/lib/reference.js";
 import { createServer, startBridge } from "../helper/server.js";
 import { HelperClient } from "../src/helper-client/helper-client.js";
-import { createNodeFs } from "../src/storage/fsio.js";
+import { createNodeFs } from "../src/storage/fsio-node.js";
 
 let ffmpeg = findBinary("ffmpeg", process.env.HSN_FFMPEG);
 if (!ffmpeg) {
