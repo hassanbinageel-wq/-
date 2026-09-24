@@ -52,7 +52,7 @@ cd hsn-ai-editor
 npm install
 npm run build      # يبني plugin/dist/main.js
 npm run check      # فحص الحزمة و manifest
-npm test           # 52 اختبار (محاكاة + ffmpeg حقيقي)
+npm test           # 53 اختبار (محاكاة + ffmpeg حقيقي)
 npm run package    # ينتج dist-package/*.ccx و helper zip
 ```
 
@@ -75,7 +75,28 @@ node server.js
 
 **روابط الفيديو المرجعي:** يحمّل المساعد الروابط المباشرة لملفات الفيديو فقط. صفحات مثل YouTube/Instagram لا تُحمّل إلا إذا فعّلت `"allowYtDlp": true` وكان `yt-dlp` مثبتاً — وعلى مسؤوليتك في حقوق الاستخدام. إذا تعذّر الوصول يطلب منك رفع الملف ولا يدّعي تحليله.
 
-### 4) ربط Claude
+### 4) ربط Claude — طريقتان
+
+**أ) باشتراكك في Claude عبر تطبيق Claude Desktop (بدون مفتاح API) — الافتراضي**
+تتكلم مع Claude في تطبيق Claude Desktop، وهو يشتغل داخل Premiere عبر اللوحة (بروتوكول MCP الرسمي). ويندوز:
+1. ثبّت **Node.js LTS** من nodejs.org.
+2. ثبّت **Claude Desktop** من claude.ai/download وسجّل دخولك.
+3. في Claude Desktop: **Settings ← Developer ← Edit Config** وضع (غيّر المسار لمكان المجلد عندك، مع `\\` بين المجلدات):
+```json
+{
+  "mcpServers": {
+    "hsn-premiere": {
+      "command": "node",
+      "args": ["C:\\Users\\اسمك\\Downloads\\hsn-ai-editor\\helper\\mcp.js"]
+    }
+  }
+}
+```
+4. سكّر Claude Desktop كاملاً (من أيقونة شريط المهام ← Quit) وافتحه.
+5. في Premiere افتح اللوحة؛ الإعدادات ← طريقة الاتصال = **تطبيق Claude Desktop**. الشريحة تصير خضراء «متصل بـ Claude Desktop» (الربط تلقائي).
+6. اكتب طلبك في Claude Desktop، وخطوات التنفيذ تظهر في اللوحة. الاستخدام يُحسب ضمن حدود اشتراكك.
+
+**ب) مفتاح Anthropic API**
 - **الإعدادات ← ربط Claude**: الصق مفتاح **Anthropic API** (من console.anthropic.com) ← حفظ ← **اختبار الاتصال**.
 - المفتاح يُحفظ في **SecureStorage** الخاص بالإضافة (مشفّر بحساب المستخدم) ولا يُكتب في أي ملف، ولا يرسل للمساعد المحلي.
 - **اشتراك Claude (Pro/Max) لا يغطي تكلفة API** — الاستخدام يُحاسب على حساب Console. لم أجد مساراً رسمياً موثقاً يسمح لإضافة خارجية بربط حساب Claude (OAuth) واستخدامه بهذا الشكل، لذلك مفتاح API هو المسار المعتمد؛ إذا وفّرت Anthropic ربطاً رسمياً مسموحاً يمكن إضافته في `src/claude/client.js` دون تغيير بقية المشروع. لا نطلب كلمة مرور Claude ولا نقرأ جلسات المتصفح.
@@ -155,7 +176,7 @@ node server.js
 ---
 
 ## الاختبارات
-**النتيجة الحالية: 52/52 ناجحة** (`npm test`). التفاصيل وخطة الاختبار على جهازك في `docs/TESTING.md`.
+**النتيجة الحالية: 53/53 ناجحة** (`npm test`). التفاصيل وخطة الاختبار على جهازك في `docs/TESTING.md`.
 
 | النوع | ماذا يثبت | أين يعمل |
 |---|---|---|
@@ -165,6 +186,7 @@ node server.js
 | حلقة الوكيل كاملة | Claude مبرمج مسبقاً ← أدوات حقيقية ← Premiere محاكى | Node |
 | المساعد المحلي | ffmpeg حقيقي على وسائط مولّدة (مشاهد، صمت، إيقاع 120bpm، تصيير) | Node + ffmpeg |
 | الواجهة | الحزمة المبنية نفسها داخل jsdom | Node |
+| وضع Claude Desktop | خادم MCP حقيقي (stdio) ← الوسيط المحلي ← اللوحة ← Premiere محاكى | Node |
 | **داخل Premiere** | **لم تُشغّل هنا** (لا يوجد Premiere في بيئة البناء) — استخدم «الاختبار الذاتي» + قائمة `docs/TESTING.md` | جهازك |
 
 ---
@@ -206,8 +228,9 @@ helper/            المساعد المحلي (Node + ffmpeg، بدون مكت�
 ## English summary
 **HSN AI Editor** is a real Adobe Premiere **UXP panel** (Premiere 25.6+, recommended 26.5). You connect Claude with an Anthropic API key (stored in UXP SecureStorage), chat in Arabic or English, and the assistant reads the project, analyzes footage (sampled frames, transcripts, audio measurements), proposes a structured edit plan in a chosen or free-described style, and **executes it in Premiere** on a new sequence version — then accepts revisions in conversation (pins, constraints, versions, restore points).
 
+- Two ways to connect Claude: **Claude Desktop app via MCP** (`helper/mcp.js`, uses your Claude subscription, default) or an **Anthropic API key**.
 - Install: load `plugin/manifest.json` in **UXP Developer Tool**, or use `release/hsn-ai-editor-0.1.0.ccx`.
 - Optional local helper: `node helper/server.js` (ffmpeg; optional Whisper for Arabic transcription). Paste its token in Settings.
 - Run **Settings → Premiere calibration → Run self-test** once: it verifies, on a temporary sequence, the host behaviours Adobe's docs leave open.
-- Tests: `npm test` → 52/52 passing in simulation + real ffmpeg; **in-Premiere testing must be done on your machine** (`docs/TESTING.md`).
+- Tests: `npm test` → 53/53 passing in simulation + real ffmpeg; **in-Premiere testing must be done on your machine** (`docs/TESTING.md`).
 - Known API limits and their alternatives are listed above (speed/reverse via helper renders, fades instead of audio transitions, SRT import for captions, no track-lock getter).

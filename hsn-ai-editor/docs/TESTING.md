@@ -1,6 +1,6 @@
 # Testing
 
-## 1. Automated (run here): 52/52 passing
+## 1. Automated (run here): 53/53 passing
 
 `npm test` (Node 22, ffmpeg 7.0.2 for helper tests). **None of these ran inside Premiere.** The Premiere parts run against `src/host/mock/ppro-mock.js`, a simulation of the `premierepro` module built from Adobe's official type declarations (`@adobe/premierepro` 26.5.1) and samples.
 
@@ -13,6 +13,7 @@
 | `agent.test.js` | 6 | full loop: read → analyze (frames as images) → notes → Arabic search → plan → execute → verify; preview approval flow + idempotent execute; quote rejection before execution; restore point + Stop halting remaining tools; timeline changed between turns flagged to Claude; invalid tool input rejected; **API key never written to disk** |
 | `helper.test.js` | 7 | real ffmpeg on generated media: probe without ffprobe, scene cuts, silences, EBU R128 loudness, onsets + 120 bpm tempo, JPEG frames, colour stats, renders (speed, reverse, ramp, LUT, reframe 9:16, freeze) without touching the original, reference analysis, HTTP host check (DNS rebinding), token auth, path validation, file bridge transport |
 | `selftest.test.js` | 2 | the on-device self-test itself, run on the simulation (dB and linear), cleans up its temporary sequence |
+| `desktop.test.js` | 1 | Claude Desktop mode: real `mcp.js` over stdio JSON-RPC (initialize, tools/list, tools/call) → token-protected relay → panel loop → tools → simulated Premiere; invalid input rejected |
 | `ui.test.js` | 1 | the **built bundle** in jsdom: boot, header, streaming Arabic reply, plan card → Execute → new sequence, settings, language switch, no key on disk |
 
 ## 2. In-Premiere checks (need your machine)

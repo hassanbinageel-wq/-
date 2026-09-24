@@ -42,6 +42,13 @@ export const STR = {
     nothingToRestore: "لا توجد نقطة استعادة بعد.",
     attachedFiles: "مرفقات",
     refUrlPrompt: "الصق رابط الفيديو المرجعي:",
+    connectionMode: "طريقة الاتصال بـ Claude",
+    modeDesktop: "تطبيق Claude Desktop (اشتراكك)",
+    modeApi: "مفتاح API (رصيد Console)",
+    desktopOn: "متصل بـ Claude Desktop",
+    desktopOff: "بانتظار Claude Desktop",
+    desktopNote: "تتكلم مع Claude من تطبيق Claude Desktop على جهازك، وهو ينفذ داخل Premiere عبر هذه اللوحة. يعمل باشتراكك ولا يحتاج مفتاح API. يلزم إضافة HSN إلى إعدادات Claude Desktop مرة واحدة (انظر الدليل).",
+    desktopChatHint: "أنت في وضع Claude Desktop: اكتب طلبك في تطبيق Claude Desktop، وستظهر خطوات التنفيذ هنا. للمحادثة من هذه اللوحة غيّر طريقة الاتصال إلى مفتاح API من الإعدادات.",
   },
   en: {
     appName: "HSN AI Editor",
@@ -85,6 +92,13 @@ export const STR = {
     nothingToRestore: "No restore point yet.",
     attachedFiles: "Attachments",
     refUrlPrompt: "Paste the reference video URL:",
+    connectionMode: "Claude connection",
+    modeDesktop: "Claude Desktop app (your subscription)",
+    modeApi: "API key (Console credits)",
+    desktopOn: "Claude Desktop connected",
+    desktopOff: "Waiting for Claude Desktop",
+    desktopNote: "You chat in the Claude Desktop app; it works in Premiere through this panel. Uses your Claude subscription, no API key. Add HSN to Claude Desktop's config once (see the guide).",
+    desktopChatHint: "Claude Desktop mode: type your request in the Claude Desktop app — the steps appear here. To chat from this panel, switch the connection to API key in Settings.",
   },
 };
 

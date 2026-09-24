@@ -26,10 +26,11 @@ import * as A from "./lib/analysis.js";
 import { render } from "./lib/render.js";
 import { analyzeReference } from "./lib/reference.js";
 import { transcribe, whisperAvailable } from "./lib/whisper.js";
+import { Relay } from "./lib/relay.js";
 
 export const VERSION = "0.1.0";
-const CONFIG_DIR = process.env.HSN_HELPER_HOME || path.join(os.homedir(), ".hsn-ai-editor");
-const CONFIG_PATH = path.join(CONFIG_DIR, "helper.json");
+export const CONFIG_DIR = process.env.HSN_HELPER_HOME || path.join(os.homedir(), ".hsn-ai-editor");
+export const CONFIG_PATH = path.join(CONFIG_DIR, "helper.json");
 
 export function loadConfig() {
   fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
@@ -97,8 +98,18 @@ function safeEqual(a, b) {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
-export function createServer(cfg, tools) {
+export function createServer(cfg, tools, relay = new Relay({ cacheFile: path.join(CONFIG_DIR, "panel-tools.json") })) {
   const handlers = makeHandlers(cfg, tools);
+  // Relay endpoints (Claude Desktop / MCP mode). Long-polls are exempt from the busy limit.
+  const relayHandlers = {
+    "relay/register": async (b) => relay.register(b),
+    "relay/poll": async () => ({ call: await relay.poll(25000) }),
+    "relay/result": async (b) => relay.result(b.id, b.result),
+    "relay/tools": async () => ({ tools: relay.tools, instructions: relay.instructions, panelConnected: relay.panelConnected }),
+    "relay/call": async (b) => relay.call(b.name, b.arguments || {}, Math.min(b.waitMs ?? 50000, 55000)),
+    "relay/wait": async (b) => relay.wait(b.jobId, Math.min(b.waitMs ?? 45000, 55000)),
+    "relay/status": async () => relay.status(),
+  };
   let active = 0;
   return http.createServer((req, res) => {
     const send = (code, obj) => {
@@ -110,14 +121,23 @@ export function createServer(cfg, tools) {
     if (req.method === "OPTIONS") return send(403, { error: "no CORS" });
     if (!safeEqual(req.headers["x-hsn-token"] || "", cfg.token)) return send(401, { error: "unauthorized: set the helper token in the panel settings" });
     const name = req.url.replace(/^\//, "").split("?")[0];
-    const h = handlers[name];
+    const isRelay = name in relayHandlers;
+    const h = relayHandlers[name] || handlers[name];
     if (!h) return send(404, { error: `unknown endpoint ${name}` });
     let body = "";
+    const limit = isRelay ? 60e6 : 2e6;
     req.on("data", (d) => {
       body += d;
-      if (body.length > 2e6) req.destroy();
+      if (body.length > limit) req.destroy();
     });
     req.on("end", async () => {
+      if (isRelay) {
+        try {
+          return send(200, await h(body ? JSON.parse(body) : {}));
+        } catch (e) {
+          return send(400, { error: e.message });
+        }
+      }
       if (active >= 3 && name !== "health") return send(429, { error: "helper busy, retry shortly" });
       active++;
       try {
@@ -170,6 +190,11 @@ if (isMain) {
   const cfg = loadConfig();
   const tools = detectTools(cfg);
   const server = createServer(cfg, tools);
+  server.on("error", (e) => {
+    if (e.code === "EADDRINUSE") console.log(`Port ${cfg.port} is already in use — the helper is probably already running (e.g. started by Claude Desktop).`);
+    else console.error(e);
+    process.exit(1);
+  });
   server.listen(cfg.port, "127.0.0.1", () => {
     console.log(`HSN AI Editor helper ${VERSION}`);
     console.log(`Listening on http://127.0.0.1:${cfg.port}`);

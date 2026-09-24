@@ -17,6 +17,9 @@ import { BUILTIN_STYLES } from "../editing/styles.js";
 import { bytesToBase64 } from "../core/utf8.js";
 import { redactSecrets, truncate } from "../core/util.js";
 import { ticksToSeconds } from "../core/time.js";
+import { DesktopLink } from "../desktop/desktop-link.js";
+import { buildSystemPrompt } from "../agent/system-prompt.js";
+import { S } from "../core/schema.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...kids) => {
@@ -108,7 +111,15 @@ export class App {
     await this.host.init().catch((e) => this.log("warn", e.message));
     this.helper = new HelperClient({ url: this.settings.get("helperUrl"), token: this.settings.get("helperToken"), bridgeDir: this.settings.get("helperBridgeDir"), fsio: this.fsio, log: (l, m) => this.log(l, m) });
     this.client = new ClaudeClient({ getApiKey: () => this.secrets.getApiKey(), log: (l, m) => this.log(l, m) });
-    this.registry = createRegistry();
+    await this.autoPairHelper();
+    this.registry = createRegistry([
+      {
+        name: "get_panel_context",
+        description: "Current Premiere context from the HSN panel: project, active sequence, work scope, execution mode (preview/direct), remembered rules and pins, versions, and whether the timeline changed since you last looked. Call at the start of each request.",
+        input_schema: S.obj({}),
+        handler: async (i, ctx) => ({ text: await this.agent.contextNote(ctx), untrusted: true }),
+      },
+    ]);
     this.ui = {
       confirm: (o) => this.confirmDialog(o),
       showPlan: (rec) => this.renderPlanCard(rec),
@@ -128,11 +139,70 @@ export class App {
       }),
     });
     this.bindAgent();
+    this.desktop = new DesktopLink({
+      helper: this.helper,
+      registry: this.registry,
+      makeContext: (o) => this.agent.makeContext(o),
+      instructions: buildSystemPrompt(),
+      log: (l, m) => this.log(l, m),
+    });
+    this.bindDesktop();
+    if (this.settings.get("connectionMode") === "desktop") this.desktop.start();
     this.refreshStatus();
     await this.pollProject(true);
     this.pollTimer = setInterval(() => this.pollProject(), 3000);
     this.host.onChange(() => this.pollProject(true));
     this.helper.health().then(() => this.refreshStatus());
+  }
+
+  /** Read the helper's token from ~/.hsn-ai-editor/helper.json when not set (same machine). */
+  async autoPairHelper() {
+    if (this.settings.get("helperToken")) return;
+    try {
+      // eslint-disable-next-line no-undef
+      const home = require("os").homedir();
+      const sep = /^win/i.test(require("os").platform()) ? "\\" : "/";
+      const cfg = JSON.parse(await this.fsio.readText(`${home}${sep}.hsn-ai-editor${sep}helper.json`));
+      if (cfg.token) {
+        await this.settings.set({ helperToken: cfg.token, helperUrl: `http://127.0.0.1:${cfg.port || 47631}` });
+        this.helper.token = cfg.token;
+        this.helper.url = `http://127.0.0.1:${cfg.port || 47631}`;
+        this.log("info", "helper token paired automatically");
+      }
+    } catch { /* helper never ran on this machine yet */ }
+  }
+
+  bindDesktop() {
+    const d = this.desktop;
+    d.on("status", () => this.refreshStatus());
+    d.on("tool_start", (x) => {
+      this.setPhase(`🔧 Claude Desktop: ${toolLabel(x.name, this.lang)}…`);
+      show($("#stopBtn"), true);
+      this.toolChip = el("div", { class: "tool running", text: `🔧 Claude Desktop · ${toolLabel(x.name, this.lang)}` });
+      $("#messages").appendChild(this.toolChip);
+      $("#messages").scrollTop = $("#messages").scrollHeight;
+    });
+    d.on("tool_end", (x) => {
+      if (this.toolChip) {
+        this.toolChip.className = `tool ${x.ok ? "ok" : "fail"}`;
+        this.toolChip.textContent = `${x.ok ? "✓" : "✗"} Claude Desktop · ${toolLabel(x.name, this.lang)}${x.images ? ` · ${x.images} 🖼` : ""}`;
+        this.toolChip.appendChild(collapsible(this.lang === "ar" ? "التفاصيل" : "details", el("pre", { text: truncate(x.text, 4000) }), "toolDetail"));
+      }
+      this.toolChip = null;
+      show($("#stopBtn"), false);
+      this.setPhase(this.tr("idle"));
+      show($("#prog"), false);
+      this.renderSideTabs();
+    });
+  }
+
+  async setConnectionMode(mode) {
+    await this.settings.set({ connectionMode: mode });
+    if (mode === "desktop") {
+      await this.autoPairHelper();
+      this.desktop.start();
+    } else this.desktop.stop();
+    this.refreshStatus();
   }
 
   hostSettings() {
@@ -165,6 +235,10 @@ export class App {
   }
 
   async pollProject(force = false) {
+    if (this.settings?.get("connectionMode") === "desktop" && this.desktop && !this.desktop.connected) {
+      await this.autoPairHelper().catch(() => {});
+      this.refreshStatus();
+    }
     try {
       await this.loadProject();
       const tl = await this.host.readTimeline(undefined, { updateCache: false }).catch(() => null);
@@ -272,10 +346,16 @@ export class App {
 
   async refreshStatus() {
     if (!$("#chipClaude")) return;
-    const has = this.secrets ? await this.secrets.hasApiKey() : false;
     const c = $("#chipClaude");
-    c.textContent = has ? `● ${this.tr("claudeOn")}` : `○ ${this.tr("claudeOff")}`;
-    c.className = `chip ${has ? "ok" : "bad"}`;
+    if (this.settings.get("connectionMode") === "desktop") {
+      const on = this.desktop?.connected;
+      c.textContent = on ? `● ${this.tr("desktopOn")}` : `○ ${this.tr("desktopOff")}`;
+      c.className = `chip ${on ? "ok" : "bad"}`;
+    } else {
+      const has = this.secrets ? await this.secrets.hasApiKey() : false;
+      c.textContent = has ? `● ${this.tr("claudeOn")}` : `○ ${this.tr("claudeOff")}`;
+      c.className = `chip ${has ? "ok" : "bad"}`;
+    }
     const h = $("#chipHelper");
     const hs = this.helper?.status?.state;
     h.textContent = hs === "connected" ? `● ${this.tr("helperOn")}` : `○ ${this.tr("helperOff")}${hs === "unauthorized" ? ` (${this.tr("unauthorized")})` : ""}`;
@@ -403,6 +483,10 @@ export class App {
   }
 
   async send(text) {
+    if (this.settings.get("connectionMode") === "desktop") {
+      this.addBubble("system", this.tr("desktopChatHint"), { kind: "notice" });
+      return;
+    }
     if (!(await this.secrets.hasApiKey())) {
       this.addBubble("system", this.tr("needKey"), { kind: "notice" });
       this.showTab("settings");
@@ -431,6 +515,7 @@ export class App {
 
   stopAll() {
     this.agent?.stop();
+    this.desktop?.stopCurrent();
     this.cardStop?.stop();
     this.setPhase(this.lang === "ar" ? "جارٍ الإيقاف عند أقرب نقطة آمنة…" : "Stopping at the next safe point…");
   }
@@ -738,6 +823,8 @@ export class App {
     const modelSel = sel(s.get("model") || DEFAULT_MODEL, modelOpts, (x) => s.set({ model: x }));
     v.append(
       el("div", { class: "sectionTitle", text: this.tr("settingsClaude") }),
+      field(this.tr("connectionMode"), sel(s.get("connectionMode"), [["desktop", this.tr("modeDesktop")], ["api", this.tr("modeApi")]], (x) => this.setConnectionMode(x).then(() => this.renderSettings()))),
+      el("div", { class: "muted small", text: s.get("connectionMode") === "desktop" ? this.tr("desktopNote") : this.tr("keyNote") }),
       field(this.tr("apiKey"), keyIn),
       el("div", { class: "btnRow" },
         el("button", { class: "primary", text: this.tr("save"), onclick: async () => {

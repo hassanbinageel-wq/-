@@ -94,7 +94,8 @@ test("panel boots, streams a reply, executes a plan from its card, switches lang
   try {
     await until(() => doc.querySelector("#projName")?.textContent === "Demo Project");
     assert.equal(doc.documentElement.getAttribute("dir"), "rtl");
-    assert.ok(doc.querySelector("#chipClaude").textContent.includes("غير"), "shows not connected");
+    assert.ok(doc.querySelector("#chipClaude").textContent.includes("Claude Desktop"), "desktop mode by default");
+    await w.__hsn.setConnectionMode("api");
     await w.__hsn.secrets.setApiKey("sk-ant-api03-UI-TEST-KEY-123456");
     assert.ok(store.size === 1);
 

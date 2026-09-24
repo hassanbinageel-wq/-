@@ -9,6 +9,7 @@ import { DEFAULT_MODEL } from "../claude/models.js";
 
 export const DEFAULT_SETTINGS = {
   language: "ar", // ui language: ar | en
+  connectionMode: "desktop", // desktop (Claude app via MCP, subscription) | api (API key)
   model: DEFAULT_MODEL,
   effort: "high",
   showThinking: true,
