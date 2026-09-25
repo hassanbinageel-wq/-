@@ -70,7 +70,15 @@ object StatusParser {
             }
             "shootMode" -> putIfPresent(o, "currentShootMode", out, "shootMode")
             "focusStatus" -> putIfPresent(o, "focusStatus", out, "focusStatus")
-            "exposureMode" -> putIfPresent(o, "currentExposureMode", out, "exposureMode")
+            "exposureMode" -> {
+                putIfPresent(o, "currentExposureMode", out, "exposureMode")
+                putArrayIfPresent(o, "exposureModeCandidates", out, "exposureModeCandidates")
+            }
+            "movieQuality" -> {
+                putIfPresent(o, "currentMovieQuality", out, "movieQuality")
+                putArrayIfPresent(o, "candidate", out, "movieQualityCandidates")
+            }
+            "movieFileFormat" -> putIfPresent(o, "currentMovieFileFormat", out, "movieFileFormat")
             "focusMode" -> putIfPresent(o, "currentFocusMode", out, "focusMode")
             "batteryInfo" -> {
                 // متوفّر على بعض الموديلات فقط

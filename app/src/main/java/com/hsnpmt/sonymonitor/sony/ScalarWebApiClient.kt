@@ -149,6 +149,19 @@ class ScalarWebApiClient(
     fun startMovieRec() { call("startMovieRec") }
     fun stopMovieRec() { call("stopMovieRec") }
     fun setMovieQuality(value: String) { call("setMovieQuality", JSONArray().put(value)) }
+    fun setMovieFileFormat(value: String) { call("setMovieFileFormat", JSONArray().put(value)) }
+    fun setExposureMode(value: String) { call("setExposureMode", JSONArray().put(value)) }
+
+    /** قراءة قيمة حالية من getter بسيط (result[0] نص) — للتحقق بعد الضبط. */
+    fun getString(method: String): String = call(method).optString(0)
+
+    /** توازن الأبيض الحالي: "الوضع" أو "Color Temperature|K". */
+    fun getWhiteBalanceString(): String {
+        val o = call("getWhiteBalance").optJSONObject(0) ?: return ""
+        val mode = o.optString("whiteBalanceMode")
+        val k = o.optInt("colorTemperature", -1)
+        return if (mode.equals("Color Temperature", true) && k > 0) "$mode|$k" else mode
+    }
 
     /** مساعد عام: يعيد المصفوفة الموجودة في result[1] كقائمة نصوص (لقوائم getAvailable*). */
     fun getAvailableStringList(method: String): List<String> {

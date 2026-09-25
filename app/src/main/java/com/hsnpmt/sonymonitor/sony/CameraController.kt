@@ -120,6 +120,10 @@ class CameraController(
                     .put("canSetWhiteBalance", capabilities.contains("setWhiteBalance"))
                     .put("canTouchAF", capabilities.contains("setTouchAFPosition"))
                     .put("canHalfPress", capabilities.contains("actHalfPressShutter"))
+                    .put("canSetExposureMode", capabilities.contains("setExposureMode"))
+                    .put("canSetMovieQuality", capabilities.contains("setMovieQuality"))
+                    .put("canSetMovieFormat", capabilities.contains("setMovieFileFormat"))
+                    .put("transport", "scalar")
                 if (capabilities.contains("getAvailableWhiteBalance")) {
                     try { caps.put("wbCandidates", JSONArray(client.getAvailableWhiteBalance())) } catch (_: Exception) {}
                     client.getColorTemperatureRange()?.let { caps.put("colorTempRange", it) }
@@ -127,6 +131,15 @@ class CameraController(
                 if (capabilities.contains("setMovieQuality")) {
                     try { caps.put("movieQualityCandidates", JSONArray(client.getAvailableStringList("getAvailableMovieQuality"))) } catch (_: Exception) {}
                 }
+                if (capabilities.contains("setMovieFileFormat")) {
+                    try { caps.put("movieFormatCandidates", JSONArray(client.getAvailableStringList("getAvailableMovieFileFormat"))) } catch (_: Exception) {}
+                }
+                if (capabilities.contains("setExposureMode")) {
+                    try { caps.put("exposureModeCandidates", JSONArray(client.getAvailableStringList("getAvailableExposureMode"))) } catch (_: Exception) {}
+                }
+                // القيم الحالية لجودة/صيغة الفيديو (لا تأتي دائمًا في getEvent)
+                if (capabilities.contains("getMovieQuality")) runCatching { caps.put("movieQuality", client.getString("getMovieQuality")) }
+                if (capabilities.contains("getMovieFileFormat")) runCatching { caps.put("movieFileFormat", client.getString("getMovieFileFormat")) }
                 emit("connected", caps)
 
                 startStatusPolling()
@@ -444,13 +457,18 @@ class CameraController(
     fun setSetting(kind: String, value: String) {
         val p = ptp
         if (p != null) {
-            attempt("ضبط $kind") { emit("action", p.setSetting(kind, value)) }
+            scope.launch {
+                try { emit("action", p.setSetting(kind, value)) } catch (e: Exception) {
+                    emit("action", JSONObject().put("ok", false).put("action", "set").put("kind", kind)
+                        .put("value", value).put("label", "ضبط $kind").put("message", describe(e)))
+                }
+            }
             return
         }
         setSettingWeb(kind, value)
     }
 
-    private fun setSettingWeb(kind: String, value: String) = guarded(apiForKind(kind), "ضبط $kind") {
+    private fun setSettingWeb(kind: String, value: String) = guarded(apiForKind(kind), "ضبط $kind", kind, value) {
         val c = api!!
         when (kind) {
             "iso" -> c.setIso(value)
@@ -459,10 +477,50 @@ class CameraController(
             "exposure" -> c.setExposureCompensation(value.toInt())
             "whitebalance" -> c.setWhiteBalance(value, false, 0)
             "colortemp" -> c.setWhiteBalance("Color Temperature", true, value.toInt())
-            "moviequality" -> c.setMovieQuality(value)
+            "moviequality" -> {
+                // نتحقق من القائمة المتاحة الآن (تتغيّر حسب صيغة الفيديو) — لا نستبدل القيمة بصمت
+                val avail = c.getAvailableStringList("getAvailableMovieQuality")
+                if (avail.isNotEmpty() && value !in avail) throw UserFacing("الجودة «$value» غير متاحة مع الصيغة الحالية. المتاح: ${avail.joinToString("، ")}")
+                c.setMovieQuality(value)
+            }
+            "movieformat" -> {
+                val avail = c.getAvailableStringList("getAvailableMovieFileFormat")
+                if (avail.isNotEmpty() && value !in avail) throw UserFacing("الصيغة «$value» غير متاحة الآن. المتاح: ${avail.joinToString("، ")}")
+                c.setMovieFileFormat(value)
+            }
+            "exposuremode" -> c.setExposureMode(value)
             else -> throw IllegalArgumentException("إعداد غير معروف: $kind")
         }
-        emit("action", JSONObject().put("action", "set").put("kind", kind).put("value", value).put("ok", true))
+        val (rb, verified) = readBackWeb(c, kind, value)
+        emit("action", JSONObject().put("action", "set").put("kind", kind).put("value", value).put("ok", true)
+            .put("readback", rb ?: JSONObject.NULL).put("verified", verified ?: JSONObject.NULL))
+    }
+
+    /**
+     * يقرأ القيمة من الكاميرا بعد الضبط (getter مباشر) للتأكد أنها طُبّقت فعلًا.
+     * يعيد (القيمة المقروءة، تطابقت؟) — أو (null, null) إن لم يتوفّر getter.
+     */
+    private fun readBackWeb(c: ScalarWebApiClient, kind: String, value: String): Pair<String?, Boolean?> {
+        val getter = when (kind) {
+            "iso" -> "getIsoSpeedRate"; "shutter" -> "getShutterSpeed"; "fnumber" -> "getFNumber"
+            "exposuremode" -> "getExposureMode"; "moviequality" -> "getMovieQuality"; "movieformat" -> "getMovieFileFormat"
+            "whitebalance", "colortemp" -> "getWhiteBalance"
+            else -> null
+        } ?: return null to null
+        if (!capabilities.contains(getter)) return null to null
+        var rb: String? = null
+        for (i in 0 until 6) {
+            Thread.sleep(if (i == 0) 200 else 300)
+            rb = try { if (getter == "getWhiteBalance") c.getWhiteBalanceString() else c.getString(getter) } catch (_: Exception) { null }
+            val r = rb ?: continue
+            val match = when (kind) {
+                "colortemp" -> r.equals("Color Temperature|$value", true)
+                "whitebalance" -> r.substringBefore('|').equals(value, true)
+                else -> r == value
+            }
+            if (match) return r to true
+        }
+        return rb to false
     }
 
     private fun apiForKind(kind: String) = when (kind) {
@@ -472,24 +530,23 @@ class CameraController(
         "exposure" -> "setExposureCompensation"
         "whitebalance", "colortemp" -> "setWhiteBalance"
         "moviequality" -> "setMovieQuality"
+        "movieformat" -> "setMovieFileFormat"
+        "exposuremode" -> "setExposureMode"
         else -> kind
     }
 
     /** ينفّذ الأمر فقط إن كانت الوظيفة مدعومة، ويبلّغ الفشل بصدق دون تغيير أي قيمة في الواجهة. */
-    private fun guarded(requiredApi: String, label: String, block: () -> Unit) {
+    private fun guarded(requiredApi: String, label: String, kind: String? = null, value: String? = null, block: () -> Unit) {
+        fun fail(msg: String) = emit("action", JSONObject().put("ok", false).put("label", label).put("message", msg).apply {
+            if (kind != null) put("action", "set").put("kind", kind).put("value", value ?: "")
+        })
         scope.launch {
-            if (api == null) {
-                emit("action", JSONObject().put("ok", false).put("label", label).put("message", "غير متصل بالكاميرا"))
-                return@launch
-            }
+            if (api == null) { fail("غير متصل بالكاميرا"); return@launch }
             if (!capabilities.contains(requiredApi)) {
-                emit("action", JSONObject().put("ok", false).put("label", label)
-                    .put("message", "الكاميرا الحالية لا تدعم «$label» عبر هذا الاتصال (غير موجودة في قائمة الوظائف المتاحة)."))
+                fail("الكاميرا الحالية لا تدعم هذا الضبط عبر هذا الاتصال ($requiredApi غير موجودة في قائمة الوظائف المتاحة).")
                 return@launch
             }
-            try { block() } catch (e: Exception) {
-                emit("action", JSONObject().put("ok", false).put("label", label).put("message", describe(e)))
-            }
+            try { block() } catch (e: Exception) { fail(describe(e)) }
         }
     }
 

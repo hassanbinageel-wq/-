@@ -395,6 +395,7 @@
     // أحداث الاتصال بشبكة Wi‑Fi (QR / يدوي)
     Bridge.on('wifi', d=>{
       lastWifi = d.state + (d.ssid?(' — '+d.ssid):'');
+      if(d.state==='disconnected' || d.state==='lost') Scenes.onDisconnected();
       dlog('WiFi: '+d.state+(d.ssid?(' ssid='+d.ssid):'')+(d.message?(' — '+d.message):''));
       if(d.state==='connecting') wcStatus('جارٍ الاتصال بشبكة الكاميرا…', true);
       else if(d.state==='connected'){ wcStatus('اتصلت بالشبكة ✓ — جارٍ البحث عن الكاميرا…', true); startCameraConnect(); }
@@ -409,6 +410,9 @@
     });
     Bridge.on('connected', d=>{
       caps = d; lastCaps = d; connected = true; currentModel = d.model || 'default';
+      if(d.movieQuality) lastStatus.movieQuality = d.movieQuality;
+      if(d.movieFileFormat) lastStatus.movieFileFormat = d.movieFileFormat;
+      Scenes.onConnected();
       dlog('اتصلت بالكاميرا: '+(d.model||'?')+' | hasLiveview='+d.hasLiveview+' | api='+((d.apiList&&d.apiList.length)||0));
       dlog('apiList='+JSON.stringify(d.apiList||[]));
       setConn('on', 'متصل: ' + (d.model||'كاميرا'));
@@ -421,7 +425,7 @@
       toast('قدرات '+(d.model||'الكاميرا')+': بث='+yn(d.hasLiveview)+'، التقاط='+yn(d.hasTakePicture)+'، فيديو='+yn(d.hasMovieRec));
       if(d.transport==='ptpip'){ dlog('النقل: PTP/IP (تجريبي) — خصائص='+((d.apiList&&d.apiList.length)||0)); toast('متصل عبر PTP/IP (تجريبي) — '+(d.model||''), 5000); }
     });
-    Bridge.on('disconnected', ()=>{ connected=false; caps=null; dlog('قُطع الاتصال'); setConn('off','غير متصل'); disableControls(); });
+    Bridge.on('disconnected', ()=>{ connected=false; caps=null; Scenes.onDisconnected(); dlog('قُطع الاتصال'); setConn('off','غير متصل'); disableControls(); });
     Bridge.on('error', d=>{ dlog('خطأ: '+(d.code||'')+' — '+(d.message||'')); setConn('off', d.message||'خطأ'); wcStatus('خطأ: '+(d.message||''), false); toast(d.message||'خطأ'); });
     Bridge.on('stream', d=>{
       lastStream = d.state + (d.reason?(' — '+d.reason):'');
@@ -431,8 +435,9 @@
       else if(d.state==='lost') setConn('warn', 'انقطع البث: '+(d.reason||''));
       else if(d.state==='starting') setConn('warn','بدء البث…');
     });
-    Bridge.on('camera-status', updateCameraStatus);
+    Bridge.on('camera-status', st=>{ updateCameraStatus(st); Scenes.onStatus(); });
     Bridge.on('action', d=>{
+      if(Scenes.onAction(d)){ logAction(d); return; } // رد أمر ضمن تطبيق مشهد — تعرضه لوحة المشاهد
       logAction(d);
       if(d.action==='startMovieRec' && d.ok) setRecording(true);
       if(d.action==='stopMovieRec' && d.ok) setRecording(false);
@@ -560,15 +565,18 @@
     el.panelBody.appendChild(tpl.content.cloneNode(true));
     el.panelHost.classList.remove('hidden');
     el.menu.querySelectorAll('button[data-panel]').forEach(b=>b.classList.toggle('active', b.dataset.panel===name));
-    el.panelTitle.textContent = ({scopes:'أدوات المراقبة',lut:'LUT للمعاينة',focus:'التركيز والتأطير',tele:'التيليبرومتر',control:'التحكم بالكاميرا',files:'الملفات والمشاريع',settings:'الإعدادات'})[name]||'لوحة';
-    ({scopes:wireScopes,lut:wireLut,focus:wireFocus,tele:wireTele,control:wireControl,files:wireFiles,settings:wireSettings})[name]();
+    el.panelTitle.textContent = ({scenes:'إعدادات المشاهد',scopes:'أدوات المراقبة',lut:'LUT للمعاينة',focus:'التركيز والتأطير',tele:'التيليبرومتر',control:'التحكم بالكاميرا',files:'الملفات والمشاريع',settings:'الإعدادات'})[name]||'لوحة';
+    ({scenes:()=>Scenes.mount(el.panelBody),scopes:wireScopes,lut:wireLut,focus:wireFocus,tele:wireTele,control:wireControl,files:wireFiles,settings:wireSettings})[name]();
   }
 
   function wireChrome(){
     el.menuBtn.onclick = ()=> el.menu.classList.toggle('hidden');
     [...el.menu.querySelectorAll('button[data-panel]')].forEach(b=> b.onclick = ()=>{ el.menu.classList.add('hidden'); openPanel(b.dataset.panel); });
     $('#menuHome').onclick = ()=>{ el.menu.classList.add('hidden'); goHome(); };
-    el.panelClose.onclick = ()=> el.panelHost.classList.add('hidden');
+    el.panelClose.onclick = ()=>{ el.panelHost.classList.add('hidden'); Scenes.onPanelClosed(); };
+    $('#scenesBtn').onclick = ()=> openPanel('scenes');
+    $('#sceneChip').onclick = ()=> openPanel('scenes');
+    Scenes.init({ getCaps:()=>caps, getStatus:()=>lastStatus, isConnected:()=>connected && !testMode, toast, dlog });
     el.hideUiBtn.onclick = ()=> document.body.classList.toggle('hiddenUi');
     window.addEventListener('resize', ()=> setTimeout(drawGuides, 60));
     window.addEventListener('orientationchange', ()=> setTimeout(drawGuides, 120));
@@ -851,7 +859,7 @@
     if(!el.menu.classList.contains('hidden')){ el.menu.classList.add('hidden'); return true; }
     if(!el.diag.classList.contains('hidden')){ el.diag.classList.add('hidden'); return true; }
     if(document.body.classList.contains('hiddenUi')){ document.body.classList.remove('hiddenUi'); return true; }
-    if(!el.panelHost.classList.contains('hidden')){ el.panelHost.classList.add('hidden'); return true; }
+    if(!el.panelHost.classList.contains('hidden')){ if(Scenes.closeEditor()) return true; el.panelHost.classList.add('hidden'); Scenes.onPanelClosed(); return true; }
     return false;
   };
 
@@ -1048,6 +1056,7 @@
   function wireSettings(){
     $('#btnDisconnectAll').onclick=()=>{ goHome(); };
     $('#btnDiag').onclick=()=>{ openDiag(); };
+    $('#btnScenes').onclick=()=> openPanel('scenes');
     $('#keepOn').checked=S.keepOn; $('#keepOn').onchange=e=>{ S.keepOn=e.target.checked; persist(); Bridge.cmd.keepScreenOn(S.keepOn); };
     const lv=$('#lvSize'); lv.value=S.lvSize; lv.onchange=()=>{ S.lvSize=lv.value; persist(); };
     const sr=$('#scopeRate'); sr.value=String(S.scopeRate); sr.onchange=()=>{ S.scopeRate=+sr.value; persist(); };

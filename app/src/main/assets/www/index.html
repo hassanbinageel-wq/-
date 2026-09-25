@@ -163,6 +163,7 @@
         <button id="teleBtn" class="act" title="التيليبرومتر"><b style="font-size:13px">Aa</b></button>
         <button id="btnPhoto" class="act photo" title="التقاط صورة" disabled><svg class="ic"><use href="#ic-photo"/></svg></button>
         <button id="btnRecDock" class="act recbtn" title="تسجيل فيديو" disabled><span class="recsquare"></span></button>
+        <button id="scenesBtn" class="act" title="إعدادات المشاهد"><b style="font-size:17px">🎬</b></button>
         <button id="filesBtn" class="act" title="ملفات الكاميرا"><svg class="ic"><use href="#ic-files"/></svg></button>
       </div>
     </footer>
@@ -175,6 +176,7 @@
       <button data-panel="tele"><b style="width:1.35em;text-align:center">Aa</b><span>التيليبرومتر</span></button>
       <button data-panel="control"><svg class="ic"><use href="#ic-control"/></svg><span>التحكّم بالكاميرا</span></button>
       <button data-panel="files"><svg class="ic"><use href="#ic-files"/></svg><span>الملفات والمشاريع</span></button>
+      <button data-panel="scenes"><b style="width:1.35em;text-align:center">🎬</b><span>إعدادات المشاهد</span></button>
       <button data-panel="settings"><svg class="ic"><use href="#ic-gear"/></svg><span>الإعدادات</span></button>
       <button id="menuHome" class="menu-home"><svg class="ic"><use href="#ic-back"/></svg><span>قطع الاتصال والرجوع</span></button>
     </nav>
@@ -200,6 +202,9 @@
       </div>
       <div id="vpList" class="vp-list"></div>
     </section>
+
+    <!-- المشهد المطبّق حاليًا -->
+    <button id="sceneChip" class="scenechip hidden"></button>
 
     <!-- صورة المعاينة بعد الالتقاط -->
     <button id="pvThumb" class="pvthumb hidden" title="آخر لقطة"><img alt=""></button>
@@ -360,10 +365,13 @@
     </div>
   </template>
 
+  <template id="tpl-scenes"><div></div></template>
+
   <template id="tpl-settings">
     <div class="stack">
       <button id="btnDisconnectAll" class="btn danger">قطع الاتصال والرجوع للقائمة</button>
       <button id="btnDiag" class="btn ghost">تشخيص الاتصال</button>
+      <button id="btnScenes" class="btn primary">🎬 إعدادات المشاهد</button>
       <div class="hr"></div>
       <label class="row"><span>إبقاء شاشة الهاتف مضاءة</span><input type="checkbox" id="keepOn" checked></label>
       <label class="row"><span>حجم بث الكاميرا المفضّل</span>
@@ -386,6 +394,7 @@
   <script src="js/scopes.js"></script>
   <script src="js/testpattern.js"></script>
   <script src="js/bridge.js"></script>
+  <script src="js/scenes.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

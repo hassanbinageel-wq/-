@@ -41,6 +41,7 @@ class SonyPtpCamera(
     private val ssMap = HashMap<String, Long>()
     private val fMap = HashMap<String, Long>()
     private val wbMap = HashMap<String, Long>()
+    private val modeMap = HashMap<String, Long>()
     private var evValues: List<Long> = emptyList()
 
     /** يتصل ويهيّئ الجلسة. يرمي استثناءً بوصف واضح عند الفشل. */
@@ -237,6 +238,8 @@ class SonyPtpCamera(
                 val target = value.toInt() * 1000.0 / 3.0
                 raw = evValues.minByOrNull { kotlin.math.abs(it - target) } ?: Math.round(target)
             }
+            "exposuremode" -> { code = SonyProps.EXPOSURE_PROGRAM; raw = modeMap[value] ?: throw IllegalArgumentException("وضع التصوير «$value» غير متاح الآن") }
+            "moviequality", "movieformat" -> throw IllegalStateException("ضبط صيغة/جودة الفيديو غير منفّذ عبر PTP/IP بعد — اضبطه من الكاميرا")
             "colortemp" -> {
                 if (props[SonyProps.WHITE_BALANCE]?.current != 0x8012L) setProp(SonyProps.WHITE_BALANCE, 0x8012)
                 code = SonyProps.COLOR_TEMP; raw = value.toLong()
@@ -248,7 +251,27 @@ class SonyPtpCamera(
         val r = setProp(code, raw)
         if (r != OK) throw IllegalStateException("رفضت الكاميرا القيمة (0x${r.toString(16)})")
         dirty = true
+        // تحقّق: نعيد قراءة الخاصية من الكاميرا حتى تطابق القيمة المطلوبة
+        var cur: Long? = null
+        for (i in 0 until 6) {
+            Thread.sleep(if (i == 0) 150 else 250)
+            refreshProps()
+            cur = props[code]?.current
+            if (cur == raw) break
+        }
+        val rb = cur?.let { labelFor(code, it) }
         return JSONObject().put("action", "set").put("kind", kind).put("value", value).put("ok", true)
+            .put("readback", if (code == SonyProps.COLOR_TEMP && rb != null) "Color Temperature|$rb" else rb ?: JSONObject.NULL)
+            .put("verified", cur == raw)
+    }
+
+    private fun labelFor(code: Int, v: Long): String = when (code) {
+        SonyProps.ISO -> SonyProps.isoLabel(v)
+        SonyProps.SHUTTER -> SonyProps.shutterLabel(v)
+        SonyProps.F_NUMBER -> SonyProps.fnumberLabel(v)
+        SonyProps.WHITE_BALANCE -> SonyProps.wbLabel(v)
+        SonyProps.EXPOSURE_PROGRAM -> SonyProps.exposureModeLabel(v)
+        else -> v.toString()
     }
 
     // ---- JSON للواجهة ----
@@ -272,6 +295,9 @@ class SonyPtpCamera(
             .put("canSetWhiteBalance", w(SonyProps.WHITE_BALANCE))
             .put("canTouchAF", false)
             .put("canHalfPress", p.containsKey(SonyProps.S1))
+            .put("canSetExposureMode", w(SonyProps.EXPOSURE_PROGRAM))
+            .put("canSetMovieQuality", false)
+            .put("canSetMovieFormat", false)
         p[SonyProps.WHITE_BALANCE]?.let { d ->
             caps.put("wbCandidates", JSONArray(d.enumValues.map { SonyProps.wbLabel(it) }))
         }
@@ -320,6 +346,8 @@ class SonyPtpCamera(
         p[SonyProps.EXPOSURE_PROGRAM]?.let { d ->
             o.put("exposureMode", SonyProps.exposureModeLabel(d.current))
             o.put("shootMode", if (SonyProps.isMovieMode(d.current)) "movie" else "still")
+            modeMap.clear(); d.enumValues.forEach { modeMap[SonyProps.exposureModeLabel(it)] = it }
+            if (d.writable && d.enumValues.isNotEmpty()) o.put("exposureModeCandidates", JSONArray(d.enumValues.map { SonyProps.exposureModeLabel(it) }))
         }
         p[SonyProps.FOCUS_MODE]?.let { d -> o.put("focusMode", SonyProps.focusModeLabel(d.current)) }
         p[SonyProps.BATTERY]?.let { d ->
