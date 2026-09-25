@@ -26,6 +26,10 @@ const Bridge = (() => {
     setSetting(k,v){ N && N.setSetting(k, String(v)); },
     touchFocus(x,y){ N && N.touchFocus(x|0, y|0); },
     refreshStatus(){ N && N.refreshStatus(); },
+    browseMedia(){ N && N.browseMedia(); },
+    getThumb(id,url){ N && N.getThumb(String(id), String(url)); },
+    importMedia(id,url,name,mime,size){ N && N.importMedia(String(id), String(url), String(name), String(mime||''), String(size||0)); },
+    openMedia(uri,mime){ N && N.openMedia(String(uri), String(mime||'')); },
     keepScreenOn(b){ N && N.keepScreenOn(!!b); },
     phoneStatus(){ try { return N ? JSON.parse(N.getPhoneStatus()) : {}; } catch(e){ return {}; } }
   };

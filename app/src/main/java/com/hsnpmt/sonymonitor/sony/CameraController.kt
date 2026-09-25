@@ -44,6 +44,11 @@ class CameraController(
         .connectTimeout(4, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS) // الالتقاط قد يستغرق وقتًا (تركيز + غالق)
         .build()
+    // عميل منفصل لـ getEvent كي نلغي الاستطلاع الطويل فورًا قبل الالتقاط/التركيز
+    private val eventHttp = OkHttpClient.Builder()
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .build()
     private val streamHttp = OkHttpClient.Builder()
         .connectTimeout(4, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.SECONDS)   // بثّ مستمر
@@ -81,7 +86,7 @@ class CameraController(
                     return@launch
                 }
                 device = dev
-                val client = ScalarWebApiClient(apiClientHttp, dev.cameraEndpointUrl, dev.avContentEndpointUrl)
+                val client = ScalarWebApiClient(apiClientHttp, dev.cameraEndpointUrl, dev.avContentEndpointUrl, eventHttp)
                 api = client
 
                 client.startRecMode()
@@ -105,8 +110,11 @@ class CameraController(
                     .put("canSetFNumber", capabilities.contains("setFNumber"))
                     .put("canSetExposureComp", capabilities.contains("setExposureCompensation"))
                     .put("canSetWhiteBalance", capabilities.contains("setWhiteBalance"))
+                    .put("canTouchAF", capabilities.contains("setTouchAFPosition"))
+                    .put("canHalfPress", capabilities.contains("actHalfPressShutter"))
                 if (capabilities.contains("getAvailableWhiteBalance")) {
                     try { caps.put("wbCandidates", JSONArray(client.getAvailableWhiteBalance())) } catch (_: Exception) {}
+                    client.getColorTemperatureRange()?.let { caps.put("colorTempRange", it) }
                 }
                 if (capabilities.contains("setMovieQuality")) {
                     try { caps.put("movieQualityCandidates", JSONArray(client.getAvailableStringList("getAvailableMovieQuality"))) } catch (_: Exception) {}
@@ -220,16 +228,86 @@ class CameraController(
     // -------- التحكم --------
 
     // نحاول التنفيذ مباشرةً (قائمة الوظائف المتاحة تتغيّر مع وضع الكاميرا)،
-    // ونبلّغ بالنتيجة أو الخطأ الحقيقي من الكاميرا — أدق من الاعتماد على لقطة قديمة.
-    fun takePicture() = attempt("التقاط الصور") {
+    // ونبلّغ بالنتيجة أو رمز الخطأ الحقيقي من الكاميرا مع شرح مفهوم.
+    @Volatile private var busy = false
+
+    fun takePicture() = attempt("التقاط الصورة", exclusive = true) {
         val c = api!!
-        val urls = try {
-            c.actTakePicture()
-        } catch (e: ScalarWebApiClient.ApiError) {
-            // 40403 = "Long shooting" — الكاميرا ما زالت تلتقط؛ ننتظر النتيجة
-            if (e.code == 40403) c.awaitTakePicture() else throw e
+        pausePolling()
+        try {
+            val mode = if (capabilities.contains("getShootMode")) runCatching { c.getShootMode() }.getOrNull() else null
+            log("التقاط: shootMode=${mode ?: "?"}")
+            if (mode != null && mode.isNotEmpty() && !mode.equals("still", true)) {
+                throw UserFacing("الكاميرا تُبلغ أن وضع التصوير الحالي «$mode» وليس «still». أدر الدايل إلى وضع الصور (P/A/S/M) ثم أعد الاتصال.")
+            }
+            val urls = shootWithFallback(c)
+            log("التقاط: نجح، postview=${urls.size}")
+            emit("action", JSONObject().put("action", "takePicture").put("ok", true).put("postview", JSONArray(urls)))
+            urls.firstOrNull()?.let { fetchPostview(it) }
+        } finally {
+            startStatusPolling()
         }
-        emit("action", JSONObject().put("action", "takePicture").put("ok", true).put("postview", JSONArray(urls)))
+    }
+
+    /** actTakePicture ← وإن فشل: ضغط نصفي (تركيز) ثم التقاط، مع معالجة 40403 (التقاط طويل). */
+    private suspend fun shootWithFallback(c: ScalarWebApiClient): List<String> {
+        val first = try {
+            return shootOnce(c)
+        } catch (e: ScalarWebApiClient.ApiError) {
+            log("actTakePicture فشل: ${e.code} ${e.message}")
+            e
+        }
+        if (!capabilities.contains("actHalfPressShutter")) throw first
+        log("إعادة المحاولة: ضغط نصفي للتركيز ثم التقاط")
+        try {
+            c.actHalfPressShutter()
+            val fs = waitFocus(c, 2500)
+            log("حالة التركيز بعد الضغط النصفي: ${fs ?: "غير معروفة"}")
+            return shootOnce(c)
+        } catch (e: ScalarWebApiClient.ApiError) {
+            log("المحاولة الثانية فشلت: ${e.code} ${e.message}")
+            throw e
+        } finally {
+            c.cancelHalfPressShutter()
+        }
+    }
+
+    private fun shootOnce(c: ScalarWebApiClient): List<String> = try {
+        c.actTakePicture()
+    } catch (e: ScalarWebApiClient.ApiError) {
+        // 40403 = "Long shooting" — الكاميرا ما زالت تلتقط؛ ننتظر النتيجة
+        if (e.code == 40403) c.awaitTakePicture() else throw e
+    }
+
+    /** ينتظر focusStatus = Focused/Failed عبر getEvent(false). يعيد آخر حالة أو null. */
+    private suspend fun waitFocus(c: ScalarWebApiClient, timeoutMs: Long): String? {
+        val t0 = System.currentTimeMillis()
+        var last: String? = null
+        while (System.currentTimeMillis() - t0 < timeoutMs) {
+            delay(250)
+            val st = runCatching { StatusParser.parse(c.getEvent(false)) }.getOrNull() ?: continue
+            last = st.optString("focusStatus", "").ifEmpty { last }
+            if (last.equals("Focused", true) || last.equals("Failed", true)) break
+        }
+        return last
+    }
+
+    /** تنزيل صورة المعاينة (postview) بعد الالتقاط وإرسال نسخة مصغّرة للواجهة. */
+    private fun fetchPostview(url: String) {
+        scope.launch {
+            try {
+                val bytes = apiClientHttp.newCall(Request.Builder().url(url).get().build()).execute().use { r ->
+                    if (!r.isSuccessful) throw IllegalStateException("HTTP ${r.code}")
+                    r.body?.bytes() ?: throw IllegalStateException("فارغ")
+                }
+                val thumb = MediaStoreSaver.downscaleJpeg(bytes, 720)
+                emit("postview", JSONObject().put("url", url)
+                    .put("b64", android.util.Base64.encodeToString(thumb, android.util.Base64.NO_WRAP))
+                    .put("bytes", bytes.size).put("ts", System.currentTimeMillis()))
+            } catch (e: Exception) {
+                log("تعذّر تنزيل صورة المعاينة: ${e.message}")
+            }
+        }
     }
 
     fun startMovieRec() = attempt("تسجيل الفيديو") {
@@ -242,22 +320,74 @@ class CameraController(
         emit("action", JSONObject().put("action", "stopMovieRec").put("ok", true))
     }
 
-    private fun attempt(label: String, block: () -> Unit) {
+    private class UserFacing(msg: String) : Exception(msg)
+
+    private fun attempt(label: String, exclusive: Boolean = false, block: suspend () -> Unit) {
         scope.launch {
             if (api == null) {
                 emit("action", JSONObject().put("ok", false).put("label", label).put("message", "غير متصل بالكاميرا"))
                 return@launch
             }
+            if (exclusive && busy) {
+                emit("action", JSONObject().put("ok", false).put("label", label).put("message", "أمر سابق ما زال قيد التنفيذ"))
+                return@launch
+            }
+            if (exclusive) busy = true
             try { block() } catch (e: Exception) {
-                emit("action", JSONObject().put("ok", false).put("label", label)
-                    .put("message", (e.message ?: "فشل التنفيذ") + " — تأكّد أن دايل الكاميرا في الوضع المناسب (صورة/فيديو)."))
+                val msg = describe(e)
+                log("$label: فشل — $msg")
+                emit("action", JSONObject().put("ok", false).put("label", label).put("message", msg)
+                    .put("code", (e as? ScalarWebApiClient.ApiError)?.code ?: 0))
+            } finally {
+                if (exclusive) busy = false
             }
         }
     }
 
-    fun touchFocus(xPercent: Int, yPercent: Int) = attempt("نقل التركيز") {
-        api!!.setTouchAFPosition(xPercent.toDouble(), yPercent.toDouble())
-        emit("action", JSONObject().put("action", "touchFocus").put("ok", true).put("x", xPercent).put("y", yPercent))
+    /** ترجمة رموز أخطاء Sony إلى شرح عملي — مع إبقاء الرمز الأصلي ظاهرًا. */
+    private fun describe(e: Exception): String {
+        if (e is UserFacing) return e.message ?: ""
+        if (e !is ScalarWebApiClient.ApiError) return "لا رد صالح من الكاميرا (${e.javaClass.simpleName}: ${e.message ?: ""})"
+        val raw = if (e.message.isNotBlank()) " «${e.message}»" else ""
+        return when (e.code) {
+            40400 -> "فشل الالتقاط (40400)$raw. غالبًا لم تُثبّت الكاميرا التركيز: وجّهها لهدف واضح، أو جرّب التركيز اليدوي MF، أو اضبط «أولوية الإطلاق» في AF-S/AF-C."
+            40401 -> "الكاميرا غير جاهزة (40401)$raw — انتظر لحظة وأعد المحاولة، وتأكّد من وجود بطاقة ذاكرة بمساحة كافية."
+            40402 -> "الكاميرا مشغولة بأمر آخر (40402)$raw."
+            1 -> "الأمر غير متاح الآن (1)$raw — تأكّد من وجود البطاقة وأنها غير مقفلة/ممتلئة، وأن الكاميرا ليست في قائمة أو عرض صور."
+            3 -> "قيمة غير مقبولة (3)$raw."
+            12, 15 -> "هذا الأمر غير مدعوم على هذا الموديل (${e.code})$raw."
+            403 -> "الكاميرا رفضت الأمر (403)$raw."
+            else -> "خطأ من الكاميرا (${e.code})$raw"
+        }
+    }
+
+    /**
+     * النقر للتركيز: إن دعمت الكاميرا setTouchAFPosition نرسل النقطة.
+     * وإلا (مثل a7 III) ننفّذ ضغطًا نصفيًا = تركيز تلقائي على منطقة التركيز المضبوطة في الكاميرا،
+     * ونُبلغ الواجهة بصدق أن اختيار النقطة نفسها غير مدعوم.
+     */
+    fun touchFocus(xPercent: Int, yPercent: Int) = attempt("التركيز", exclusive = true) {
+        val c = api!!
+        if (capabilities.contains("setTouchAFPosition")) {
+            c.setTouchAFPosition(xPercent.toDouble(), yPercent.toDouble())
+            emit("action", JSONObject().put("action", "touchFocus").put("ok", true).put("mode", "point")
+                .put("x", xPercent).put("y", yPercent))
+            return@attempt
+        }
+        if (!capabilities.contains("actHalfPressShutter")) {
+            throw UserFacing("هذه الكاميرا لا تتيح التركيز عن بُعد عبر هذا الاتصال.")
+        }
+        pausePolling()
+        try {
+            c.actHalfPressShutter()
+            val fs = waitFocus(c, 2500)
+            log("تركيز بالضغط النصفي: ${fs ?: "?"}")
+            emit("action", JSONObject().put("action", "touchFocus").put("ok", true).put("mode", "halfpress")
+                .put("focusStatus", fs ?: ""))
+        } finally {
+            c.cancelHalfPressShutter()
+            startStatusPolling()
+        }
     }
 
     fun setSetting(kind: String, value: String) = guarded(apiForKind(kind), "ضبط $kind") {
@@ -268,6 +398,7 @@ class CameraController(
             "fnumber" -> c.setFNumber(value)
             "exposure" -> c.setExposureCompensation(value.toInt())
             "whitebalance" -> c.setWhiteBalance(value, false, 0)
+            "colortemp" -> c.setWhiteBalance("Color Temperature", true, value.toInt())
             "moviequality" -> c.setMovieQuality(value)
             else -> throw IllegalArgumentException("إعداد غير معروف: $kind")
         }
@@ -279,7 +410,7 @@ class CameraController(
         "shutter" -> "setShutterSpeed"
         "fnumber" -> "setFNumber"
         "exposure" -> "setExposureCompensation"
-        "whitebalance" -> "setWhiteBalance"
+        "whitebalance", "colortemp" -> "setWhiteBalance"
         "moviequality" -> "setMovieQuality"
         else -> kind
     }
@@ -297,7 +428,7 @@ class CameraController(
                 return@launch
             }
             try { block() } catch (e: Exception) {
-                emit("action", JSONObject().put("ok", false).put("label", label).put("message", e.message ?: "فشل التنفيذ"))
+                emit("action", JSONObject().put("ok", false).put("label", label).put("message", describe(e)))
             }
         }
     }
@@ -324,6 +455,12 @@ class CameraController(
         }
     }
 
+    /** يوقف الاستطلاع الطويل فورًا (يلغي طلب getEvent المعلّق) — الكاميرا ترفض أحيانًا الأوامر أثناءه. */
+    private fun pausePolling() {
+        statusJob?.cancel(); statusJob = null
+        try { eventHttp.dispatcher.cancelAll() } catch (_: Exception) {}
+    }
+
     fun refreshStatus() {
         scope.launch {
             try {
@@ -336,6 +473,7 @@ class CameraController(
     // -------- مساعد --------
 
     private fun emit(type: String, json: JSONObject) = callback.onEvent(type, json)
+    private fun log(msg: String) { Log.i(TAG, msg); emit("log", JSONObject().put("msg", msg)) }
 
     fun release() {
         try { scope.cancel() } catch (_: Exception) {}

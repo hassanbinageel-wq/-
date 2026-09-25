@@ -25,7 +25,11 @@
     btnPhoto: $('#btnPhoto'), btnRecDock: $('#btnRecDock'), filesBtn: $('#filesBtn'), teleBtn: $('#teleBtn'),
     teleprompter: $('#teleprompter'), teleText: $('#teleText'), focusMark: $('#focusMark'),
     panelHost: $('#panelHost'), panelTitle: $('#panelTitle'), panelBody: $('#panelBody'), panelClose: $('#panelClose'),
-    toast: $('#toast')
+    toast: $('#toast'),
+    vpKelvin: $('#vpKelvin'), kInput: $('#kInput'), kSlider: $('#kSlider'),
+    pvThumb: $('#pvThumb'), gallery: $('#gallery'), gGrid: $('#gGrid'), gSession: $('#gSession'), gSessionWrap: $('#gSessionWrap'),
+    gStatus: $('#gStatus'), gViewer: $('#gViewer'), gvImg: $('#gvImg'), gvInfo: $('#gvInfo'), gvImport: $('#gvImport'),
+    gvOpen: $('#gvOpen'), gvProg: $('#gvProg')
   };
 
   // الحالة
@@ -236,6 +240,7 @@
     const lut = (S.lutOn && activeLut) ? activeLut : null;
     const N = lut ? lut.size : 0;
     const inten = S.lutIntensity/100;
+    const Nf = N-1, NN = N*N, N3 = N*3, NN3 = NN*3, L = lut ? lut.rgb : null;
     const zth = S.zebraTh/100*255;
     const cth = S.crushTh/100*255;
     let peak = null, pc = null;
@@ -243,11 +248,23 @@
     for(let i=0, p=0; i<d.length; i+=4, p++){
       let r=d[i], g=d[i+1], b=d[i+2];
       if(lut){
-        const ri=Math.min(N-1,(r*(N-1)/255+0.5)|0), gi=Math.min(N-1,(g*(N-1)/255+0.5)|0), bi=Math.min(N-1,(b*(N-1)/255+0.5)|0);
-        const li=(ri+gi*N+bi*N*N)*3;
-        let lr=lut.rgb[li]*255, lg=lut.rgb[li+1]*255, lb=lut.rgb[li+2]*255;
-        if(inten<1){ lr=r+(lr-r)*inten; lg=g+(lg-g)*inten; lb=b+(lb-b)*inten; }
-        r=lr; g=lg; b=lb;
+        // استيفاء ثلاثي خطّي (trilinear) — يزيل التدرّج/التحبّب الناتج عن أقرب نقطة
+        const fr=r*Nf/255, fg=g*Nf/255, fb=b*Nf/255;
+        let r0=fr|0, g0=fg|0, b0=fb|0; if(r0>Nf)r0=Nf; if(g0>Nf)g0=Nf; if(b0>Nf)b0=Nf;
+        const dr=fr-r0, dg=fg-g0, db=fb-b0;
+        const sr=r0<Nf?3:0, sg=g0<Nf?N3:0, sb=b0<Nf?NN3:0;
+        const i000=(r0+g0*N+b0*NN)*3, i100=i000+sr, i010=i000+sg, i110=i010+sr,
+              i001=i000+sb, i101=i001+sr, i011=i001+sg, i111=i011+sr;
+        const er=1-dr, eg=1-dg, eb=1-db;
+        let o0=0,o1=0,o2=0;
+        for(let c=0;c<3;c++){
+          const c0=(L[i000+c]*er+L[i100+c]*dr)*eg+(L[i010+c]*er+L[i110+c]*dr)*dg;
+          const c1=(L[i001+c]*er+L[i101+c]*dr)*eg+(L[i011+c]*er+L[i111+c]*dr)*dg;
+          const v=(c0*eb+c1*db)*255;
+          if(c===0)o0=v; else if(c===1)o1=v; else o2=v;
+        }
+        if(inten<1){ o0=r+(o0-r)*inten; o1=g+(o1-g)*inten; o2=b+(o2-b)*inten; }
+        r=o0; g=o1; b=o2;
       }
       const y=0.2126*r+0.7152*g+0.0722*b;
       if(S.falseColor){ const c=falseColor255(y); r=c[0]; g=c[1]; b=c[2]; }
@@ -418,8 +435,15 @@
       if(d.action==='startMovieRec' && d.ok) setRecording(true);
       if(d.action==='stopMovieRec' && d.ok) setRecording(false);
       if(d.action==='takePicture' && d.ok) toast('تم الالتقاط ✓');
-      if(!d.ok) toast('✗ '+(d.label||d.action||'أمر')+': '+(d.message||'فشل'));
+      if(d.action==='touchFocus' && d.ok) onFocusResult(d);
+      if(d.action==='set' && d.ok && d.kind==='colortemp') toast('أُرسلت '+d.value+'K — بانتظار تأكيد الكاميرا');
+      if(!d.ok){ if(d.label==='التركيز') markFocus('fail'); toast('✗ '+(d.label||d.action||'أمر')+': '+(d.message||'فشل'), 6000); }
     });
+    Bridge.on('log', d=> dlog(d.msg||''));
+    Bridge.on('postview', onPostview);
+    Bridge.on('gallery', onGalleryEvent);
+    Bridge.on('thumb', onThumb);
+    Bridge.on('import', onImport);
   }
 
   function setConn(kind, text){
@@ -444,7 +468,7 @@
     if(st.fnumber){ const v='F'+String(st.fnumber).replace(/^F/i,''); el.rdF.textContent=v; el.ccF.textContent=v; }
     if(st.shutter){ el.rdSS.textContent=st.shutter; el.ccSS.textContent=st.shutter; }
     if(st.iso){ const v=String(st.iso).replace(/^ISO\s*/i,''); el.rdISO.textContent='ISO '+v; el.ccISO.textContent=v; }
-    if(st.whiteBalance){ el.rdWB.textContent=shortWB(st.whiteBalance); el.ccWB.textContent=shortWB(st.whiteBalance); }
+    if(st.whiteBalance || st.colorTemp){ const w=wbLabel(); el.rdWB.textContent=w; el.ccWB.textContent=w; }
     if(st.focusMode) el.rdFocus.textContent = st.focusMode;
     if(st.exposureMode) el.rdMode.textContent = shortMode(st.exposureMode);
     if(st.exposureCompIndex!=null){ const step=(st.exposureCompStep===1)?0.5:(1/3); const ev=st.exposureCompIndex*step; el.ccEV.textContent=(ev>0?'+':'')+ev.toFixed(1).replace('.0',''); }
@@ -453,6 +477,11 @@
     fillSelectCurrent('setIso', st.iso, st.isoCandidates);
     fillSelectCurrent('setShutter', st.shutter, st.shutterCandidates);
     fillSelectCurrent('setF', st.fnumber, st.fnumberCandidates);
+  }
+  function wbLabel(){
+    const w=lastStatus.whiteBalance||'';
+    if(/color\s*temp/i.test(w) && lastStatus.colorTemp>0) return lastStatus.colorTemp+'K';
+    return shortWB(w);
   }
   function shortWB(w){
     const s=String(w);
@@ -554,13 +583,14 @@
     refreshQuick();
     el.btnPhoto.onclick = ()=>{ toast('جارٍ الالتقاط…'); Bridge.cmd.takePicture(); };
     el.btnRecDock.onclick = ()=>{ if(el.btnRecDock.classList.contains('recording')) Bridge.cmd.stopMovieRec(); else Bridge.cmd.startMovieRec(); };
-    el.filesBtn.onclick = ()=> openPanel('files');
+    el.filesBtn.onclick = ()=> openGallery();
     el.teleBtn.onclick = ()=>{ S.teleOn=!S.teleOn; persist(); applyTele(); };
     // منتقي القيمة من شريط التحكّم السفلي وشريط الإعدادات العلوي
     document.querySelectorAll('.cchip[data-ctl], #readout .rd[data-ctl]').forEach(b=> b.onclick = ()=> openValuePicker(b.dataset.ctl));
     $('#vpClose').onclick = ()=> el.valuePicker.classList.add('hidden');
     // سحب شريط مقارنة LUT
     wireSplitDrag();
+    wireGallery();
     if(window.ResizeObserver){ try{ new ResizeObserver(()=>{ drawGuides(); updateSplitHandle(); }).observe(el.view); }catch(e){} }
 
     // التشخيص
@@ -600,7 +630,10 @@
     }[kind];
     if(!info){ return; }
     const list = Array.isArray(info.cand) ? info.cand : [];
-    if(!list.length){ toast('لا خيارات متاحة الآن — قد يكون الإعداد مقفولًا على الكاميرا'); return; }
+    const kelvin = kind==='whitebalance' && kelvinAvailable();
+    el.vpKelvin.classList.toggle('hidden', !kelvin);
+    if(kelvin) setupKelvin();
+    if(!list.length && !kelvin){ toast('لا خيارات متاحة الآن — قد يكون الإعداد مقفولًا على الكاميرا'); return; }
     el.vpTitle.textContent = info.title;
     el.vpList.innerHTML = '';
     list.forEach(v=>{
@@ -610,6 +643,30 @@
       el.vpList.appendChild(b);
     });
     el.valuePicker.classList.remove('hidden');
+  }
+  // ---- حرارة اللون (كلفن): كتابة يدوية + سحب يمين/يسار ----
+  function kelvinAvailable(){
+    if(!caps || caps.canSetWhiteBalance===false) return false;
+    return !!caps.colorTempRange || (caps.wbCandidates||[]).some(w=>/color\s*temp/i.test(w));
+  }
+  function kRange(){ const r=(caps&&caps.colorTempRange)||{}; return { min:r.min||2500, max:r.max||9900, step:r.step||100 }; }
+  function kClamp(v){ const r=kRange(); v=Math.round((+v||5600)/r.step)*r.step; return Math.min(r.max, Math.max(r.min, v)); }
+  let kTimer=null, kWired=false;
+  function setupKelvin(){
+    const r=kRange();
+    [el.kSlider, el.kInput].forEach(x=>{ x.min=r.min; x.max=r.max; x.step=r.step; });
+    const cur = kClamp(lastStatus.colorTemp>0 ? lastStatus.colorTemp : 5600);
+    el.kSlider.value=cur; el.kInput.value=cur;
+    const sc=el.vpKelvin.querySelector('.vpk-scale'); if(sc) sc.innerHTML=`<span>${r.min}K</span><span>☀ 5600K</span><span>${r.max}K</span>`;
+    if(kWired) return; kWired=true;
+    const send=(v, delay)=>{ v=kClamp(v); el.kInput.value=v; el.kSlider.value=v; clearTimeout(kTimer);
+      kTimer=setTimeout(()=>Bridge.cmd.setSetting('colortemp', v), delay); };
+    el.kSlider.addEventListener('input', ()=>{ el.kInput.value=el.kSlider.value; send(el.kSlider.value, 450); });
+    el.kSlider.addEventListener('change', ()=> send(el.kSlider.value, 0));
+    el.kInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ send(el.kInput.value, 0); el.kInput.blur(); } });
+    $('#kApply').onclick = ()=> send(el.kInput.value, 0);
+    $('#kMinus').onclick = ()=> send((+el.kInput.value||5600) - kRange().step, 500);
+    $('#kPlus').onclick  = ()=> send((+el.kInput.value||5600) + kRange().step, 500);
   }
   function exposureCandidates(){
     const mn = lastStatus.exposureCompMin, mx = lastStatus.exposureCompMax;
@@ -627,9 +684,126 @@
     if(S.flipH) x=1-x;
     const sr=el.stage.getBoundingClientRect();
     el.focusMark.style.left=(e.clientX-sr.left)+'px'; el.focusMark.style.top=(e.clientY-sr.top)+'px';
-    el.focusMark.classList.remove('hidden'); el.focusMark.style.animation='none'; void el.focusMark.offsetWidth; el.focusMark.style.animation='';
-    clearTimeout(focusMarkTimer); focusMarkTimer=setTimeout(()=>el.focusMark.classList.add('hidden'),1300);
+    markFocus(''); el.focusMark.classList.remove('hidden'); el.focusMark.style.animation='none'; void el.focusMark.offsetWidth; el.focusMark.style.animation='';
+    clearTimeout(focusMarkTimer); focusMarkTimer=setTimeout(()=>el.focusMark.classList.add('hidden'),3200);
     Bridge.cmd.touchFocus(Math.round(x*100), Math.round(y*100));
+  }
+
+  let focusNoteShown=false;
+  function markFocus(state){
+    el.focusMark.style.borderColor = state==='ok' ? '#22c55e' : state==='fail' ? '#ef4444' : '';
+  }
+  function onFocusResult(d){
+    const fs=(d.focusStatus||'').toLowerCase();
+    markFocus(fs==='focused'?'ok':fs==='failed'?'fail':'');
+    if(d.mode==='halfpress'){
+      if(!focusNoteShown){ focusNoteShown=true;
+        toast('هذه الكاميرا لا تسمح باختيار نقطة التركيز من الهاتف؛ نفّذنا تركيزًا تلقائيًا (ضغط نصفي) على منطقة التركيز المضبوطة في الكاميرا'+(fs?(' — '+(fs==='focused'?'تم التركيز ✓':fs==='failed'?'فشل التركيز':fs)):''), 7000);
+      } else toast(fs==='focused'?'تم التركيز ✓':fs==='failed'?'تعذّر التركيز':'أُرسل أمر التركيز');
+    }
+  }
+
+  // ---- لقطات الجلسة + معرض الكاميرا ----
+  const sessionShots=[]; let galleryItems=[]; const thumbCache={}; let gKind='photo'; let viewerItem=null;
+  function onPostview(d){
+    const src='data:image/jpeg;base64,'+d.b64;
+    sessionShots.unshift({ id:'pv'+d.ts, url:d.url, src, ts:d.ts, title:'IMG_'+new Date(d.ts).toISOString().replace(/[-:T]/g,'').slice(0,14)+'.jpg', kind:'photo', mime:'image/jpeg', size:0, session:true });
+    if(sessionShots.length>60) sessionShots.pop();
+    el.pvThumb.querySelector('img').src=src; el.pvThumb.classList.remove('hidden');
+    if(!el.gallery.classList.contains('hidden')) renderGallery();
+  }
+  function openGallery(kind){
+    gKind = kind || ((lastStatus.shootMode==='movie' || el.btnRecDock.classList.contains('recording')) ? 'video' : 'photo');
+    el.gallery.classList.remove('hidden');
+    renderGallery();
+    if(!galleryItems.length && !el.gStatus.textContent)
+      el.gStatus.textContent='ملفات البطاقة: اضغط «تحميل من البطاقة». ملاحظة: a7 III لا تتيح ملفات البطاقة أثناء التحكّم عن بُعد — يلزم وضع «إرسال إلى الهاتف الذكي» في الكاميرا.';
+  }
+  function closeGallery(){ el.gallery.classList.add('hidden'); el.gViewer.classList.add('hidden'); }
+  function renderGallery(){
+    document.querySelectorAll('.gtab').forEach(b=>b.classList.toggle('on', b.dataset.gk===gKind));
+    el.gSessionWrap.classList.toggle('hidden', gKind!=='photo' || !sessionShots.length);
+    el.gSession.innerHTML=''; sessionShots.forEach(it=> el.gSession.appendChild(galleryCell(it)));
+    el.gGrid.innerHTML='';
+    const list=galleryItems.filter(it=>it.kind===gKind);
+    list.forEach(it=> el.gGrid.appendChild(galleryCell(it)));
+    if(galleryItems.length && !list.length){ const p=document.createElement('div'); p.className='g-status'; p.textContent= gKind==='video'?'لا مقاطع فيديو على البطاقة (أو أن الكاميرا لا تشاركها في هذا الوضع).':'لا صور على البطاقة.'; el.gGrid.appendChild(p); }
+  }
+  function galleryCell(it){
+    const b=document.createElement('button'); b.className='g-cell'; b.dataset.id=it.id;
+    const img=document.createElement('img'); img.loading='lazy';
+    if(it.src) img.src=it.src;
+    else if(thumbCache[it.id]) img.src=thumbCache[it.id];
+    else if(it.thumb) Bridge.cmd.getThumb(it.id, it.thumb);
+    b.appendChild(img);
+    const n=document.createElement('span'); n.className='gname'; n.textContent=it.title; b.appendChild(n);
+    if(it.kind==='video'){ const v=document.createElement('span'); v.className='gbadge'; v.textContent='▶ فيديو'; b.appendChild(v); }
+    if(it.imported){ const k=document.createElement('span'); k.className='gok'; k.textContent='✓'; b.appendChild(k); }
+    b.onclick=()=>openViewer(it);
+    return b;
+  }
+  function onThumb(d){
+    if(!d.b64) return;
+    const src='data:image/jpeg;base64,'+d.b64; thumbCache[d.id]=src;
+    document.querySelectorAll('.g-cell').forEach(c=>{ if(c.dataset.id===d.id){ const i=c.querySelector('img'); if(i) i.src=src; } });
+    if(viewerItem && viewerItem.id===d.id) el.gvImg.src=src;
+  }
+  function onGalleryEvent(d){
+    dlog('المعرض: '+d.state+(d.message?(' — '+d.message):'')+(d.items?(' عناصر='+d.items.length):''));
+    if(d.state==='searching') el.gStatus.textContent='جارٍ البحث عن خادم ملفات الكاميرا…';
+    else if(d.state==='listing') el.gStatus.textContent='جارٍ قراءة قائمة الملفات من '+(d.server||'الكاميرا')+'…';
+    else if(d.state==='error') el.gStatus.textContent=d.message||'تعذّر الاستعراض';
+    else if(d.state==='done'){
+      galleryItems=d.items||[];
+      const ph=galleryItems.filter(i=>i.kind==='photo').length, vd=galleryItems.filter(i=>i.kind==='video').length;
+      el.gStatus.textContent=(d.server||'الكاميرا')+': '+ph+' صورة، '+vd+' فيديو. الأصل يُنسخ كما هو دون تعديل، ولا يُحذف شيء من البطاقة.';
+      renderGallery();
+    }
+  }
+  function openViewer(it){
+    viewerItem=it;
+    el.gvImg.src = it.src || thumbCache[it.id] || '';
+    el.gvInfo.textContent = it.title + (it.size?(' — '+fmtBytes(it.size)):'') + (it.session?' (معاينة)':'');
+    el.gvProg.classList.add('hidden'); el.gvProg.firstElementChild.style.width='0';
+    el.gvOpen.classList.toggle('hidden', !it.imported);
+    el.gvImport.textContent = it.session ? 'حفظ المعاينة' : (it.kind==='video'?'استيراد الفيديو':'استيراد الأصل');
+    el.gvImport.disabled=false;
+    el.gViewer.classList.remove('hidden');
+  }
+  function onImport(d){
+    const it = viewerItem && viewerItem.id===d.id ? viewerItem : (galleryItems.find(x=>x.id===d.id) || sessionShots.find(x=>x.id===d.id));
+    if(d.pct!=null && !d.done && viewerItem && viewerItem.id===d.id){ el.gvProg.classList.remove('hidden'); el.gvProg.firstElementChild.style.width=(d.pct<0?50:d.pct)+'%'; }
+    if(!d.done) return;
+    if(viewerItem && viewerItem.id===d.id){ el.gvImport.disabled=false; el.gvProg.firstElementChild.style.width=d.ok?'100%':'0'; }
+    if(d.ok){
+      if(it){ it.imported=d.uri; }
+      if(viewerItem && viewerItem.id===d.id) el.gvOpen.classList.remove('hidden');
+      toast(d.dup?'موجود في الهاتف مسبقًا (لم يُكرَّر)':'حُفظ في معرض الهاتف ✓ (SonyMonitor)');
+      renderGallery();
+    } else toast('✗ الاستيراد: '+(d.message||'فشل'), 6000);
+  }
+  function fmtBytes(n){ if(n>1e9) return (n/1e9).toFixed(2)+' GB'; if(n>1e6) return (n/1e6).toFixed(1)+' MB'; return Math.round(n/1e3)+' KB'; }
+  function wireGallery(){
+    $('#gClose').onclick=closeGallery;
+    $('#gRefresh').onclick=()=>{ el.gStatus.textContent='…'; Bridge.cmd.browseMedia(); };
+    document.querySelectorAll('.gtab').forEach(b=> b.onclick=()=>{ gKind=b.dataset.gk; renderGallery(); });
+    $('#gvClose').onclick=()=>{ el.gViewer.classList.add('hidden'); viewerItem=null; };
+    el.gvImport.onclick=()=>{
+      const it=viewerItem; if(!it) return;
+      el.gvImport.disabled=true; el.gvProg.classList.remove('hidden');
+      Bridge.cmd.importMedia(it.id, it.url, it.title, it.mime||'image/jpeg', it.size||0);
+    };
+    el.gvOpen.onclick=()=>{ const it=viewerItem; if(it && it.imported) Bridge.cmd.openMedia(it.imported, it.mime||''); };
+    el.pvThumb.onclick=()=> openGallery('photo');
+    // سحب يمينًا على المونيتور = فتح المعرض
+    let sx=0, sy=0, st=0, ok=false;
+    el.stage.addEventListener('touchstart', e=>{ const t=e.touches[0]; ok = e.touches.length===1 && !e.target.closest('#splitHandle'); if(t){ sx=t.clientX; sy=t.clientY; st=Date.now(); } }, {passive:true});
+    el.stage.addEventListener('touchend', e=>{
+      if(!ok) return; ok=false;
+      const t=e.changedTouches[0]; if(!t) return;
+      const dx=t.clientX-sx, dy=t.clientY-sy;
+      if(dx>80 && Math.abs(dy)<60 && Date.now()-st<700) openGallery();
+    }, {passive:true});
   }
 
   // ---- سحب شريط مقارنة LUT ----
@@ -670,6 +844,8 @@
   // زر الرجوع من الأصل: يغلق القائمة/اللوحة/يُظهر الواجهة قبل الخروج
   window.__onBackPressed = function(){
     if(!el.valuePicker.classList.contains('hidden')){ el.valuePicker.classList.add('hidden'); return true; }
+    if(!el.gViewer.classList.contains('hidden')){ el.gViewer.classList.add('hidden'); viewerItem=null; return true; }
+    if(!el.gallery.classList.contains('hidden')){ closeGallery(); return true; }
     if(!el.menu.classList.contains('hidden')){ el.menu.classList.add('hidden'); return true; }
     if(!el.diag.classList.contains('hidden')){ el.diag.classList.add('hidden'); return true; }
     if(document.body.classList.contains('hiddenUi')){ document.body.classList.remove('hiddenUi'); return true; }
@@ -927,7 +1103,7 @@
   function bindRange(sel, valSel, key, fmt, after){ const e=$(sel), v=$(valSel); if(!e) return; e.value=S[key]; if(v) v.textContent=fmt(S[key]); e.oninput=()=>{ S[key]=+e.value; if(v) v.textContent=fmt(+e.value); after&&after(+e.value); }; e.onchange=persist; }
   function btn(txt,title,fn){ const b=document.createElement('button'); b.textContent=txt; if(title)b.title=title; b.onclick=fn; return b; }
   let toastTimer=null;
-  function toast(msg){ el.toast.textContent=msg; el.toast.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.toast.classList.add('hidden'), 3200); }
+  function toast(msg, ms){ el.toast.textContent=msg; el.toast.classList.remove('hidden'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.toast.classList.add('hidden'), ms||3200); }
 
   document.addEventListener('DOMContentLoaded', boot);
 })();

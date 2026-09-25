@@ -22,7 +22,9 @@ import java.util.concurrent.atomic.AtomicInteger
 class ScalarWebApiClient(
     private val http: OkHttpClient,
     private val cameraEndpoint: String,
-    private val avContentEndpoint: String? = null
+    private val avContentEndpoint: String? = null,
+    /** عميل مستقل لـ getEvent (الاستطلاع الطويل) كي يمكن إلغاؤه أثناء الالتقاط/التركيز. */
+    private val eventHttp: OkHttpClient = http
 ) {
     private val idGen = AtomicInteger(1)
     private val jsonType = "application/json; charset=utf-8".toMediaType()
@@ -34,7 +36,8 @@ class ScalarWebApiClient(
         method: String,
         params: JSONArray = JSONArray(),
         version: String = "1.0",
-        endpoint: String = cameraEndpoint
+        endpoint: String = cameraEndpoint,
+        client: OkHttpClient = http
     ): JSONArray {
         val id = idGen.getAndIncrement()
         val body = JSONObject()
@@ -49,7 +52,7 @@ class ScalarWebApiClient(
             .post(body.toRequestBody(jsonType))
             .build()
 
-        http.newCall(req).execute().use { resp ->
+        client.newCall(req).execute().use { resp ->
             val text = resp.body?.string() ?: throw ApiError(-1, "رد فارغ من الكاميرا")
             val obj = JSONObject(text)
             if (obj.has("error")) {
@@ -172,6 +175,10 @@ class ScalarWebApiClient(
     fun setTouchAFPosition(xPercent: Double, yPercent: Double) {
         call("setTouchAFPosition", JSONArray().put(xPercent).put(yPercent))
     }
+    fun actHalfPressShutter() { call("actHalfPressShutter") }
+    fun cancelHalfPressShutter() { try { call("cancelHalfPressShutter") } catch (e: ApiError) { Log.w(TAG, "cancelHalfPress ${e.code}") } }
+    fun getShootMode(): String = call("getShootMode").optString(0)
+
     fun setWhiteBalance(mode: String, colorTempEnabled: Boolean, colorTemp: Int) {
         call("setWhiteBalance", JSONArray().put(mode).put(colorTempEnabled).put(colorTemp))
     }
@@ -194,12 +201,34 @@ class ScalarWebApiClient(
     }
 
     /**
+     * نطاق حرارة اللون (كلفن) لوضع "Color Temperature" إن أعلنته الكاميرا:
+     * colorTemperatureRange = [max, min, step] حسب مرجع Sony. نعيد null إن لم يوجد.
+     */
+    fun getColorTemperatureRange(): JSONObject? {
+        return try {
+            val r = call("getAvailableWhiteBalance")
+            val arr = if (r.length() > 1) r.optJSONArray(1) else null
+            if (arr == null) return null
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                if (!o.optString("whiteBalanceMode").equals("Color Temperature", true)) continue
+                val rg = o.optJSONArray("colorTemperatureRange") ?: continue
+                if (rg.length() < 2) continue
+                val a = rg.optInt(0); val b = rg.optInt(1)
+                val step = if (rg.length() > 2) rg.optInt(2).coerceAtLeast(1) else 100
+                return JSONObject().put("min", minOf(a, b)).put("max", maxOf(a, b)).put("step", step)
+            }
+            null
+        } catch (e: Exception) { null }
+    }
+
+    /**
      * getEvent: يعيد مصفوفة حالة كبيرة. نمرّرها كما هي للطبقة الأعلى لاستخراج
      * القيم المتاحة (ISO/شتر/فتحة/بطارية/حالة التسجيل...) بأمان.
      * longPolling=false للحصول على لقطة فورية.
      */
     fun getEvent(longPolling: Boolean): JSONArray {
-        return call("getEvent", JSONArray().put(longPolling), version = "1.0")
+        return call("getEvent", JSONArray().put(longPolling), version = "1.0", client = eventHttp)
     }
 
     companion object { private const val TAG = "ScalarWebApiClient" }

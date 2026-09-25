@@ -62,7 +62,14 @@ object StatusParser {
             }
             "whiteBalance" -> {
                 putIfPresent(o, "currentWhiteBalanceMode", out, "whiteBalance")
+                // -1 = لا ينطبق (ليس وضع حرارة لون)
+                if (o.has("currentColorTemperature")) {
+                    val k = o.optInt("currentColorTemperature", -1)
+                    if (k > 0) out.put("colorTemp", k)
+                }
             }
+            "shootMode" -> putIfPresent(o, "currentShootMode", out, "shootMode")
+            "focusStatus" -> putIfPresent(o, "focusStatus", out, "focusStatus")
             "exposureMode" -> putIfPresent(o, "currentExposureMode", out, "exposureMode")
             "focusMode" -> putIfPresent(o, "currentFocusMode", out, "focusMode")
             "batteryInfo" -> {

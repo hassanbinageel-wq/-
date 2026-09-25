@@ -3,6 +3,7 @@ package com.hsnpmt.sonymonitor
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
@@ -11,6 +12,7 @@ import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.hsnpmt.sonymonitor.sony.CameraController
+import com.hsnpmt.sonymonitor.sony.MediaManager
 import com.hsnpmt.sonymonitor.sony.WifiConnector
 import org.json.JSONObject
 
@@ -30,6 +32,7 @@ class SonyBridge(
 
     private val main = Handler(Looper.getMainLooper())
     private val controller = CameraController(context, this)
+    private val media = MediaManager(context) { t, j -> onEvent(t, j) }
 
     // -------- الاتصال بشبكة الكاميرا (QR / يدوي) --------
 
@@ -71,6 +74,27 @@ class SonyBridge(
     @JavascriptInterface fun setSetting(kind: String, value: String) = controller.setSetting(kind, value)
     @JavascriptInterface fun touchFocus(x: Int, y: Int) = controller.touchFocus(x, y)
     @JavascriptInterface fun refreshStatus() = controller.refreshStatus()
+
+    // -------- معرض الكاميرا --------
+    @JavascriptInterface fun browseMedia() = media.browse()
+    @JavascriptInterface fun getThumb(id: String, url: String) = media.thumb(id, url)
+    @JavascriptInterface fun importMedia(id: String, url: String, name: String, mime: String, size: String) =
+        media.import(id, url, name, mime, size.toLongOrNull() ?: 0L)
+
+    /** فتح ملف مستورد في تطبيق العرض الافتراضي (صور/فيديو). */
+    @JavascriptInterface fun openMedia(uri: String, mime: String) {
+        main.post {
+            try {
+                val i = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(Uri.parse(uri), mime.ifEmpty { "*/*" })
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(i)
+            } catch (e: Exception) {
+                onEvent("import", JSONObject().put("ok", false).put("message", "لا يوجد تطبيق لفتح الملف: ${e.message}"))
+            }
+        }
+    }
 
     @JavascriptInterface fun keepScreenOn(on: Boolean) { main.post { onKeepScreenOn(on) } }
 

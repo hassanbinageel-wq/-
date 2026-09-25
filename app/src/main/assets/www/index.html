@@ -188,7 +188,43 @@
     <!-- منتقي قيمة الإعداد -->
     <section id="valuePicker" class="vp hidden">
       <div class="vp-head"><b id="vpTitle">إعداد</b><button id="vpClose" class="iconbtn"><svg class="ic"><use href="#ic-close"/></svg></button></div>
+      <div id="vpKelvin" class="vpk hidden">
+        <div class="vpk-row">
+          <button id="kMinus" class="kbtn">−</button>
+          <input id="kInput" type="number" inputmode="numeric" class="kinput" min="2500" max="9900" step="100"><span class="kunit">K</span>
+          <button id="kPlus" class="kbtn">+</button>
+          <button id="kApply" class="btn primary kapply">تطبيق</button>
+        </div>
+        <input id="kSlider" type="range" class="kslider" min="2500" max="9900" step="100">
+        <div class="vpk-scale"><span>2500K</span><span>☀ 5600K</span><span>9900K</span></div>
+      </div>
       <div id="vpList" class="vp-list"></div>
+    </section>
+
+    <!-- صورة المعاينة بعد الالتقاط -->
+    <button id="pvThumb" class="pvthumb hidden" title="آخر لقطة"><img alt=""></button>
+
+    <!-- معرض الكاميرا (سحب يمينًا على المونيتور) -->
+    <section id="gallery" class="gallery hidden">
+      <div class="g-head">
+        <button id="gClose" class="iconbtn"><svg class="ic"><use href="#ic-close"/></svg></button>
+        <div class="g-tabs"><button data-gk="photo" class="gtab on">صور</button><button data-gk="video" class="gtab">فيديو</button></div>
+        <button id="gRefresh" class="btn small">تحميل من البطاقة</button>
+      </div>
+      <div id="gStatus" class="g-status"></div>
+      <div id="gSessionWrap"><div class="g-sec">لقطات هذه الجلسة <small>(صورة المعاينة التي ترسلها الكاميرا بعد كل لقطة)</small></div><div id="gSession" class="g-grid"></div></div>
+      <div class="g-sec">بطاقة الكاميرا</div>
+      <div id="gGrid" class="g-grid"></div>
+    </section>
+    <section id="gViewer" class="gviewer hidden">
+      <img id="gvImg" alt="">
+      <div class="gv-bar">
+        <button id="gvClose" class="btn">رجوع</button>
+        <span id="gvInfo" class="gv-info"></span>
+        <button id="gvImport" class="btn primary">حفظ في الهاتف</button>
+        <button id="gvOpen" class="btn hidden">فتح</button>
+      </div>
+      <div id="gvProg" class="gv-prog hidden"><i></i></div>
     </section>
 
     <div id="toast" class="hidden"></div>
