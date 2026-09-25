@@ -8,9 +8,12 @@
  *  - عند انقطاع الاتصال يُلغى «المشهد المطبّق» ولا يُعاد تطبيق أي شيء تلقائيًا.
  */
 const Scenes = (() => {
-  const KEY = 'sm_scenes_v1';
-  let ctx = null;              // { getCaps, getStatus, isConnected, toast, dlog, openPanel, host }
-  let scenes = load();
+  const KEY = 'sm_scenes_v2', OLD_KEY = 'sm_scenes_v1';
+  let ctx = null;              // { getCaps, getStatus, isConnected, toast, dlog }
+  // البنية: [{id, name, notes, shots:[لقطة بإعداداتها]}]
+  let data = load();
+  let openSceneId = null;      // المشهد المفتوح (عرض لقطاته)
+  let scenes = [];             // لقطات المشهد المفتوح (مرجع للمصفوفة نفسها)
   let applying = null;         // { sceneId, rows, aborted }
   let applied = null;          // { id, name, expected:{field:value}, partial }
   let driftShown = false;
@@ -19,10 +22,27 @@ const Scenes = (() => {
   let lastResult = null;       // آخر نتيجة تطبيق تُعرض في اللوحة
 
   // ---------- التخزين ----------
-  function load(){ try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch(e){ return []; } }
-  function save(){ try { localStorage.setItem(KEY, JSON.stringify(scenes)); } catch(e){ ctx && ctx.toast('تعذّر حفظ المشاهد في ذاكرة الهاتف'); } }
+  function load(){
+    try {
+      const v = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if(Array.isArray(v)) return v;
+      // ترحيل من الإصدار السابق: كل مشهد قديم يصبح مشهدًا بلقطة واحدة تحمل إعداداته
+      const old = JSON.parse(localStorage.getItem(OLD_KEY) || '[]');
+      if(Array.isArray(old) && old.length){
+        const mig = old.map(o => ({ id: o.id, name: o.name, notes: '', shots: [Object.assign({}, o, { id: 'x' + o.id, name: 'لقطة 1' })] }));
+        localStorage.setItem(KEY, JSON.stringify(mig));
+        return mig;
+      }
+    } catch(e){}
+    return [];
+  }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){ ctx && ctx.toast('تعذّر حفظ المشاهد في ذاكرة الهاتف'); } }
   const uid = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const blank = (n) => ({ id: uid(), name: 'مشهد ' + n, iso:'', shutter:'', fnumber:'', wbMode:'', kelvin:'', expMode:'',
+  function findShot(id){ for(const sc of data){ const sh = sc.shots.find(x => x.id === id); if(sh) return { scene: sc, shot: sh }; } return null; }
+  function openScene(id){ const sc = data.find(x => x.id === id); openSceneId = sc ? sc.id : null; scenes = sc ? sc.shots : []; }
+  const curScene = () => data.find(x => x.id === openSceneId);
+  const blankScene = (n) => ({ id: uid(), name: 'مشهد ' + n, notes: '', shots: [] });
+  const blank = (n) => ({ id: uid(), name: 'لقطة ' + n, done: false, iso:'', shutter:'', fnumber:'', wbMode:'', kelvin:'', expMode:'',
     movieFormat:'', movieQuality:'', lens:'', focal:'', lightType:'', lightIntensity:'', lightDirection:'', lightTemp:'', notes:'', model:'' });
 
   // ---------- أدوات القيم ----------
@@ -95,16 +115,17 @@ const Scenes = (() => {
   function listHint(list){ if(!Array.isArray(list) || !list.length) return ''; const l = list.slice(0, 14).join('، '); return ' المتاح: ' + l + (list.length > 14 ? '…' : ''); }
 
   async function apply(id){
-    const s = scenes.find(x => x.id === id); if(!s) return;
-    if(applying){ ctx.toast('جارٍ تطبيق مشهد آخر…'); return; }
-    if(!ctx.isConnected()){ ctx.toast('غير متصل بكاميرا — لن يُطبَّق المشهد (ولن يُطبَّق تلقائيًا عند عودة الاتصال).', 5000); return; }
+    const f = findShot(id); if(!f) return;
+    const s = f.shot, fullName = f.scene.name + ' › ' + s.name;
+    if(applying){ ctx.toast('جارٍ تطبيق لقطة أخرى…'); return; }
+    if(!ctx.isConnected()){ ctx.toast('غير متصل بكاميرا — لن تُطبَّق اللقطة (ولن تُطبَّق تلقائيًا عند عودة الاتصال).', 5000); return; }
     const c = caps();
     const rows = [];
     applying = { sceneId: id, rows, aborted: false };
-    lastResult = { sceneId: id, name: s.name, rows, done: false, preps: preps(s), notes: s.notes, model: c.model, transport: c.transport };
+    lastResult = { sceneId: id, name: fullName, rows, done: false, preps: preps(s), notes: s.notes, model: c.model, transport: c.transport };
     applied = null; driftShown = false; updateChip();
     render();
-    ctx.dlog('تطبيق مشهد: ' + s.name + ' → ' + JSON.stringify(summary(s)));
+    ctx.dlog('تطبيق لقطة: ' + fullName + ' → ' + JSON.stringify(summary(s)));
 
     const recording = !!st().isRecordingMovie;
     let expModeChanged = false;
@@ -170,7 +191,7 @@ const Scenes = (() => {
       if(ok && step.key === 'expMode') expModeChanged = true;
     }
 
-    finish(s);
+    finish({ id: s.id, name: fullName });
   }
 
   async function runStep(row, kind, value, statusCheck, recording){
@@ -210,12 +231,12 @@ const Scenes = (() => {
       okRows.forEach(r => { expected[r.kind] = r.sent; });
       applied = { id: s.id, name: s.name, expected, partial: okRows.length < rows.length, drift: [] };
     } else applied = null;
-    const verdict = !rows.length ? 'لا توجد إعدادات كاميرا في هذا المشهد — التجهيزات اليدوية فقط'
+    const verdict = !rows.length ? 'لا توجد إعدادات كاميرا في هذه اللقطة — التجهيزات اليدوية فقط'
       : okRows.length === rows.length ? `✓ طُبّق «${s.name}» بالكامل (${rows.length})`
       : okRows.length ? `⚠ طُبّق «${s.name}» جزئيًا: ${okRows.length} من ${rows.length}`
       : `✗ لم يُطبَّق أي إعداد من «${s.name}»`;
     lastResult.verdict = verdict;
-    ctx.dlog('نتيجة المشهد: ' + verdict + ' | ' + rows.map(r => r.label + '=' + r.state + (r.msg ? '(' + r.msg + ')' : '')).join(' ; '));
+    ctx.dlog('نتيجة اللقطة: ' + verdict + ' | ' + rows.map(r => r.label + '=' + r.state + (r.msg ? '(' + r.msg + ')' : '')).join(' ; '));
     ctx.toast(verdict, 4500);
     updateChip(); render();
   }
@@ -254,6 +275,8 @@ const Scenes = (() => {
     applied = null; driftShown = false;
     updateChip(); if(isOpen()) render();
   }
+  /** يفتح لوحة المشاهد على مشهد اللقطة المطبّقة (من شريحة المونيتور). */
+  function focusApplied(){ if(applied){ const f = findShot(applied.id); if(f) openScene(f.scene.id); } }
   function onConnected(){ applied = null; updateChip(); if(isOpen()) render(); }
 
   /** يعيد true إن كان الحدث رد أمر ينتظره محرّك المشاهد (فلا تعرض الواجهة إشعارًا منفصلًا). */
@@ -276,17 +299,60 @@ const Scenes = (() => {
   function host(){ return document.getElementById('scenesRoot'); }
   function isOpen(){ return !!host(); }
 
+  function capHtml(){
+    const c = caps(), conn = ctx.isConnected();
+    return `<div class="sc-cap">${conn
+      ? `<b>${esc(c.model || 'كاميرا')}</b> عبر ${c.transport === 'ptpip' ? 'PTP/IP' : 'ScalarWebAPI'} — يمكن ضبط: ${capList(c)}`
+      : 'غير متصل — يمكنك تجهيز المشاهد واللقطات الآن وتطبيقها بعد الاتصال.'}</div>`;
+  }
+
   function render(){
     const root = host(); if(!root) return;
     if(editingId){ renderEditor(root); return; }
-    const c = caps(), conn = ctx.isConnected();
-    let h = '';
-    h += `<div class="sc-cap">${conn
-      ? `<b>${esc(c.model || 'كاميرا')}</b> عبر ${c.transport === 'ptpip' ? 'PTP/IP' : 'ScalarWebAPI'} — يمكن ضبط: ${capList(c)}`
-      : 'غير متصل — يمكنك تجهيز المشاهد الآن وتطبيقها بعد الاتصال.'}</div>`;
-    h += `<div class="sc-tools"><button class="btn primary" data-a="new">＋ مشهد جديد</button><button class="btn" data-a="capture" ${conn ? '' : 'disabled'}>حفظ إعدادات الكاميرا الحالية كمشهد</button></div>`;
+    if(openSceneId && curScene()){ renderShots(root); return; }
+    openSceneId = null;
+    renderScenes(root);
+  }
+
+  // قائمة المشاهد
+  function renderScenes(root){
+    let h = capHtml();
+    h += `<div class="sc-tools"><button class="btn primary" data-a="snew">＋ مشهد جديد</button></div>`;
     if(lastResult) h += resultHtml();
-    if(!scenes.length) h += `<div class="note">لا توجد مشاهد بعد. أضف مشهدًا وحدد ما تريد تغييره فقط — الحقل الفارغ يعني «بدون تغيير».</div>`;
+    if(!data.length) h += `<div class="note">لا توجد مشاهد بعد. أنشئ مشهدًا، ثم أضف داخله لقطاته (لقطة 1، لقطة 2…) ولكل لقطة إعداداتها.</div>`;
+    h += '<div class="sc-list">';
+    data.forEach((sc, i) => {
+      const hasApplied = applied && sc.shots.some(x => x.id === applied.id);
+      const done = sc.shots.filter(x => x.done).length;
+      h += `<div class="sc-card${hasApplied ? ' on' : ''}" data-sid="${sc.id}">
+        <div class="sc-main" data-a="open">
+          <div class="sc-top"><span class="sc-num">${i + 1}</span><b class="sc-name">${esc(sc.name)}</b>
+            <span class="sc-count">${sc.shots.length} لقطة${done ? ` · ✓${done}` : ''}</span>
+            ${hasApplied ? `<span class="sc-badge">مطبّق</span>` : ''}<span class="sc-go">‹</span></div>
+          ${sc.shots.length ? `<div class="sc-shotnames">${sc.shots.map(x => `<span class="${x.done ? 'd' : ''}${applied && applied.id === x.id ? ' a' : ''}">${esc(x.name)}</span>`).join('')}</div>` : ''}
+          ${sc.notes ? `<div class="sc-prep">📝 ${esc(sc.notes)}</div>` : ''}
+        </div>
+        <div class="sc-acts">
+          <button data-a="open">فتح</button><button data-a="sdup">تكرار</button>
+          <button data-a="sup" ${i === 0 ? 'disabled' : ''}>▲</button><button data-a="sdown" ${i === data.length - 1 ? 'disabled' : ''}>▼</button>
+          <button data-a="sdel" class="del">حذف</button>
+        </div></div>`;
+    });
+    h += '</div>';
+    root.innerHTML = h;
+  }
+
+  // لقطات المشهد المفتوح
+  function renderShots(root){
+    const sc = curScene(); scenes = sc.shots;
+    const conn = ctx.isConnected();
+    let h = `<div class="sc-bar"><button class="btn small" data-a="back">› المشاهد</button></div>
+      <input class="sc-title" data-sk="name" value="${esc(sc.name)}" placeholder="اسم المشهد">
+      <textarea class="sc-snotes" data-sk="notes" rows="2" placeholder="ملاحظات المشهد (المكان، الممثلون، الفكرة…)">${esc(sc.notes)}</textarea>`;
+    h += capHtml();
+    h += `<div class="sc-tools"><button class="btn primary" data-a="new">＋ لقطة جديدة</button><button class="btn" data-a="capture" ${conn ? '' : 'disabled'}>حفظ إعدادات الكاميرا الحالية كلقطة</button></div>`;
+    if(lastResult) h += resultHtml();
+    if(!scenes.length) h += `<div class="note">لا توجد لقطات في هذا المشهد. أضف لقطة وحدد ما تريد تغييره فقط — الحقل الفارغ يعني «بدون تغيير».</div>`;
     h += '<div class="sc-list">';
     scenes.forEach((s, i) => {
       const isApplied = applied && applied.id === s.id;
@@ -294,20 +360,21 @@ const Scenes = (() => {
       const sum = summary(s), pr = preps(s);
       h += `<div class="sc-card${isApplied ? ' on' : ''}${drift ? ' warn' : ''}${applying && applying.sceneId === s.id ? ' run' : ''}" data-id="${s.id}">
         <div class="sc-main" data-a="apply">
-          <div class="sc-top"><span class="sc-num">${i + 1}</span><b class="sc-name">${esc(s.name)}</b>
+          <div class="sc-top"><span class="sc-num">${i + 1}</span><b class="sc-name">${esc(s.name)}</b>${s.done ? '<span class="sc-done">✓ تم</span>' : ''}
             ${isApplied ? `<span class="sc-badge">${drift ? '⚠ تغيّرت الكاميرا' : applied.partial ? 'مطبّق جزئيًا' : 'مطبّق'}</span>` : ''}</div>
           <div class="sc-sum">${sum.length ? sum.map(x => `<span>${esc(x)}</span>`).join('') : '<i>بدون إعدادات كاميرا</i>'}</div>
           ${pr.length ? `<div class="sc-prep">${pr.map(esc).join('<br>')}</div>` : ''}
           ${drift ? `<div class="sc-drift">${esc(driftText(applied.drift))}</div>` : ''}
         </div>
         <div class="sc-acts">
-          <button data-a="edit">تعديل</button><button data-a="dup">تكرار</button>
+          <button data-a="edit">تعديل</button><button data-a="done">${s.done ? 'إلغاء تم' : 'تم ✓'}</button><button data-a="dup">تكرار</button>
           <button data-a="up" ${i === 0 ? 'disabled' : ''}>▲</button><button data-a="down" ${i === scenes.length - 1 ? 'disabled' : ''}>▼</button>
           <button data-a="del" class="del">حذف</button>
         </div></div>`;
     });
     h += '</div>';
     root.innerHTML = h;
+    root.querySelectorAll('[data-sk]').forEach(inp => inp.addEventListener('input', () => { sc[inp.dataset.sk] = inp.value; save(); }));
   }
 
   function capList(c){
@@ -323,20 +390,39 @@ const Scenes = (() => {
     if(r.done && r.aborted) h += `<div class="sc-row fail"><span class="i">✗</span><span class="l">توقف التطبيق: انقطع الاتصال — لن يُستكمل تلقائيًا.</span></div>`;
     if(r.preps && r.preps.length) h += `<div class="sc-manual"><b>تجهيزات يدوية (لا تُنفّذ تلقائيًا):</b><br>${r.preps.map(esc).join('<br>')}</div>`;
     if(r.notes) h += `<div class="sc-manual">📝 ${esc(r.notes)}</div>`;
+    const f = r.done && findShot(r.sceneId);
+    if(f){ const i = f.scene.shots.indexOf(f.shot), nx = f.scene.shots[i + 1];
+      if(nx) h += `<button class="btn primary sc-next" data-a="next" data-next="${nx.id}">التالية: ${esc(nx.name)} ‹</button>`; }
     return h + '</div>';
   }
 
   function onClick(e){
     const b = e.target.closest('[data-a]'); if(!b) return;
     const a = b.dataset.a;
-    const card = b.closest('.sc-card'); const id = card && card.dataset.id;
+    const card = b.closest('.sc-card'); const id = card && card.dataset.id; const sid = card && card.dataset.sid;
     const i = scenes.findIndex(s => s.id === id);
+    const si = data.findIndex(x => x.id === sid);
+    // --- المشاهد ---
+    if(a === 'snew'){ const sc = blankScene(data.length + 1); data.push(sc); save(); openScene(sc.id); return render(); }
+    if(a === 'open'){ openScene(sid); return render(); }
+    if(a === 'back'){ openSceneId = null; scenes = []; return render(); }
+    if(a === 'sdup'){ const src = data[si]; const cp = JSON.parse(JSON.stringify(src)); cp.id = uid(); cp.name = src.name + ' (نسخة)'; cp.shots.forEach(x => { x.id = uid(); x.done = false; }); data.splice(si + 1, 0, cp); save(); return render(); }
+    if(a === 'sup' && si > 0){ [data[si - 1], data[si]] = [data[si], data[si - 1]]; save(); return render(); }
+    if(a === 'sdown' && si < data.length - 1){ [data[si + 1], data[si]] = [data[si], data[si + 1]]; save(); return render(); }
+    if(a === 'sdel'){
+      if(b.dataset.confirm !== '1'){ b.dataset.confirm = '1'; b.textContent = 'حذف المشهد ولقطاته؟'; setTimeout(() => { if(b.isConnected){ b.dataset.confirm = ''; b.textContent = 'حذف'; } }, 3000); return; }
+      if(applied && data[si].shots.some(x => x.id === applied.id)){ applied = null; updateChip(); }
+      data.splice(si, 1); save(); return render();
+    }
+    // --- اللقطات ---
+    if(a === 'next'){ const nx = b.dataset.next; const f = findShot(nx); if(f){ openScene(f.scene.id); } return apply(nx); }
     if(a === 'apply') return apply(id);
+    if(a === 'done'){ scenes[i].done = !scenes[i].done; save(); return render(); }
     if(a === 'new'){ const s = blank(scenes.length + 1); s.model = caps().model || ''; scenes.push(s); save(); editingId = s.id; return render(); }
     if(a === 'capture') return captureCurrent();
     if(a === 'closeres'){ lastResult = null; return render(); }
     if(a === 'edit'){ editingId = id; return render(); }
-    if(a === 'dup'){ const c = Object.assign({}, scenes[i], { id: uid(), name: scenes[i].name + ' (نسخة)' }); scenes.splice(i + 1, 0, c); save(); return render(); }
+    if(a === 'dup'){ const c = Object.assign({}, scenes[i], { id: uid(), name: scenes[i].name + ' (نسخة)', done: false }); scenes.splice(i + 1, 0, c); save(); return render(); }
     if(a === 'up' && i > 0){ [scenes[i - 1], scenes[i]] = [scenes[i], scenes[i - 1]]; save(); return render(); }
     if(a === 'down' && i < scenes.length - 1){ [scenes[i + 1], scenes[i]] = [scenes[i], scenes[i + 1]]; save(); return render(); }
     if(a === 'del'){
@@ -394,7 +480,8 @@ const Scenes = (() => {
     const r = kRange();
     root.innerHTML = `
       <div class="sc-ed">
-        <div class="sc-edhead"><input class="sc-title" data-k="name" value="${esc(s.name)}" placeholder="اسم المشهد"></div>
+        <div class="sc-edhead"><input class="sc-title" data-k="name" value="${esc(s.name)}" placeholder="اسم اللقطة"></div>
+        <div class="note small">المشهد: <b>${esc((curScene() || {}).name || '')}</b></div>
         <div class="note small">${conn ? `القيم المقترحة من ${esc(c.model || 'الكاميرا')} المتصلة.` : 'غير متصل — ستُطابَق القيم مع الكاميرا عند التطبيق.'} الحقل الفارغ = «بدون تغيير».</div>
         <div class="sc-sec">إعدادات الكاميرا</div>
         ${field(s, 'expMode', 'وضع التصوير', warn(c.canSetExposureMode, 'لا يمكن تغييره عن بُعد على هذه الكاميرا — يُضبط من الدايل'))}
@@ -418,7 +505,7 @@ const Scenes = (() => {
         ${field(s, 'lightDirection', 'الاتجاه')}
         <label class="sc-f"><span>حرارة الإضاءة</span><input data-k="lightTemp" value="${esc(s.lightTemp)}" placeholder="مثل 5600K"></label>
         <div class="sc-sec">ملاحظات</div>
-        <textarea data-k="notes" rows="3" placeholder="ملاحظات خاصة بالمشهد">${esc(s.notes)}</textarea>
+        <textarea data-k="notes" rows="3" placeholder="ملاحظات خاصة باللقطة">${esc(s.notes)}</textarea>
         <div class="sc-edbar"><button class="btn primary" data-e="done">حفظ</button><button class="btn" data-e="apply" ${conn ? '' : 'disabled'}>حفظ وتطبيق</button></div>
       </div>`;
     root.querySelectorAll('[data-k]').forEach(inp => {
@@ -429,11 +516,12 @@ const Scenes = (() => {
       };
       inp.addEventListener('input', upd); inp.addEventListener('change', upd);
     });
-    root.querySelector('[data-e="done"]').onclick = () => { if(!s.name) s.name = 'مشهد'; save(); editingId = null; render(); };
-    root.querySelector('[data-e="apply"]').onclick = () => { if(!s.name) s.name = 'مشهد'; save(); editingId = null; apply(s.id); };
+    root.querySelector('[data-e="done"]').onclick = () => { if(!s.name) s.name = 'لقطة'; save(); editingId = null; render(); };
+    root.querySelector('[data-e="apply"]').onclick = () => { if(!s.name) s.name = 'لقطة'; save(); editingId = null; apply(s.id); };
   }
 
-  function mount(container){
+  function mount(container, opts){
+    if(opts && opts.focusApplied) focusApplied();
     container.innerHTML = '<div id="scenesRoot" class="scenes"></div>';
     const root = host();
     root.addEventListener('click', onClick);
@@ -444,6 +532,11 @@ const Scenes = (() => {
   function init(c){ ctx = c; updateChip(); }
 
   return { init, mount, render, onStatus, onAction, onConnected, onDisconnected, onPanelClosed, isEditing: () => !!editingId,
-    closeEditor(){ if(editingId){ editingId = null; render(); return true; } return false; },
-    _debug: { get scenes(){ return scenes; }, get applied(){ return applied; }, apply } };
+    closeEditor(){
+      if(editingId){ editingId = null; render(); return true; }
+      if(openSceneId && isOpen()){ openSceneId = null; scenes = []; render(); return true; }
+      return false;
+    },
+    prepFocusApplied: () => focusApplied(),
+    _debug: { get data(){ return data; }, get applied(){ return applied; }, apply, openScene } };
 })();

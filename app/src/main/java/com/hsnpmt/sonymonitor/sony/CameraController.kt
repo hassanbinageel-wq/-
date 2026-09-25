@@ -64,6 +64,8 @@ class CameraController(
     private var liveviewJob: Job? = null
     private var liveviewParser: LiveviewParser? = null
     @Volatile private var wantLiveview = false
+    /** يمنع حلقة البث من إعادة التشغيل أثناء محاولة التقاط تتطلّب إيقاف البث. */
+    @Volatile private var holdLiveview = false
     /** مسار PTP/IP للكاميرات الأحدث (عند غياب ScalarWebAPI). */
     @Volatile private var ptp: SonyPtpCamera? = null
 
@@ -243,6 +245,7 @@ class CameraController(
         liveviewJob = scope.launch {
             var attempt = 0
             while (isActive && wantLiveview) {
+                while (holdLiveview && isActive) delay(100)
                 try {
                     val client = api ?: break
                     emit("stream", JSONObject().put("state", "starting"))
@@ -295,6 +298,7 @@ class CameraController(
         ptp?.let { emit("action", it.takePicture()); return@attempt }
         val c = api!!
         pausePolling()
+        delay(350) // نمنح الكاميرا لحظة لإنهاء طلب الاستطلاع الملغى
         try {
             val mode = if (capabilities.contains("getShootMode")) runCatching { c.getShootMode() }.getOrNull() else null
             log("التقاط: shootMode=${mode ?: "?"}")
@@ -310,27 +314,73 @@ class CameraController(
         }
     }
 
-    /** actTakePicture ← وإن فشل: ضغط نصفي (تركيز) ثم التقاط، مع معالجة 40403 (التقاط طويل). */
+    /**
+     * سلّم محاولات الالتقاط — كل خطوة تُسجَّل في التشخيص:
+     *  1) actTakePicture مباشرة
+     *  2) ضغط نصفي (تركيز) ثم التقاط
+     *  3) إيقاف البث الحي مؤقتًا ثم التقاط (بعض الأجسام ترفض الالتقاط أثناء بث بحجم كبير)
+     * وعند الفشل النهائي نفحص حالة الكاميرا ونشرح السبب بدل رسالة عامة.
+     */
     private suspend fun shootWithFallback(c: ScalarWebApiClient): List<String> {
-        val first = try {
-            return shootOnce(c)
-        } catch (e: ScalarWebApiClient.ApiError) {
-            log("actTakePicture فشل: ${e.code} ${e.message}")
-            e
+        var last: ScalarWebApiClient.ApiError
+        try { return shootOnce(c) } catch (e: ScalarWebApiClient.ApiError) {
+            log("① actTakePicture فشل: ${e.code} ${e.message}"); last = e
         }
-        if (!capabilities.contains("actHalfPressShutter")) throw first
-        log("إعادة المحاولة: ضغط نصفي للتركيز ثم التقاط")
+        val why = diagnoseShooting(c, "actTakePicture")
+        if (capabilities.contains("actHalfPressShutter")) {
+            try {
+                c.actHalfPressShutter()
+                val fs = waitFocus(c, 2500)
+                log("② ضغط نصفي: التركيز=${fs ?: "?"}")
+                return shootOnce(c)
+            } catch (e: ScalarWebApiClient.ApiError) {
+                log("② فشل: ${e.code} ${e.message}"); last = e
+            } finally { c.cancelHalfPressShutter() }
+        }
+        if (last.code == 1 && wantLiveview) {
+            holdLiveview = true
+            try {
+                liveviewParser?.stop()
+                runCatching { c.stopLiveview() }
+                delay(600)
+                log("③ التقاط بعد إيقاف البث مؤقتًا")
+                return shootOnce(c)
+            } catch (e: ScalarWebApiClient.ApiError) {
+                log("③ فشل: ${e.code} ${e.message}"); last = e
+            } finally { holdLiveview = false }
+        }
+        throw UserFacing(describe(last) + (if (why.isNotEmpty()) "\nالتشخيص: $why" else ""))
+    }
+
+    /** يفحص لماذا يُرفض أمر تصوير: الوظائف غير المتاحة مؤقتًا + حالة الكاميرا + وضع Drive. */
+    private fun diagnoseShooting(c: ScalarWebApiClient, apiName: String): String {
+        val hints = ArrayList<String>()
+        val facts = ArrayList<String>()
         try {
-            c.actHalfPressShutter()
-            val fs = waitFocus(c, 2500)
-            log("حالة التركيز بعد الضغط النصفي: ${fs ?: "غير معروفة"}")
-            return shootOnce(c)
-        } catch (e: ScalarWebApiClient.ApiError) {
-            log("المحاولة الثانية فشلت: ${e.code} ${e.message}")
-            throw e
-        } finally {
-            c.cancelHalfPressShutter()
+            val nowList = c.getAvailableApiList()
+            facts.add("متاحة الآن=${nowList.contains(apiName)}")
+            if (!nowList.contains(apiName)) hints.add("الكاميرا لا تُدرج $apiName ضمن الوظائف المتاحة في هذه اللحظة")
+        } catch (e: Exception) { facts.add("apiList؟ ${e.message}") }
+        if (capabilities.contains("getTemporarilyUnavailableApiList")) {
+            try {
+                val tmp = c.getTemporarilyUnavailableApiList()
+                facts.add("غير متاحة مؤقتًا=${tmp.joinToString(",").ifEmpty { "لا شيء" }}")
+                if (tmp.contains(apiName)) hints.add("الكاميرا تُبلغ أن $apiName غير متاحة مؤقتًا")
+            } catch (e: Exception) { facts.add("tempList؟ ${e.message}") }
         }
+        val ev = runCatching { StatusParser.parse(c.getEventVersion("1.2")) }.getOrNull()
+            ?: runCatching { StatusParser.parse(c.getEvent(false)) }.getOrNull()
+        if (ev != null) {
+            val status = ev.optString("cameraStatus"); val shoot = ev.optString("shootMode")
+            val cont = ev.optString("contShootingMode"); val timer = ev.optInt("selfTimer", 0)
+            facts.add("الحالة=${status.ifEmpty { "?" }} الوضع=${shoot.ifEmpty { "?" }} Drive=${cont.ifEmpty { "?" }} مؤقّت=$timer")
+            if (status.isNotEmpty() && !status.equals("IDLE", true)) hints.add("حالة الكاميرا «$status» وليست IDLE (قد تكون في قائمة/عرض صور/حفظ)")
+            if (shoot.isNotEmpty() && !shoot.equals("still", true)) hints.add("وضع التصوير في الكاميرا «$shoot»")
+            if (cont.isNotEmpty() && !cont.equals("Single", true)) hints.add("وضع Drive «$cont» — جرّب «تصوير فردي/Single»")
+            if (timer > 0) hints.add("المؤقّت الذاتي مفعّل (${timer}s)")
+        }
+        log("تشخيص الالتقاط: ${facts.joinToString(" | ")}")
+        return (hints.ifEmpty { listOf("لم تُظهر الكاميرا سببًا محددًا") } + facts).joinToString(" • ")
     }
 
     private fun shootOnce(c: ScalarWebApiClient): List<String> = try {
@@ -416,7 +466,7 @@ class CameraController(
             40400 -> "فشل الالتقاط (40400)$raw. غالبًا لم تُثبّت الكاميرا التركيز: وجّهها لهدف واضح، أو جرّب التركيز اليدوي MF، أو اضبط «أولوية الإطلاق» في AF-S/AF-C."
             40401 -> "الكاميرا غير جاهزة (40401)$raw — انتظر لحظة وأعد المحاولة، وتأكّد من وجود بطاقة ذاكرة بمساحة كافية."
             40402 -> "الكاميرا مشغولة بأمر آخر (40402)$raw."
-            1 -> "الأمر غير متاح الآن (1)$raw — تأكّد من وجود البطاقة وأنها غير مقفلة/ممتلئة، وأن الكاميرا ليست في قائمة أو عرض صور."
+            1 -> "رفضت الكاميرا الأمر في هذه اللحظة (1 Not Available Now)$raw."
             3 -> "قيمة غير مقبولة (3)$raw."
             12, 15 -> "هذا الأمر غير مدعوم على هذا الموديل (${e.code})$raw."
             403 -> "الكاميرا رفضت الأمر (403)$raw."
@@ -442,8 +492,12 @@ class CameraController(
             throw UserFacing("هذه الكاميرا لا تتيح التركيز عن بُعد عبر هذا الاتصال.")
         }
         pausePolling()
+        delay(350)
         try {
-            c.actHalfPressShutter()
+            try { c.actHalfPressShutter() } catch (e: ScalarWebApiClient.ApiError) {
+                val why = diagnoseShooting(c, "actHalfPressShutter")
+                throw UserFacing(describe(e) + "\nالتشخيص: $why")
+            }
             val fs = waitFocus(c, 2500)
             log("تركيز بالضغط النصفي: ${fs ?: "?"}")
             emit("action", JSONObject().put("action", "touchFocus").put("ok", true).put("mode", "halfpress")
@@ -494,6 +548,29 @@ class CameraController(
         val (rb, verified) = readBackWeb(c, kind, value)
         emit("action", JSONObject().put("action", "set").put("kind", kind).put("value", value).put("ok", true)
             .put("readback", rb ?: JSONObject.NULL).put("verified", verified ?: JSONObject.NULL))
+        // تغيير الصيغة يغيّر قائمة الجودة/الإطارات المتاحة — نرسل الحالة الجديدة
+        if (kind == "movieformat" || kind == "moviequality") emitMovieInfo(c)
+    }
+
+    /** يقرأ صيغة/جودة الفيديو الحالية والقوائم المتاحة الآن ويرسلها للواجهة (حدث movie-info). */
+    fun refreshMovieInfo() {
+        if (ptp != null) {
+            emit("movie-info", JSONObject().put("supported", false).put("message", "ضبط صيغة/إطارات الفيديو غير منفّذ عبر PTP/IP بعد"))
+            return
+        }
+        val c = api ?: return
+        scope.launch { emitMovieInfo(c) }
+    }
+
+    private fun emitMovieInfo(c: ScalarWebApiClient) {
+        val o = JSONObject()
+            .put("canSetFormat", capabilities.contains("setMovieFileFormat"))
+            .put("canSetQuality", capabilities.contains("setMovieQuality"))
+        if (capabilities.contains("getMovieFileFormat")) runCatching { o.put("format", c.getString("getMovieFileFormat")) }
+        if (capabilities.contains("getMovieQuality")) runCatching { o.put("quality", c.getString("getMovieQuality")) }
+        if (capabilities.contains("getAvailableMovieFileFormat")) o.put("formatCandidates", JSONArray(c.getAvailableStringList("getAvailableMovieFileFormat")))
+        if (capabilities.contains("getAvailableMovieQuality")) o.put("qualityCandidates", JSONArray(c.getAvailableStringList("getAvailableMovieQuality")))
+        emit("movie-info", o)
     }
 
     /**

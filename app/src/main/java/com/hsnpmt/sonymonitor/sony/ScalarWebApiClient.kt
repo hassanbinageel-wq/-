@@ -192,6 +192,16 @@ class ScalarWebApiClient(
     fun cancelHalfPressShutter() { try { call("cancelHalfPressShutter") } catch (e: ApiError) { Log.w(TAG, "cancelHalfPress ${e.code}") } }
     fun getShootMode(): String = call("getShootMode").optString(0)
 
+    /** الوظائف غير المتاحة مؤقتًا الآن (تكشف لماذا يُرفض الالتقاط مثلًا). */
+    fun getTemporarilyUnavailableApiList(): List<String> {
+        val r = call("getTemporarilyUnavailableApiList")
+        val a = r.optJSONArray(0) ?: return emptyList()
+        return List(a.length()) { a.optString(it) }
+    }
+
+    /** getEvent بنسخة محددة (1.2+ تتضمّن وضع التصوير المتتابع والمؤقّت). */
+    fun getEventVersion(version: String): JSONArray = call("getEvent", JSONArray().put(false), version = version, client = eventHttp)
+
     fun setWhiteBalance(mode: String, colorTempEnabled: Boolean, colorTemp: Int) {
         call("setWhiteBalance", JSONArray().put(mode).put(colorTempEnabled).put(colorTemp))
     }

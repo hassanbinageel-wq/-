@@ -26,6 +26,7 @@ const Bridge = (() => {
     setSetting(k,v){ N && N.setSetting(k, String(v)); },
     touchFocus(x,y){ N && N.touchFocus(x|0, y|0); },
     refreshStatus(){ N && N.refreshStatus(); },
+    refreshMovieInfo(){ N && N.refreshMovieInfo && N.refreshMovieInfo(); },
     browseMedia(){ N && N.browseMedia(); },
     getThumb(id,url){ N && N.getThumb(String(id), String(url)); },
     importMedia(id,url,name,mime,size){ N && N.importMedia(String(id), String(url), String(name), String(mime||''), String(size||0)); },

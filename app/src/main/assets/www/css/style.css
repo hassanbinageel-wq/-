@@ -300,6 +300,12 @@ body.hiddenUi .pvthumb{display:none;}
 .gv-prog{height:4px;background:var(--surf3);}
 .gv-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s;}
 
+/* صيغة الفيديو والإطارات */
+.rd.rdmovie b{color:#fca5a5;}
+.vp-sec{width:100%;font-size:12.5px;font-weight:800;color:var(--accent);margin:6px 2px 2px;text-align:start;}
+.vp-note{width:100%;font-size:12px;color:#b9c2cc;line-height:1.6;margin:2px;}
+#toast{white-space:pre-line;}
+
 /* ===== إعدادات المشاهد ===== */
 .scenes{display:flex;flex-direction:column;gap:12px;}
 .sc-cap{font-size:12px;line-height:1.9;color:#b9c2cc;background:var(--surf2);border:1px solid var(--line2);border-radius:12px;padding:8px 10px;}
@@ -348,6 +354,15 @@ body.hiddenUi .pvthumb{display:none;}
 .sc-f input::placeholder,.sc-ed textarea::placeholder{color:#6b7480;}
 .sc-f small{grid-column:2;font-size:11px;color:#fbbf24;line-height:1.5;}
 .sc-edbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:sticky;bottom:0;background:rgba(14,17,22,.97);padding:8px 0;}
+.sc-count{font-size:11.5px;color:#aab3bd;font-weight:700;flex:none;}
+.sc-go{font-size:20px;color:#8b95a1;flex:none;}
+.sc-shotnames{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.sc-shotnames span{font-size:11.5px;padding:2px 8px;border-radius:7px;background:rgba(255,255,255,.07);color:#cbd2da;}
+.sc-shotnames span.d{color:#86efac;} .sc-shotnames span.a{outline:1px solid #22c55e;}
+.sc-done{font-size:11px;font-weight:800;color:#86efac;flex:none;}
+.sc-bar{display:flex;justify-content:flex-start;}
+.sc-snotes{width:100%;box-sizing:border-box;padding:9px 10px;border-radius:10px;border:1px solid var(--line2);background:var(--surf);color:var(--text);font-size:13.5px;}
+.sc-next{margin-top:4px;}
 .scenechip{position:absolute;z-index:22;top:52px;right:12px;border:1px solid #22c55e;background:rgba(10,30,16,.85);color:#bbf7d0;font-size:12.5px;font-weight:800;padding:5px 10px;border-radius:10px;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .scenechip.warn{border-color:#f59e0b;background:rgba(40,25,5,.88);color:#fde68a;}
 .scenechip.part{border-color:#eab308;color:#fef08a;}

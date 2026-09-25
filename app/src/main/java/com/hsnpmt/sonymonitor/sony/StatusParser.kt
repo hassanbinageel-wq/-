@@ -69,6 +69,9 @@ object StatusParser {
                 }
             }
             "shootMode" -> putIfPresent(o, "currentShootMode", out, "shootMode")
+            "contShootingMode" -> putIfPresent(o, "contShootingMode", out, "contShootingMode")
+            "selfTimer" -> if (o.has("currentSelfTimer")) out.put("selfTimer", o.optInt("currentSelfTimer"))
+            "postviewImageSize" -> putIfPresent(o, "currentPostviewImageSize", out, "postviewImageSize")
             "focusStatus" -> putIfPresent(o, "focusStatus", out, "focusStatus")
             "exposureMode" -> {
                 putIfPresent(o, "currentExposureMode", out, "exposureMode")

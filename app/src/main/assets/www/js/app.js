@@ -412,7 +412,7 @@
       caps = d; lastCaps = d; connected = true; currentModel = d.model || 'default';
       if(d.movieQuality) lastStatus.movieQuality = d.movieQuality;
       if(d.movieFileFormat) lastStatus.movieFileFormat = d.movieFileFormat;
-      Scenes.onConnected();
+      Scenes.onConnected(); updateMovieReadout();
       dlog('اتصلت بالكاميرا: '+(d.model||'?')+' | hasLiveview='+d.hasLiveview+' | api='+((d.apiList&&d.apiList.length)||0));
       dlog('apiList='+JSON.stringify(d.apiList||[]));
       setConn('on', 'متصل: ' + (d.model||'كاميرا'));
@@ -444,9 +444,12 @@
       if(d.action==='takePicture' && d.ok) toast('تم الالتقاط ✓');
       if(d.action==='touchFocus' && d.ok) onFocusResult(d);
       if(d.action==='set' && d.ok && d.kind==='colortemp') toast('أُرسلت '+d.value+'K — بانتظار تأكيد الكاميرا');
+      if(d.action==='set' && d.ok && (d.kind==='movieformat'||d.kind==='moviequality'))
+        toast(d.verified===false ? '⚠ أُرسلت لكن الكاميرا تقرأ: '+(d.readback||'?') : '✓ الكاميرا أكّدت: '+(d.readback||d.value));
       if(!d.ok){ if(d.label==='التركيز') markFocus('fail'); toast('✗ '+(d.label||d.action||'أمر')+': '+(d.message||'فشل'), 6000); }
     });
     Bridge.on('log', d=> dlog(d.msg||''));
+    Bridge.on('movie-info', onMovieInfo);
     Bridge.on('postview', onPostview);
     Bridge.on('gallery', onGalleryEvent);
     Bridge.on('thumb', onThumb);
@@ -477,6 +480,7 @@
     if(st.iso){ const v=String(st.iso).replace(/^ISO\s*/i,''); el.rdISO.textContent='ISO '+v; el.ccISO.textContent=v; }
     if(st.whiteBalance || st.colorTemp){ const w=wbLabel(); el.rdWB.textContent=w; el.ccWB.textContent=w; }
     if(st.focusMode) el.rdFocus.textContent = st.focusMode;
+    if(st.movieQuality || st.movieFileFormat) updateMovieReadout();
     if(st.exposureMode) el.rdMode.textContent = shortMode(st.exposureMode);
     if(st.exposureCompIndex!=null){ const step=(st.exposureCompStep===1)?0.5:(1/3); const ev=st.exposureCompIndex*step; el.ccEV.textContent=(ev>0?'+':'')+ev.toFixed(1).replace('.0',''); }
 
@@ -575,7 +579,7 @@
     $('#menuHome').onclick = ()=>{ el.menu.classList.add('hidden'); goHome(); };
     el.panelClose.onclick = ()=>{ el.panelHost.classList.add('hidden'); Scenes.onPanelClosed(); };
     $('#scenesBtn').onclick = ()=> openPanel('scenes');
-    $('#sceneChip').onclick = ()=> openPanel('scenes');
+    $('#sceneChip').onclick = ()=>{ Scenes.prepFocusApplied(); openPanel('scenes'); };
     Scenes.init({ getCaps:()=>caps, getStatus:()=>lastStatus, isConnected:()=>connected && !testMode, toast, dlog });
     el.hideUiBtn.onclick = ()=> document.body.classList.toggle('hiddenUi');
     window.addEventListener('resize', ()=> setTimeout(drawGuides, 60));
@@ -629,8 +633,72 @@
   }
 
   // منتقي قيمة الإعداد (يفتح من الشريط السفلي/العلوي)
+  // ---- صيغة الفيديو ومعدل الإطارات ----
+  function movieParts(){
+    const f=String(lastStatus.movieFileFormat||''), q=String(lastStatus.movieQuality||'');
+    const res = /4k/i.test(f)?'4K' : /hd/i.test(f)?'HD' : /mp4/i.test(f)?'MP4' : f;
+    const fpsM = q.match(/(\d+(?:\.\d+)?)\s*p/i), brM = q.match(/(\d+)\s*M(?:bps)?\b/);
+    return { res, fps: fpsM ? fpsM[1]+'p' : '', br: brM ? brM[1]+'M' : '', raw: q };
+  }
+  function updateMovieReadout(){
+    const m=movieParts();
+    const txt=[m.res, m.fps || (!m.br && m.raw) || ''].filter(Boolean).join(' · ');
+    const ccTxt=[m.res, m.fps].filter(Boolean).join(' ') || (m.raw||'—');
+    $('#rdMovie').textContent = txt ? '🎞 '+txt : '—';
+    $('#rdMovieBtn').classList.toggle('hidden', !txt);
+    $('#ccMovie').textContent = ccTxt;
+  }
+  let movieInfo=null;
+  function onMovieInfo(d){
+    movieInfo=d;
+    if(d.format) lastStatus.movieFileFormat=d.format;
+    if(d.quality) lastStatus.movieQuality=d.quality;
+    if(caps){ if(d.formatCandidates) caps.movieFormatCandidates=d.formatCandidates; if(d.qualityCandidates) caps.movieQualityCandidates=d.qualityCandidates; }
+    dlog('الفيديو: صيغة='+(d.format||'?')+' جودة='+(d.quality||'?')+' | صيغ='+JSON.stringify(d.formatCandidates||[])+' | جودات='+JSON.stringify(d.qualityCandidates||[]));
+    updateMovieReadout();
+    if(!el.valuePicker.classList.contains('hidden') && el.valuePicker.dataset.kind==='movie') renderMoviePicker();
+  }
+  function openMoviePicker(){
+    el.valuePicker.dataset.kind='movie';
+    el.vpKelvin.classList.add('hidden');
+    el.vpTitle.textContent='صيغة الفيديو ومعدل الإطارات';
+    renderMoviePicker();
+    el.valuePicker.classList.remove('hidden');
+    Bridge.cmd.refreshMovieInfo(); // قوائم حديثة من الكاميرا
+  }
+  function renderMoviePicker(){
+    const mi=movieInfo||{}, c=caps||{};
+    const fmts=mi.formatCandidates||c.movieFormatCandidates||[], quals=mi.qualityCandidates||c.movieQualityCandidates||[];
+    const canF = mi.canSetFormat!=null ? mi.canSetFormat : c.canSetMovieFormat;
+    const canQ = mi.canSetQuality!=null ? mi.canSetQuality : c.canSetMovieQuality;
+    const rec = el.btnRecDock.classList.contains('recording') || lastStatus.isRecordingMovie;
+    el.vpList.innerHTML='';
+    const note=t=>{ const n=document.createElement('div'); n.className='vp-note'; n.textContent=t; el.vpList.appendChild(n); };
+    const sec=t=>{ const n=document.createElement('div'); n.className='vp-sec'; n.textContent=t; el.vpList.appendChild(n); };
+    if(mi.supported===false){ note(mi.message||'غير مدعوم عبر هذا الاتصال'); return; }
+    const m=movieParts();
+    note('الحالي: '+([lastStatus.movieFileFormat, lastStatus.movieQuality].filter(Boolean).join(' — ')||'غير معروف')+(m.fps?'  ('+m.res+' '+m.fps+')':''));
+    if(rec) note('⚠ الكاميرا تسجّل الآن — لا يمكن تغيير الصيغة أو الإطارات أثناء التسجيل.');
+    const add=(kind,list,cur,can)=>{
+      if(!can){ note('الكاميرا لا تتيح تغيير هذا عبر هذا الاتصال.'); return; }
+      if(!list.length){ note('لا توجد خيارات متاحة الآن من الكاميرا.'); return; }
+      list.forEach(v=>{
+        const b=document.createElement('button'); b.className='vpitem'+(String(v)===String(cur)?' cur':''); b.textContent=v; b.disabled=!!rec;
+        b.onclick=()=>{
+          Bridge.cmd.setSetting(kind, v);
+          toast(kind==='movieformat' ? 'أُرسلت الصيغة — بانتظار تأكيد الكاميرا، ثم اختر معدل الإطارات من القائمة المحدّثة' : 'أُرسل — بانتظار تأكيد الكاميرا…', 4000);
+        };
+        el.vpList.appendChild(b);
+      });
+    };
+    sec('الدقة / الصيغة'); add('movieformat', fmts, lastStatus.movieFileFormat, canF);
+    sec('معدل الإطارات / الجودة'); add('moviequality', quals, lastStatus.movieQuality, canQ);
+  }
+
   function openValuePicker(kind){
     if(!connected){ toast('اتصل بالكاميرا أولًا'); return; }
+    if(kind==='movie') return openMoviePicker();
+    el.valuePicker.dataset.kind=kind;
     const info = {
       iso:      { title:'ISO', cand:lastStatus.isoCandidates, cur:lastStatus.iso },
       shutter:  { title:'سرعة الغالق', cand:lastStatus.shutterCandidates, cur:lastStatus.shutter },
