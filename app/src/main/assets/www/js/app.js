@@ -405,6 +405,7 @@
       dlog('الحالة: '+d.phase);
       if(d.phase==='binding'){ setConn('warn','جارٍ الربط بالشبكة…'); }
       if(d.phase==='discovering'){ setConn('warn','جارٍ البحث عن الكاميرا…'); wcStatus('جارٍ البحث عن الكاميرا…', true); }
+      if(d.phase==='ptpip'){ setConn('warn','تجربة PTP/IP…'); wcStatus('لم يُعثر على ScalarWebAPI — تجربة PTP/IP (للموديلات الأحدث)…', true); }
     });
     Bridge.on('connected', d=>{
       caps = d; lastCaps = d; connected = true; currentModel = d.model || 'default';
@@ -418,6 +419,7 @@
       else { dlog('الكاميرا لا تُدرج startLiveview في وظائفها المتاحة.'); toast('هذه الكاميرا لا تُتيح البث الحي عبر هذا الاتصال.'); }
       loadFavLutForContext();
       toast('قدرات '+(d.model||'الكاميرا')+': بث='+yn(d.hasLiveview)+'، التقاط='+yn(d.hasTakePicture)+'، فيديو='+yn(d.hasMovieRec));
+      if(d.transport==='ptpip'){ dlog('النقل: PTP/IP (تجريبي) — خصائص='+((d.apiList&&d.apiList.length)||0)); toast('متصل عبر PTP/IP (تجريبي) — '+(d.model||''), 5000); }
     });
     Bridge.on('disconnected', ()=>{ connected=false; caps=null; dlog('قُطع الاتصال'); setConn('off','غير متصل'); disableControls(); });
     Bridge.on('error', d=>{ dlog('خطأ: '+(d.code||'')+' — '+(d.message||'')); setConn('off', d.message||'خطأ'); wcStatus('خطأ: '+(d.message||''), false); toast(d.message||'خطأ'); });

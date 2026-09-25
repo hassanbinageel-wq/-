@@ -14,6 +14,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import com.hsnpmt.sonymonitor.sony.ptp.SonyPtpCamera
 import java.util.concurrent.TimeUnit
 
 /**
@@ -63,12 +64,15 @@ class CameraController(
     private var liveviewJob: Job? = null
     private var liveviewParser: LiveviewParser? = null
     @Volatile private var wantLiveview = false
+    /** مسار PTP/IP للكاميرات الأحدث (عند غياب ScalarWebAPI). */
+    @Volatile private var ptp: SonyPtpCamera? = null
 
     // -------- الاتصال --------
 
     fun connect() {
         scope.launch {
             try {
+                ptp?.let { ptp = null; it.close() }
                 emit("status", JSONObject().put("phase", "binding"))
                 WifiConnector.ensureBound(appContext) // إن اتصل عبر QR فهو مربوط أصلًا؛ وإلا يربط أول شبكة Wi‑Fi
 
@@ -80,9 +84,13 @@ class CameraController(
                     dev = probeDirect()
                 }
                 if (dev == null) {
+                    // الكاميرات الأحدث (a7 IV / a7S III / a1 / FX3 / ZV...) لا تحوي ScalarWebAPI — نجرّب PTP/IP
+                    emit("status", JSONObject().put("phase", "ptpip"))
+                    val err = tryPtp()
+                    if (err == null) return@launch
                     emit("error", JSONObject()
                         .put("code", "no_camera")
-                        .put("message", "لم يُعثر على كاميرا Sony (لا عبر SSDP ولا عبر العنوان المباشر). تأكّد أن الهاتف متصل بشبكة Wi‑Fi الخاصة بالكاميرا، وأن وضع «التحكّم بالهاتف» مفعّل في الكاميرا. ملاحظة: بعض موديلات Sony (مثل a7 III) قد لا تدعم هذا البروتوكول (ScalarWebAPI) وتحتاج بروتوكول PTP/IP."))
+                        .put("message", "لم يُعثر على كاميرا Sony. تأكّد أن الهاتف متصل بشبكة Wi‑Fi الخاصة بالكاميرا، وأن الكاميرا في وضع «التحكّم بالهاتف» (a7 III وما شابهها) أو «التحكم عن بعد بالكمبيوتر عبر Wi‑Fi» (الموديلات الأحدث). تفاصيل PTP/IP: $err"))
                     return@launch
                 }
                 device = dev
@@ -131,6 +139,40 @@ class CameraController(
         }
     }
 
+    /** يحاول الاتصال عبر PTP/IP على بوابة الشبكة الحالية. يعيد null عند النجاح أو وصف الخطأ. */
+    private fun tryPtp(): String? {
+        val hosts = LinkedHashSet<String>()
+        gatewayHost()?.let { hosts.add(it) }
+        hosts.add("192.168.122.1")
+        var lastErr = "لا رد على المنفذ 15740"
+        for (h in hosts) {
+            val cam = SonyPtpCamera(h, scope,
+                emit = { t, j -> emit(t, j) },
+                onFrame = { jpeg, seq, ts -> callback.onFrame(jpeg, seq, ts) },
+                log = { log(it) })
+            try {
+                log("PTP/IP: محاولة $h:15740")
+                cam.wantLiveview = wantLiveview
+                cam.connect()
+                ptp = cam
+                return null
+            } catch (e: Exception) {
+                lastErr = "$h: ${e.message}"
+                log("PTP/IP فشل — $lastErr")
+                cam.close()
+            }
+        }
+        return lastErr
+    }
+
+    private fun gatewayHost(): String? = try {
+        val cm = appContext.getSystemService(android.net.ConnectivityManager::class.java)
+        val net = cm.boundNetworkForProcess ?: cm.activeNetwork
+        cm.getLinkProperties(net)?.routes
+            ?.firstOrNull { it.isDefaultRoute && it.gateway is java.net.Inet4Address }
+            ?.gateway?.hostAddress
+    } catch (_: Exception) { null }
+
     /** محاولة مباشرة لنقاط نهاية Sony المعروفة حين يفشل SSDP. يعيد Result أو null. */
     private fun probeDirect(): SsdpDiscovery.Result? {
         val bases = listOf(
@@ -164,6 +206,7 @@ class CameraController(
 
     fun disconnect() {
         wantLiveview = false
+        ptp?.let { p -> ptp = null; scope.launch { p.close(); WifiConnector.unbind(appContext); emit("disconnected", JSONObject()) }; return }
         stopLiveviewInternal()
         statusJob?.cancel(); statusJob = null
         scope.launch {
@@ -175,8 +218,12 @@ class CameraController(
 
     // -------- البث الحي --------
 
-    fun startLiveview() { wantLiveview = true; if (api != null) startLiveviewInternal() }
-    fun stopLiveview() { wantLiveview = false; stopLiveviewInternal() }
+    fun startLiveview() {
+        wantLiveview = true
+        ptp?.let { it.startLiveview(); return }
+        if (api != null) startLiveviewInternal()
+    }
+    fun stopLiveview() { wantLiveview = false; ptp?.let { it.stopLiveview(); return }; stopLiveviewInternal() }
 
     private fun startLiveviewInternal() {
         if (liveviewJob?.isActive == true) return
@@ -232,6 +279,7 @@ class CameraController(
     @Volatile private var busy = false
 
     fun takePicture() = attempt("التقاط الصورة", exclusive = true) {
+        ptp?.let { emit("action", it.takePicture()); return@attempt }
         val c = api!!
         pausePolling()
         try {
@@ -311,11 +359,13 @@ class CameraController(
     }
 
     fun startMovieRec() = attempt("تسجيل الفيديو") {
+        ptp?.let { emit("action", it.toggleMovie(true)); return@attempt }
         api!!.startMovieRec()
         emit("action", JSONObject().put("action", "startMovieRec").put("ok", true))
     }
 
     fun stopMovieRec() = attempt("إيقاف التسجيل") {
+        ptp?.let { emit("action", it.toggleMovie(false)); return@attempt }
         api!!.stopMovieRec()
         emit("action", JSONObject().put("action", "stopMovieRec").put("ok", true))
     }
@@ -324,7 +374,7 @@ class CameraController(
 
     private fun attempt(label: String, exclusive: Boolean = false, block: suspend () -> Unit) {
         scope.launch {
-            if (api == null) {
+            if (api == null && ptp == null) {
                 emit("action", JSONObject().put("ok", false).put("label", label).put("message", "غير متصل بالكاميرا"))
                 return@launch
             }
@@ -367,6 +417,7 @@ class CameraController(
      * ونُبلغ الواجهة بصدق أن اختيار النقطة نفسها غير مدعوم.
      */
     fun touchFocus(xPercent: Int, yPercent: Int) = attempt("التركيز", exclusive = true) {
+        ptp?.let { emit("action", it.halfPressFocus()); return@attempt }
         val c = api!!
         if (capabilities.contains("setTouchAFPosition")) {
             c.setTouchAFPosition(xPercent.toDouble(), yPercent.toDouble())
@@ -390,7 +441,16 @@ class CameraController(
         }
     }
 
-    fun setSetting(kind: String, value: String) = guarded(apiForKind(kind), "ضبط $kind") {
+    fun setSetting(kind: String, value: String) {
+        val p = ptp
+        if (p != null) {
+            attempt("ضبط $kind") { emit("action", p.setSetting(kind, value)) }
+            return
+        }
+        setSettingWeb(kind, value)
+    }
+
+    private fun setSettingWeb(kind: String, value: String) = guarded(apiForKind(kind), "ضبط $kind") {
         val c = api!!
         when (kind) {
             "iso" -> c.setIso(value)
@@ -462,6 +522,7 @@ class CameraController(
     }
 
     fun refreshStatus() {
+        if (ptp != null) return // حلقة PTP تحدّث الحالة دوريًا
         scope.launch {
             try {
                 val c = api ?: return@launch
@@ -476,6 +537,7 @@ class CameraController(
     private fun log(msg: String) { Log.i(TAG, msg); emit("log", JSONObject().put("msg", msg)) }
 
     fun release() {
+        ptp?.close(); ptp = null
         try { scope.cancel() } catch (_: Exception) {}
         WifiConnector.unbind(appContext)
     }
