@@ -34,6 +34,7 @@ sfx.add(k.whoosh(.45, .4), 3.6 - .45)
 sfx.add(k.impact(.55), 3.6 - E)
 sfx.add(air(1.2, .22), 3.62)
 sfx.add(k.impact(.5), 4.2 - E)                        # «ابتسم»
+sfx.add(air(1.1, .2), 4.22)                           # انفجار الأوراق
 for n in range(7, 10):
     pulse.add(thump(.6, .14), k.beat(n) - E)          # نبض أسرع وأخف = أمل
 sfx.add(k.whoosh(.4, .3), 5.45)                       # الخروج يسارًا
@@ -45,7 +46,7 @@ for j, t0 in enumerate((6.0, 7.8, 9.6)):
         ui.add(k.tick(.13, pitch=k.vary() * (1 + .08 * j)), t0 + .05 + 1.0 * (1 - (1 - i / 18) ** 1.7))
     sfx.add(air(.8, .16), t0 + 1.0)
     pulse.add(thump(.7, .2), t0 - E)
-    if j: sfx.add(k.whoosh(.3, .18), t0 - .25)         # Nudge
+    sfx.add(k.whoosh(.35, .22), t0 - .3)              # البطاقة تدخل
 for t in np.arange(6.6, 11.4, .6):
     pulse.add(thump(.35, .1), t - E)
 

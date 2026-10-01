@@ -2,183 +2,337 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>ابتسم — أثر يُقاس</title>
+<title>ابتسم — أثر يُقاس (v2)</title>
 <style>
-  /* Tajawal بديل DIN Next LT Arabic (خط الهوية التجاري). عربي + لاتيني بنفس العائلة */
   @font-face { font-family:'T'; font-weight:300; src:url('node_modules/@fontsource/tajawal/files/tajawal-arabic-300-normal.woff2') format('woff2'); unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200F,U+066B-066C; }
   @font-face { font-family:'T'; font-weight:500; src:url('node_modules/@fontsource/tajawal/files/tajawal-arabic-500-normal.woff2') format('woff2'); unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200F,U+066B-066C; }
   @font-face { font-family:'T'; font-weight:800; src:url('node_modules/@fontsource/tajawal/files/tajawal-arabic-800-normal.woff2') format('woff2'); unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200F,U+066B-066C; }
   @font-face { font-family:'T'; font-weight:500; src:url('node_modules/@fontsource/tajawal/files/tajawal-latin-500-normal.woff2') format('woff2'); unicode-range:U+0000-00FF; }
   @font-face { font-family:'T'; font-weight:800; src:url('node_modules/@fontsource/tajawal/files/tajawal-latin-800-normal.woff2') format('woff2'); unicode-range:U+0000-00FF; }
 
-  :root { --navy:#294285; --teal:#0C86A7; --turq:#13AEA6; --cyan:#00AEEF; --grey:#6D6D6F; --light:#E2E3E2; --gold:#C9A93A; --ink:#FFFFFF; --soft:#DDF3F8; }
+  :root { --navy:#294285; --deep:#1A2C5E; --teal:#0C86A7; --turq:#13AEA6; --cyan:#00AEEF; --grey:#6D6D6F; --light:#E2E3E2; --ink:#FFFFFF; --soft:#DDF3F8; }
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { background:#000; overflow:hidden; }
-  #stage { position:relative; width:1080px; height:1920px; overflow:hidden; background:var(--navy); color:var(--ink); font-family:'T',sans-serif; transform-origin:0 0; }
-  #grad { position:absolute; inset:0; background:linear-gradient(160deg, var(--navy) 0%, var(--teal) 58%, var(--cyan) 115%); }
+  #stage { position:relative; width:1080px; height:1920px; overflow:hidden; background:radial-gradient(120% 80% at 50% 40%, #2E4C96 0%, var(--navy) 45%, var(--deep) 100%); color:var(--ink); font-family:'T',sans-serif; transform-origin:0 0; }
+  #grad { position:absolute; inset:0; background:linear-gradient(160deg, var(--navy) 0%, var(--teal) 55%, var(--cyan) 112%); }
+  .layer { position:absolute; inset:0; pointer-events:none; }
+  #pat { opacity:.07; }
+  .blob { position:absolute; width:1100px; height:1100px; left:-550px; top:-550px; border-radius:50%; mix-blend-mode:screen; }
+  #b1 { background:radial-gradient(closest-side, rgba(0,174,239,.55), rgba(0,174,239,0)); }
+  #b2 { background:radial-gradient(closest-side, rgba(19,174,166,.45), rgba(19,174,166,0)); }
+  #cam { position:absolute; inset:0; transform-origin:540px 900px; }
   .scene { position:absolute; inset:0; visibility:hidden; }
   .row-c { position:absolute; left:0; right:0; display:flex; justify-content:center; text-align:center; white-space:nowrap; }
-  .w { display:inline-block; }
-  #line { position:absolute; inset:0; z-index:4; overflow:visible; }
-  #line path { fill:none; stroke:#fff; stroke-width:12; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+  /* كشف الكلمة من خلف خط غير مرئي — الكلمة كاملة (لا تقسيم حروف) */
+  .mk { display:inline-block; overflow:hidden; padding:.14em .05em .26em; margin:-.14em 0 -.26em; vertical-align:bottom; }
+  .mi { display:inline-block; }
+  /* عدّاد ميكانيكي: أعمدة أرقام تدور */
+  .odo { display:inline-flex; direction:ltr; line-height:1.15; }
+  .oc { display:inline-block; width:.56em; height:1.15em; overflow:hidden; }
+  .os { display:block; }
+  .os i { display:block; height:1.15em; font-style:normal; text-align:center; }
+  .osep { display:inline-block; }
+  #vig { background:radial-gradient(130% 90% at 50% 45%, rgba(0,0,0,0) 55%, rgba(5,10,35,.42) 100%); }
+  #grain { width:1080px; height:1920px; opacity:.07; mix-blend-mode:overlay; }
 
-  /* ١ المشكلة */
-  #t1 { top:560px; font:500 62px 'T'; color:var(--soft); }
-  #t1 .w { margin:0 8px; }
-  #big { top:630px; font:800 300px 'T'; line-height:1.15; }
-  #t2 { top:1000px; font:800 74px 'T'; }
-  #t2 .w { margin:0 10px; }
+  /* خط الابتسامة */
+  #line { position:absolute; inset:0; overflow:visible; }
+  #line path { fill:none; stroke-linecap:round; vector-effect:non-scaling-stroke; }
+  #front, #back { stroke:#fff; stroke-width:11; }
+  .glow { stroke:#8FE3FF; stroke-width:26; opacity:.35; filter:url(#blur); }
+  #comet { stroke:#FFFFFF; stroke-width:16; filter:url(#blur2); }
 
-  /* ٢ التحوّل */
-  #t3 { top:620px; font:500 66px 'T'; color:var(--soft); }
-  #t3 .w { margin:0 8px; }
-  #t4 { top:690px; font:800 250px 'T'; line-height:1.2; }
-  #t5 { top:1010px; font:500 50px 'T'; line-height:1.5; color:var(--soft); white-space:normal; }
-  #t5 .w { margin:0 6px; }
+  /* ١ */
+  #tooth { position:absolute; left:400px; top:300px; width:280px; height:280px; overflow:visible; }
+  #t1 { top:640px; font:500 60px 'T'; color:var(--soft); }
+  #t1 .mk { margin-left:12px; }
+  #big { top:690px; font:800 300px 'T'; }
+  #t2 { top:1070px; font:800 72px 'T'; }
+  #t2 .mk { margin-left:16px; }
 
-  /* ٣ الأثر */
-  .stat { position:absolute; left:0; right:0; top:0; text-align:center; }
-  .stat b { display:block; font:800 176px 'T'; line-height:1.1; }
-  .stat span { display:block; font:500 56px 'T'; color:var(--soft); margin-top:-6px; }
-  #foot { top:1330px; font:500 44px 'T'; color:var(--soft); }
+  /* ٢ */
+  #rays { position:absolute; inset:0; overflow:visible; }
+  #rays path { fill:none; stroke:#fff; stroke-width:3; stroke-linecap:round; }
+  #t3 { top:630px; font:500 66px 'T'; color:var(--soft); }
+  #t3 .mk { margin-left:12px; }
+  #t4 { top:690px; font:800 260px 'T'; line-height:1.2; }
+  #name, #nameSheen { display:inline-block; }
+  #nameSheen { position:absolute; color:transparent; background:linear-gradient(100deg, rgba(255,255,255,0) 42%, rgba(160,235,255,1) 50%, rgba(255,255,255,0) 58%); background-size:300% 100%; -webkit-background-clip:text; background-clip:text; }
+  #t5 { top:1010px; font:500 48px 'T'; line-height:1.5; color:var(--soft); white-space:normal; }
+  #t5 .mk { margin-left:10px; }
 
-  /* ٤ الختام */
-  #logo { position:absolute; left:330px; top:470px; width:420px; transform-origin:50% 50%; }
-  #slogan { top:900px; font:300 66px 'T'; line-height:1.3; }
-  #sl-curve { position:absolute; left:0; top:0; width:1080px; height:1920px; overflow:visible; }
+  /* ٣ البطاقات */
+  #persp { position:absolute; inset:0; perspective:1400px; }
+  .card { position:absolute; left:210px; width:660px; height:220px; border-radius:40px; background:#fff; color:var(--navy);
+          box-shadow:0 30px 60px rgba(5,25,70,.35), 0 6px 16px rgba(5,25,70,.2); display:flex; align-items:center; gap:34px; padding:0 44px; transform-origin:100% 50%; }
+  .ic { width:132px; height:132px; flex:none; border-radius:50%; background:rgba(12,134,167,.1); display:flex; align-items:center; justify-content:center; }
+  .ic svg { width:92px; height:92px; overflow:visible; }
+  .ic path { fill:none; stroke:var(--teal); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; }
+  .tx > b { display:flex; justify-content:flex-end; font:800 104px 'T'; line-height:1.15; color:var(--navy); }
+  .tx > span { display:block; font:500 38px 'T'; color:var(--grey); margin-top:-4px; }
+  #c0 { top:400px; } #c1 { top:650px; } #c2 { top:900px; }
+  #foot { top:1335px; font:500 42px 'T'; color:var(--soft); }
+  #foot .mk { margin-left:8px; }
+
+  /* ٤ */
+  #ring { position:absolute; left:540px; top:640px; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; border:3px solid rgba(255,255,255,.8); }
+  #logo { position:absolute; left:320px; top:440px; width:440px; transform-origin:50% 50%; }
+  #slogan { top:950px; font:300 66px 'T'; line-height:1.3; flex-direction:column; align-items:center; }
+  #slogan .mk { margin-left:12px; }
+  #sl-curve { position:absolute; inset:0; overflow:visible; }
   #sl-curve path { fill:none; stroke:#fff; stroke-width:7; stroke-linecap:round; }
-  #cta-wrap { top:1170px; }
-  #cta { position:relative; overflow:hidden; display:inline-block; padding:24px 70px 30px; border-radius:60px; background:#fff; color:var(--navy); font:800 54px 'T'; }
+  #cta-wrap { top:1225px; }
+  #cta { position:relative; overflow:hidden; display:inline-block; padding:22px 70px 28px; border-radius:60px; background:#fff; color:var(--navy); font:800 52px 'T'; box-shadow:0 20px 40px rgba(5,25,70,.3); }
   #sheen { position:absolute; top:0; bottom:0; left:0; width:140px; background:linear-gradient(100deg, transparent, rgba(0,174,239,.35), transparent); }
-  #url { top:1315px; font:500 46px 'T'; direction:ltr; letter-spacing:1px; }
+  #url { top:1360px; font:500 44px 'T'; direction:ltr; letter-spacing:1px; }
 </style>
 </head>
 <body>
 <div id="stage">
-  <div id="grad"></div>
+  <div id="grad" class="layer"></div>
+  <svg id="pat" class="layer" viewBox="0 0 1080 1920">
+    <defs><pattern id="lp" width="180" height="180" patternUnits="userSpaceOnUse">
+      <path d="M20 90 Q90 30 160 90 Q90 150 20 90Z" fill="none" stroke="#fff" stroke-width="2"/>
+      <path d="M90 20 Q150 90 90 160 Q30 90 90 20Z" fill="none" stroke="#fff" stroke-width="2"/>
+    </pattern></defs>
+    <rect id="patr" x="-360" y="-360" width="1800" height="2640" fill="url(#lp)"/>
+  </svg>
+  <div class="layer"><div class="blob" id="b1"></div><div class="blob" id="b2"></div></div>
 
-  <section class="scene" id="s1">
-    <div class="row-c" id="t1"></div>
-    <div class="row-c" id="big"><span class="w" id="bigv"></span></div>
-    <div class="row-c" id="t2"></div>
-  </section>
+  <div id="cam">
+    <section class="scene" id="s1">
+      <svg id="tooth" viewBox="0 0 100 100">
+        <defs><clipPath id="tc"><path d="M30 20 C18 20 14 34 18 48 C21 58 24 70 27 82 C29 90 36 90 38 82 L42 64 C44 58 56 58 58 64 L62 82 C64 90 71 90 73 82 C76 70 79 58 82 48 C86 34 82 20 70 20 C62 20 58 25 50 25 C42 25 38 20 30 20 Z"/></clipPath></defs>
+        <path id="tfill" d="M30 20 C18 20 14 34 18 48 C21 58 24 70 27 82 C29 90 36 90 38 82 L42 64 C44 58 56 58 58 64 L62 82 C64 90 71 90 73 82 C76 70 79 58 82 48 C86 34 82 20 70 20 C62 20 58 25 50 25 C42 25 38 20 30 20 Z" fill="#fff"/>
+        <g clip-path="url(#tc)" fill="#3A3F52"><circle class="decay" cx="33" cy="38" r="0"/><circle class="decay" cx="64" cy="31" r="0"/><circle class="decay" cx="49" cy="52" r="0"/><circle class="decay" cx="70" cy="50" r="0"/><circle class="decay" cx="27" cy="58" r="0"/></g>
+        <path id="tline" pathLength="1" d="M30 20 C18 20 14 34 18 48 C21 58 24 70 27 82 C29 90 36 90 38 82 L42 64 C44 58 56 58 58 64 L62 82 C64 90 71 90 73 82 C76 70 79 58 82 48 C86 34 82 20 70 20 C62 20 58 25 50 25 C42 25 38 20 30 20 Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/>
+      </svg>
+      <div class="row-c" id="t1"></div>
+      <div class="row-c" id="big"><span class="odo" id="bigodo"></span></div>
+      <div class="row-c" id="t2"></div>
+    </section>
 
-  <section class="scene" id="s2">
-    <div class="row-c" id="t3"></div>
-    <div class="row-c" id="t4"><span class="w" id="name">ابتسم</span></div>
-    <div class="row-c" id="t5"><div id="t5in" style="max-width:760px"></div></div>
-  </section>
+    <section class="scene" id="s2">
+      <svg id="rays" viewBox="0 0 1080 1920"><g id="raysg" transform="translate(540 860)"></g></svg>
+      <div class="row-c" id="t3"></div>
+      <div class="row-c" id="t4"><span id="name">ابتسم</span><span id="nameSheen" aria-hidden="true">ابتسم</span></div>
+      <div class="row-c" id="t5"><div id="t5in" style="max-width:720px"></div></div>
+    </section>
 
-  <section class="scene" id="s3">
-    <div class="stat" id="r0"><b>٠</b><span>خدمة علاجية</span></div>
-    <div class="stat" id="r1"><b>٠</b><span>مستفيد ومستفيدة</span></div>
-    <div class="stat" id="r2"><b>٠</b><span>عملية تخدير كامل</span></div>
-    <div class="row-c" id="foot"><span class="w" id="footw">خلال ٧ سنوات من العطاء</span></div>
-  </section>
+    <section class="scene" id="s3">
+      <div id="persp">
+        <div class="card" id="c0"><div class="ic"><svg viewBox="0 0 100 100"><path pathLength="1" d="M30 20 C18 20 14 34 18 48 C21 58 24 70 27 82 C29 90 36 90 38 82 L42 64 C44 58 56 58 58 64 L62 82 C64 90 71 90 73 82 C76 70 79 58 82 48 C86 34 82 20 70 20 C62 20 58 25 50 25 C42 25 38 20 30 20 Z"/></svg></div><div class="tx"><b class="odo"></b><span>خدمة علاجية</span></div></div>
+        <div class="card" id="c1"><div class="ic"><svg viewBox="0 0 100 100"><path pathLength="1" d="M35 28 a10 10 0 1 0 .1 0 M65 28 a10 10 0 1 0 .1 0 M16 78 C16 56 54 56 54 78 M46 78 C46 56 84 56 84 78"/></svg></div><div class="tx"><b class="odo"></b><span>مستفيد ومستفيدة</span></div></div>
+        <div class="card" id="c2"><div class="ic"><svg viewBox="0 0 100 100"><path pathLength="1" d="M6 55 L30 55 L38 34 L50 78 L59 42 L65 55 L94 55"/></svg></div><div class="tx"><b class="odo"></b><span>عملية تخدير كامل</span></div></div>
+      </div>
+      <div class="row-c" id="foot"></div>
+    </section>
 
-  <section class="scene" id="s4">
-    <img id="logo" src="assets/logo_white.png" alt="">
-    <div class="row-c" id="slogan"><span class="w" id="slw">ابتسامة أسنان<br>تقربكم للجنان</span></div>
-    <svg id="sl-curve" viewBox="0 0 1080 1920"><path id="slc" pathLength="1" d="M 700 1080 C 660 1140, 500 1142, 440 1092"/></svg>
-    <div class="row-c" id="cta-wrap"><div id="cta">كن شريكنا في الأثر<div id="sheen"></div></div></div>
-    <div class="row-c" id="url"><span class="w" id="urlw">ibtsm.org.sa</span></div>
-  </section>
+    <section class="scene" id="s4">
+      <div id="ring"></div>
+      <img id="logo" src="assets/logo_white.png" alt="">
+      <div class="row-c" id="slogan"><div id="sl1"></div><div id="sl2"></div></div>
+      <svg id="sl-curve" viewBox="0 0 1080 1920"><path id="slc" pathLength="1" d="M 700 1150 C 660 1210, 500 1212, 440 1162"/></svg>
+      <div class="row-c" id="cta-wrap"><div id="cta">كن شريكنا في الأثر<div id="sheen"></div></div></div>
+      <div class="row-c" id="url"><span class="mk"><span class="mi" id="urlw">ibtsm.org.sa</span></span></div>
+    </section>
 
-  <!-- خط الابتسامة: الحامل الوحيد عبر الفيلم كله -->
-  <svg id="line" viewBox="0 0 1080 1920"><g id="lg"><path id="front" pathLength="1"/><path id="back" pathLength="1"/></g></svg>
+    <svg id="line" viewBox="0 0 1080 1920">
+      <defs>
+        <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+        <filter id="blur2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+      </defs>
+      <g id="lg">
+        <path id="gfront" class="glow" pathLength="1"/><path id="gback" class="glow" pathLength="1"/>
+        <path id="front" pathLength="1"/><path id="back" pathLength="1"/>
+        <path id="comet" pathLength="1"/>
+      </g>
+    </svg>
+  </div>
+
+  <div id="vig" class="layer"></div>
+  <canvas id="grain" class="layer" width="270" height="480"></canvas>
 </div>
 
 <script src="lib/motion.js"></script>
 <script>
 const FILM = { width: 1080, height: 1920, fps: 30, duration: 15, bpm: 100, cuts: [] };
-const B = M.grid(FILM.bpm);                // نبضة = 0.6 ث
+const B = M.grid(FILM.bpm);
 const { sp, set, clamp, lerp, ease, range, track } = M;
-const T_FLIP = 3.6, T_STATS = [6.0, 7.8, 9.6], T_LEAF = 11.7;
-const VALUES = [54932, 45614, 124];
-const fmt = n => M.arDigits(String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',')).replace(/,/g, '٬');
+const T_FLIP = 3.6, T_STATS = [6.0, 7.8, 9.6], T_LEAF = 11.7, T_LOGO = 12.1;
+const AR = '٠١٢٣٤٥٦٧٨٩';
 
-// ---------------------------------------------------------------- خط الابتسامة
-function drawLine(t) {
-  const w = 380;
-  // الانحناء: مستقيم ← عبوس ← ابتسامة (playful) ← ابتسامة هادئة + نبضة مع كل رقم ← ورقة
-  let b = track(t, [[0, 0], [0.9, -78], [T_FLIP, 165], [5.5, 48]], 'base');
-  if (t >= T_FLIP && t < 5.5) b = -78 + (165 + 78) * sp(t - T_FLIP, 'playful');
-  for (const ts of T_STATS) if (t > ts + .35) b += 55 * Math.exp(-(t - ts - .35) * 5) * Math.sin(Math.min(Math.PI, (t - ts - .35) * 9));
-  const morph = sp(t - T_LEAF, 'base');
-  b = lerp(b, 190, morph);
-  const b2 = lerp(b, -190, morph);
-  const cy = track(t, [[0, 1150], [5.45, 1250], [T_LEAF, 900]], 'base');
-  const rot = lerp(0, -38, sp(t - T_LEAF, 'heavy'));
-  const sc = lerp(1, 1.7, sp(t - T_LEAF - .1, 'heavy'));
-  const op = lerp(1, .2, ease.inOut3(range(t, T_LEAF + .25, T_LEAF + .9)));
-  M.$('#front').setAttribute('d', `M ${w} 0 C ${w / 3} ${b}, ${-w / 3} ${b}, ${-w} 0`);
-  M.$('#back').setAttribute('d', `M ${-w} 0 C ${-w / 3} ${b2}, ${w / 3} ${b2}, ${w} 0`);
-  M.$('#lg').setAttribute('transform', `translate(540 ${cy}) rotate(${rot}) scale(${sc})`);
-  M.$('#lg').style.opacity = op;
-  const draw = ease.out3(range(t, .05, .7));        // يُرسم من اليمين لليسار
-  M.$('#front').style.strokeDasharray = '1 1'; M.$('#front').style.strokeDashoffset = 1 - draw;
-  M.$('#back').style.opacity = t >= T_LEAF ? 1 : 0;
+// ---------------------------------------------------------------- أدوات الحِرفة
+function maskWords(el, text) {
+  el.innerHTML = '';
+  return text.split(/\s+/).filter(Boolean).map(w => {
+    const m = document.createElement('span'); m.className = 'mk';
+    const s = document.createElement('span'); s.className = 'mi'; s.textContent = w;
+    m.appendChild(s); el.appendChild(m); return s;
+  });
+}
+// الكلمة ترتفع من خلف الخط على سبرينغ type، وتخرج متسارعة للأعلى
+function mask(s, t, at, out = 99, preset = 'type') {
+  const pin = sp(t - at, preset), po = ease.power4In(range(t, out, out + .24));
+  s.style.transform = `translateY(${(1 - pin) * 150 - po * 150}%)`;
+}
+function odo(el, str) {
+  el.innerHTML = ''; const cols = [];
+  for (const ch of str) {
+    if (/\d/.test(ch)) {
+      const c = document.createElement('span'); c.className = 'oc';
+      const s = document.createElement('span'); s.className = 'os';
+      s.innerHTML = [...AR, AR[0]].map(d => `<i>${d}</i>`).join('');
+      c.appendChild(s); el.appendChild(c); cols.push({ s, d: +ch });
+    } else { const x = document.createElement('span'); x.className = 'osep'; x.textContent = ch === ',' ? '٬' : ch === '%' ? '٪' : ch; el.appendChild(x); }
+  }
+  return cols;
+}
+// كل عمود يدور؛ الخانات اليمنى تدور لفات أكثر — مثل العدّاد الميكانيكي
+function odoDraw(cols, t, at) {
+  const n = cols.length;
+  cols.forEach((c, k) => {
+    const spins = 1 + (n - 1 - k);
+    const p = sp(t - at - k * .07, [70, 15]);
+    const pos = (c.d + 10 * spins) * p;
+    c.s.style.transform = `translateY(${-(((pos % 10) + 10) % 10) * 1.15}em)`;
+  });
 }
 
-// ---------------------------------------------------------------- الأرضية: كحلي ← تدرّج الهوية يتفتح من مركز الابتسامة
-function drawBg(t) {
-  const r = ease.out3(range(t, T_FLIP, T_FLIP + .75)) * 2300;
-  M.$('#grad').style.clipPath = `circle(${r}px at 540px 1180px)`;
+// ---------------------------------------------------------------- خلفية حية
+const grainCtx = M.$('#grain').getContext('2d'), grainImg = grainCtx.createImageData(270, 480);
+function drawWorld(t) {
+  M.$('#grad').style.clipPath = `circle(${ease.out3(range(t, T_FLIP, T_FLIP + .75)) * 2300}px at 540px 1260px)`;
+  const pulse = t >= T_LOGO ? Math.exp(-(t - T_LOGO) * 2.5) : 0;
+  M.$('#pat').style.opacity = .065 + .1 * pulse;
+  M.$('#patr').setAttribute('transform', `translate(${(t * 9) % 180} ${(-t * 14) % 180})`);
+  const warm = t < T_FLIP ? .55 : 1;
+  set(M.$('#b1'), { x: 540 + 330 * Math.sin(t * .33), y: 620 + 240 * Math.cos(t * .27), o: .5 * warm });
+  set(M.$('#b2'), { x: 560 + 300 * Math.cos(t * .29 + 1), y: 1350 + 220 * Math.sin(t * .37), o: .45 * warm });
+  // كاميرا: دفع بطيء مستمر + ضربات صغيرة على اللحظات الكبيرة
+  const hit = M.impact(t, [1.0, T_FLIP, 4.2, ...T_STATS, T_LOGO], { amp: 6, zoom: .018, decay: .25 });
+  set(M.$('#cam'), { x: hit.x, y: hit.y, s: (1 + .0045 * t) * hit.s });
+  // حبيبات فيلمية حتمية (بذرة = رقم الإطار)
+  const r = M.rng(Math.round(t * FILM.fps) + 1), d = grainImg.data;
+  for (let i = 0; i < d.length; i += 4) { const v = r() * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+  grainCtx.putImageData(grainImg, 0, 0);
+}
+
+// ---------------------------------------------------------------- خط الابتسامة + وهج + مذنّب ضوئي
+function drawLine(t) {
+  const w = 380;
+  let b = track(t, [[0, 0], [0.9, -80]], 'base');
+  if (t >= T_FLIP) b = -80 + (165 + 80) * sp(t - T_FLIP, 'playful');
+  if (t >= 5.5) b = lerp(b, 48, sp(t - 5.5, 'base'));
+  for (const ts of T_STATS) if (t > ts + .35) b += 55 * Math.exp(-(t - ts - .35) * 5) * Math.sin(Math.min(Math.PI, (t - ts - .35) * 9));
+  const morph = sp(t - T_LEAF, 'base');
+  b = lerp(b, 190, morph); const b2 = lerp(b, -190, morph);
+  const cy = track(t, [[0, 1290], [T_LEAF, 900]], 'base');
+  const rot = lerp(0, -38, sp(t - T_LEAF, 'heavy')), sc = lerp(1, 1.7, sp(t - T_LEAF - .1, 'heavy'));
+  const op = lerp(1, .22, ease.inOut3(range(t, T_LEAF + .25, T_LEAF + .9)));
+  const F = `M ${w} 0 C ${w / 3} ${b}, ${-w / 3} ${b}, ${-w} 0`, Bk = `M ${-w} 0 C ${-w / 3} ${b2}, ${w / 3} ${b2}, ${w} 0`;
+  for (const id of ['front', 'gfront', 'comet']) M.$('#' + id).setAttribute('d', F);
+  for (const id of ['back', 'gback']) M.$('#' + id).setAttribute('d', Bk);
+  M.$('#lg').setAttribute('transform', `translate(540 ${cy}) rotate(${rot}) scale(${sc})`);
+  M.$('#lg').style.opacity = op;
+  const draw = ease.out3(range(t, .05, .75));
+  for (const id of ['front', 'gfront']) { const e = M.$('#' + id); e.style.strokeDasharray = '1 1'; e.style.strokeDashoffset = 1 - draw; }
+  for (const id of ['back', 'gback']) M.$('#' + id).style.opacity = t >= T_LEAF ? 1 : 0;
+  // المذنّب: رأس القلم أثناء الرسم، ثم يمسح الخط عند الانقلاب ومع كل رقم
+  let cp = null;
+  if (t < .8) cp = draw;
+  for (const ts of [T_FLIP + .05, ...T_STATS.map(x => x + .3)]) if (t >= ts && t < ts + .6) cp = ease.inOut3((t - ts) / .6);
+  const c = M.$('#comet');
+  if (cp === null) c.style.opacity = 0;
+  else { c.style.opacity = Math.sin(Math.PI * clamp(cp * 1.02)) * .95 + .05; c.style.strokeDasharray = '.07 2'; c.style.strokeDashoffset = -(cp - .07); }
 }
 
 const SCENES = [
   { id: 's1', a: 0, b: 3.75,
-    setup() { this.w1 = M.words(M.$('#t1'), 'نسبة التسوّس في المملكة تعدّت'); this.w2 = M.words(M.$('#t2'), 'وفيه أسر ما تقدر تعالج.'); },
+    setup() {
+      this.w1 = maskWords(M.$('#t1'), 'نسبة التسوّس في المملكة تعدّت');
+      this.w2 = maskWords(M.$('#t2'), 'وفيه أسر ما تقدر تعالج.');
+      this.big = odo(M.$('#bigodo'), '%90');
+      this.decay = M.$$('#s1 .decay'); this.R = [9, 7, 10, 6, 7];
+    },
     draw(t) {
-      this.w1.forEach((el, i) => { M.wordIn(el, t, .6 + M.stagger(i, .08), { rise: 30 }); M.wordOut(el, t, 3.35, { lift: -90 }); });
-      const big = M.$('#bigv');
-      big.textContent = M.counter(Math.round(t * FILM.fps) / FILM.fps, 1.0, 90, { preset: [70, 18] }) + '٪';
-      M.slam(big, t, 1.0, { from: 1.35, preset: 'type' }); M.wordOut(big, t, 3.38, { lift: -110 });
-      if (t < 1.0) big.style.opacity = 0;
-      this.w2.forEach((el, i) => { M.wordIn(el, t, B.at(4) + M.stagger(i, .12)); M.wordOut(el, t, 3.42 + i * .02, { lift: -90 }); });
+      const tl = M.$('#tline'); tl.style.strokeDasharray = '1 1'; tl.style.strokeDashoffset = 1 - ease.inOut3(range(t, .15, 1.0));
+      M.$('#tfill').style.opacity = .1 * range(t, .6, 1.0);
+      this.decay.forEach((c, i) => c.setAttribute('r', this.R[i] * sp(t - 1.1 - i * .22, [80, 16])));   // التسوّس ينتشر مع ارتفاع الرقم
+      const ex = ease.power4In(range(t, 3.3, 3.58));
+      set(M.$('#tooth'), { y: -ex * 260, o: 1 - ex, s: 1 + .04 * Math.sin(range(t, 1.1, 2.4) * Math.PI) });
+      this.w1.forEach((s, i) => mask(s, t, .6 + i * .07, 3.3 + i * .015));
+      odoDraw(this.big, t, 1.0);
+      const bo = ease.power4In(range(t, 3.36, 3.6));
+      set(M.$('#big'), { y: -bo * 160, o: clamp((t - .95) / .08) * (1 - bo), blur: bo * 10 });
+      this.w2.forEach((s, i) => mask(s, t, B.at(4) + i * .1, 3.42 + i * .015));
     } },
 
   { id: 's2', a: T_FLIP, b: 6.0,
-    setup() { this.w3 = M.words(M.$('#t3'), 'هنا جات'); this.w5 = M.words(M.$('#t5in'), 'أول جمعية تطوعية لطب الأسنان بمنطقة مكة المكرمة'); },
+    setup() {
+      this.w3 = maskWords(M.$('#t3'), 'هنا جات');
+      this.w5 = maskWords(M.$('#t5in'), 'أول جمعية تطوعية لطب الأسنان بمنطقة مكة المكرمة');
+      const g = M.$('#raysg');
+      for (let i = 0; i < 12; i++) g.insertAdjacentHTML('beforeend', `<path pathLength="1" transform="rotate(${i * 30})" d="M0 -150 Q46 -300 0 -450 Q-46 -300 0 -150 Z"/>`);
+      this.rays = M.$$('#raysg path');
+    },
     draw(t) {
-      const left = -M.seamOut(t, 5.85, .4, 1200);   // الخروج مع التيار: يمين ← يسار
-      M.$('#s2').style.transform = `translateX(${left}px)`;
-      this.w3.forEach((el, i) => M.wordIn(el, t, 3.9 + M.stagger(i, .1), { rise: 30 }));
-      M.slam(M.$('#name'), t, 4.2, { from: 1.8 }); if (t < 4.2) M.$('#name').style.opacity = 0;
-      this.w5.forEach((el, i) => M.wordIn(el, t, 4.65 + M.stagger(i, .06), { rise: 26, blur: 8 }));
+      M.$('#s2').style.transform = `translateX(${-M.seamOut(t, 5.85, .4, 1200)}px)`;
+      this.w3.forEach((s, i) => mask(s, t, 3.9 + i * .08));
+      // «ابتسم»: يهبط بثقل، ثم لمعة تمر عبره
+      const n = M.$('#t4'), s = sp(t - 4.2, 'heavy');
+      set(n, { s: lerp(1.7, 1, s), o: clamp((t - 4.2) / .05), blur: (1 - clamp(s * 1.4)) * 16 });
+      M.$('#nameSheen').style.backgroundPosition = `${lerp(110, -10, ease.inOut3(range(t, 4.55, 5.15)))}% 0`;
+      // انفجار أوراق الهوية من خلف الاسم
+      const ro = 1 - ease.inOut3(range(t, 4.9, 5.6));
+      M.$('#raysg').setAttribute('transform', `translate(540 860) scale(${lerp(.6, 1.25, ease.out3(range(t, 4.2, 5.4)))}) rotate(${(t - 4.2) * 8})`);
+      this.rays.forEach((r, i) => { r.style.strokeDasharray = '1 1'; r.style.strokeDashoffset = 1 - ease.out3(range(t, 4.2 + i * .015, 4.65 + i * .015)); r.style.opacity = .4 * ro; });
+      this.w5.forEach((s2, i) => mask(s2, t, 4.6 + i * .05));
     } },
 
   { id: 's3', a: 5.95, b: 11.75,
-    setup() { this.rows = [0, 1, 2].map(i => M.$('#r' + i)); },
+    setup() {
+      this.cards = [0, 1, 2].map(i => M.$('#c' + i));
+      this.odos = this.cards.map((c, i) => odo(c.querySelector('b'), ['54,932', '45,614', '124'][i]));
+      this.icons = this.cards.map(c => c.querySelector('.ic path'));
+      this.fw = maskWords(M.$('#foot'), 'خلال ٧ سنوات من العطاء');
+    },
     draw(t) {
-      const tq = Math.round(t * FILM.fps) / FILM.fps;
-      this.rows.forEach((r, i) => {
-        const at = T_STATS[i];
-        let y = 955; for (let j = i + 1; j < 3; j++) y -= 300 * sp(t - T_STATS[j], 'base');   // Nudge: كل رقم جديد يدفع ما فوقه
-        const s = sp(t - at, 'type'), out = ease.power4In(range(t, 11.25 + i * .04, 11.5 + i * .04));
-        set(r, { y: y + (1 - s) * 50 - out * 120, o: clamp((t - at) / .1) * (1 - out), blur: (1 - clamp(s * 1.3)) * 10 + out * 10 });
-        r.querySelector('b').textContent = fmt(Math.round(VALUES[i] * clamp(sp(tq - at, [60, 17]))));   // tq: الأرقام ثابتة داخل الإطار (لا تتلطخ بالإطارات الفرعية)
+      this.cards.forEach((c, i) => {
+        const at = T_STATS[i], k = sp(t - at, 'base');
+        const out = ease.power4In(range(t, 11.2 + i * .06, 11.5 + i * .06));
+        // تدخل من اليمين مع التيار، بدوران منظوري يستقر
+        c.style.transform = `translateX(${(1 - k) * 520 - out * 1300}px) rotateY(${(1 - k) * -38 + out * 25}deg)`;
+        c.style.opacity = clamp((t - at) / .08);
+        odoDraw(this.odos[i], t, at + .12);
+        const ip = this.icons[i]; ip.style.strokeDasharray = '1 1'; ip.style.strokeDashoffset = 1 - ease.inOut3(range(t, at + .15, at + .85));
       });
-      M.wordIn(M.$('#footw'), t, 9.95, { rise: 20, blur: 6 }); M.wordOut(M.$('#footw'), t, 11.32, { lift: -40 });
+      this.fw.forEach((s, i) => mask(s, t, 9.95 + i * .05, 11.2));
     } },
 
   { id: 's4', a: T_LEAF, b: 15,
+    setup() { this.s1 = maskWords(M.$('#sl1'), 'ابتسامة أسنان'); this.s2 = maskWords(M.$('#sl2'), 'تقربكم للجنان'); },
     draw(t) {
-      const L = M.$('#logo'), s = sp(t - 12.1, 'heavy');
-      set(L, { s: lerp(.55, 1, s), o: clamp((t - 12.1) / .12) });      // الشعار كتلة واحدة: مقياس وشفافية فقط
-      M.wordIn(M.$('#slw'), t, 12.6, { rise: 26 });
-      const c = M.$('#slc'); c.style.strokeDasharray = '1 1'; c.style.strokeDashoffset = 1 - ease.out3(range(t, 12.85, 13.25));
-      const cta = M.$('#cta'), k = sp(t - 13.3, 'ui');
-      set(cta, { s: lerp(.6, 1, k), o: clamp((t - 13.3) / .06) });
+      // الشعار ينفتح من قلب الورقة بقناع دائري — بلا أي تأثير على الشعار نفسه
+      const L = M.$('#logo'), s = sp(t - T_LOGO, 'heavy');
+      set(L, { s: lerp(.82, 1, s), o: 1 });
+      L.style.clipPath = `circle(${ease.out3(range(t, T_LOGO, T_LOGO + .55)) * 75}% at 50% 55%)`;
+      const rr = ease.out3(range(t, T_LOGO, T_LOGO + 1.2));
+      const rg = M.$('#ring'), D = 10 + rr * 1100; rg.style.width = rg.style.height = D + 'px'; rg.style.margin = `${-D / 2}px 0 0 ${-D / 2}px`; rg.style.opacity = (1 - rr) * .9;
+      this.s1.forEach((w, i) => mask(w, t, 12.55 + i * .08));
+      this.s2.forEach((w, i) => mask(w, t, 12.7 + i * .08));
+      const c = M.$('#slc'); c.style.strokeDasharray = '1 1'; c.style.strokeDashoffset = 1 - ease.out3(range(t, 12.95, 13.35));
+      const k = sp(t - 13.3, 'ui');
+      set(M.$('#cta'), { s: lerp(.6, 1, k), o: clamp((t - 13.3) / .06) });
       set(M.$('#sheen'), { x: lerp(-260, 700, ease.inOut3(range(t, 13.8, 14.35))) });
-      M.wordIn(M.$('#urlw'), t, 13.6, { rise: 20, blur: 6 });
+      mask(M.$('#urlw'), t, 13.6);
     } },
 ];
 
 SCENES.forEach(s => s.setup && s.setup());
 window.FILM = FILM;
 window.renderAt = async function (t) {
-  drawBg(t);
+  drawWorld(t);
   for (const s of SCENES) { const on = t >= s.a && t < s.b; M.show(document.getElementById(s.id), on); if (on) s.draw(t); }
   drawLine(t);
 };
