@@ -1,0 +1,7 @@
+node_modules/
+films/*/out/stills/
+films/*/out/qc/
+films/*/out/*.partial.mp4
+films/*/out/video.mp4
+films/*/out/score.wav
+films/*/node_modules

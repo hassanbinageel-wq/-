@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>نبض — إعلان إطلاق</title>
+<style>
+  @font-face { font-family: 'Display'; src: url('node_modules/@fontsource/cairo/files/cairo-arabic-900-normal.woff2') format('woff2'); font-weight: 900; }
+  @font-face { font-family: 'Text'; src: url('node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-500-normal.woff2') format('woff2'); font-weight: 500; }
+  @font-face { font-family: 'Text'; src: url('node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-700-normal.woff2') format('woff2'); font-weight: 700; }
+  :root { --ground:#0E0E10; --ink:#F5F1E8; --accent:#FF5A36; --ui:#17171A; --line:#2A2A2F; --muted:#8C877E;
+          --display:'Display',sans-serif; --text:'Text',sans-serif; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#000; overflow:hidden; }
+  #stage { position:relative; width:1080px; height:1920px; overflow:hidden; background:var(--ground); color:var(--ink); font-family:var(--text); transform-origin:0 0; }
+  .scene { position:absolute; inset:0; visibility:hidden; }
+  .row-c { position:absolute; left:0; right:0; display:flex; justify-content:center; text-align:center; }
+  .w { display:inline-block; }
+  h1, h2 { font-family:var(--display); font-weight:900; line-height:1.25; white-space:nowrap; }
+
+  /* النبضة — طبقة عامة تعبر المشاهد */
+  #dot { position:absolute; left:0; top:0; width:72px; height:72px; border-radius:50%; background:var(--accent); z-index:5; transform-origin:50% 50%; }
+
+  /* المشهد ١ */
+  #hook { top:600px; font-size:124px; }
+  #hook .w { margin:0 14px; }
+  #later-wrap { top:830px; }
+  #later { position:relative; display:inline-block; font-size:236px; color:var(--accent); }
+  #strike { position:absolute; left:-6%; right:-6%; top:54%; height:26px; background:var(--ink); border-radius:13px; }
+
+  /* المشهد ٢ */
+  #s2 { background:var(--accent); }
+  #card { position:absolute; left:160px; top:430px; width:760px; height:960px; background:var(--ui); border-radius:44px; padding:64px 60px; transform-origin:50% 50%;
+          box-shadow:0 40px 80px rgba(60,10,0,.35); }
+  #card .head { display:flex; justify-content:space-between; align-items:baseline; }
+  #card .title { font:700 58px var(--text); }
+  #card .day { font:500 36px var(--text); color:var(--muted); }
+  .bar { position:relative; height:18px; border-radius:9px; background:var(--line); margin:44px 0 18px; overflow:hidden; }
+  .bar i { position:absolute; inset:0; background:var(--accent); border-radius:9px; transform-origin:100% 50%; }
+  .pct { font:700 40px var(--text); color:var(--accent); text-align:left; direction:ltr; }
+  .habit { display:flex; align-items:center; gap:32px; height:120px; border-bottom:2px solid var(--line); }
+  .habit:last-of-type { border-bottom:0; }
+  .box { position:relative; width:68px; height:68px; flex:none; border-radius:50%; border:5px solid var(--line); }
+  .box .fill { position:absolute; inset:-5px; border-radius:50%; background:var(--accent); }
+  .box svg { position:absolute; inset:-5px; width:68px; height:68px; }
+  .habit span { font:500 48px var(--text); }
+  .streak { margin-top:44px; padding-top:40px; border-top:2px solid var(--line); display:flex; align-items:baseline; gap:24px; }
+  .streak b { font:900 132px var(--display); color:var(--accent); line-height:1; }
+  .streak span { font:500 46px var(--text); color:var(--ink); }
+  #plus { font:700 38px var(--text); font-style:normal; color:var(--ground); background:var(--accent); padding:10px 26px; border-radius:40px; margin-inline-start:auto; align-self:center; }
+
+  /* المشهد ٣ */
+  #l1 { top:640px; font-size:176px; }
+  #l1 .w { margin:0 18px; }
+  #l2 { top:900px; font-size:232px; color:var(--accent); }
+
+  /* المشهد ٤ */
+  #ring { position:absolute; left:390px; top:520px; width:300px; height:300px; border-radius:50%; border:14px solid var(--accent); transform-origin:50% 50%; }
+  #mark { top:860px; font-size:220px; }
+  #tag { top:1170px; font:500 54px var(--text); color:var(--ink); }
+  #tag .w { margin:0 8px; }
+  #cta-wrap { top:1300px; }
+  #cta { position:relative; overflow:hidden; display:inline-block; padding:26px 74px; border-radius:60px; background:var(--accent); color:var(--ground); font:700 50px var(--text); }
+  #sheen { position:absolute; top:0; bottom:0; width:120px; left:0; background:linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <section class="scene" id="s1">
+    <h1 class="row-c" id="hook"></h1>
+    <div class="row-c" id="later-wrap"><h1 id="later">بكرة.<div id="strike"></div></h1></div>
+  </section>
+
+  <section class="scene" id="s2">
+    <div id="card">
+      <div class="head"><div class="title">عاداتي اليوم</div><div class="day">الثلاثاء</div></div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="pct" id="pct">٠٪</div>
+      <div class="habit"><div class="box"><div class="fill"></div><svg viewBox="0 0 68 68"><path d="M20 35 L30 45 L49 24" fill="none" stroke="#0E0E10" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>قراءة ١٠ صفحات</span></div>
+      <div class="habit"><div class="box"><div class="fill"></div><svg viewBox="0 0 68 68"><path d="M20 35 L30 45 L49 24" fill="none" stroke="#0E0E10" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>مشي ٣٠ دقيقة</span></div>
+      <div class="habit"><div class="box"><div class="fill"></div><svg viewBox="0 0 68 68"><path d="M20 35 L30 45 L49 24" fill="none" stroke="#0E0E10" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>٨ أكواب ماء</span></div>
+      <div class="streak"><b id="count">٠</b><span>يومًا متتاليًا</span><em id="plus">+١ اليوم</em></div>
+    </div>
+  </section>
+
+  <section class="scene" id="s3">
+    <div id="cam3" style="position:absolute;inset:0">
+      <h1 class="row-c" id="l1"></h1>
+      <h1 class="row-c" id="l2"><span class="w" id="today">اليوم.</span></h1>
+    </div>
+  </section>
+
+  <section class="scene" id="s4">
+    <div id="ring"></div>
+    <h1 class="row-c" id="mark"><span class="w" id="logo">نبض</span></h1>
+    <div class="row-c" id="tag"></div>
+    <div class="row-c" id="cta-wrap"><div id="cta">حمّل التطبيق<div id="sheen"></div></div></div>
+  </section>
+
+  <div id="dot"></div>
+</div>
+
+<script src="lib/motion.js"></script>
+<script>
+const FILM = { width: 1080, height: 1920, fps: 30, duration: 12, bpm: 120, cuts: [3.5, 7.5, 9.5] };
+const B = M.grid(FILM.bpm);
+const { sp, set, clamp, lerp, ease, range } = M;
+
+// نبض قلب: lub على النبضة و dub بعدها بـ 0.16 ث
+const heart = t => { const x = ((t % B.beat) + B.beat) % B.beat; return Math.exp(-x / .05) + .55 * (x > .16 ? Math.exp(-(x - .16) / .05) : 0); };
+
+// ---------------------------------------------------------------- النبضة (حامل القطعات)
+function drawDot(t) {
+  const el = M.$('#dot');
+  if (t < 3.5) {                                     // المشهد ١: تحت النص، ثم zoom-through
+    const s0 = sp(t - .1, 'ui'), zoom = ease.power4In(range(t, 3.0, 3.5));
+    const y = lerp(1240, 960, ease.inOut3(range(t, 2.9, 3.35)));
+    set(el, { x: 540 - 36, y: y - 36, s: s0 * (1 + .16 * heart(t) * (1 - zoom)) + zoom * 42, o: 1 });
+  } else if (t >= 9.5) {                             // المشهد ٤: تعود من اليمين مع التيار وتصير قلب الشعار
+    const x = 540 + (1 - ease.power4Out(range(t, 9.5, 9.8))) * 640;
+    set(el, { x: x - 36, y: 670 - 36, s: 1.35 * (1 + .14 * heart(t) * clamp((t - 10) * 4)), o: 1 });
+  } else set(el, { o: 0 });
+}
+
+const SCENES = [
+  { id: 's1', a: 0, b: 3.5,
+    setup() { this.w = M.words(M.$('#hook'), 'كل يوم تقول:'); },
+    draw(t) {
+      this.w.forEach((el, i) => { M.wordIn(el, t, B.at(1 + i)); M.wordOut(el, t, 3.0 + i * .03, { lift: -120 }); });
+      const later = M.$('#later');
+      if (t < 3.0) { M.slam(later, t, 2.0); const c = M.impact(t, [2.0], { amp: 14, zoom: .03 }); later.style.transform += ` translate(${c.x}px,${c.y}px)`; }
+      else M.wordOut(later, t, 3.05, { lift: -160 });
+      if (t < 2.0) later.style.opacity = 0;
+      M.revealRTL(M.$('#strike'), ease.out3(range(t, 2.75, 3.0)));
+    } },
+
+  { id: 's2', a: 3.5, b: 7.5,
+    setup() { this.boxes = M.$$('#s2 .box'); this.rows = M.$$('#s2 .habit'); this.checks = [4.0, 4.5, 5.0]; },
+    draw(t) {
+      const card = M.$('#card');
+      const up = M.seamOut(t, 7.5, .5, 1700);       // الخروج للأعلى = خلاصة
+      const punch = [4.0, 4.5, 5.0, 6.25].reduce((a, h) => a + (t >= h ? .016 * Math.exp(-(t - h) * 10) : 0), 0); // كل صح يهز البطاقة شعرة
+      set(card, { s: lerp(1.22, 1, sp(t - 3.5, 'base')) * (1 + punch), y: -up, o: 1 });
+      set(M.$('#plus'), { s: lerp(.4, 1, sp(t - 6.25, 'ui')), o: clamp((t - 6.25) / .05) });
+      this.rows.forEach((r, i) => M.wordIn(r, t, 3.62 + M.stagger(i, .07), { rise: 30, from: 1, blur: 8 }));
+      const v = M.track(t, [[3.5, 0], [4.0, 1 / 3], [4.5, 2 / 3], [5.0, 1]], 'ui');
+      M.$('#bar').style.transform = `scaleX(${clamp(v, 0, 1.02)})`;
+      M.$('#pct').textContent = M.arDigits(Math.round(clamp(v) * 100)) + '٪';
+      this.boxes.forEach((b, i) => {
+        const at = this.checks[i], p = M.snap(t, at, .08);
+        set(b.querySelector('.fill'), { s: p, o: p > 0 ? 1 : 0 });
+        set(b, { s: 1 + .18 * Math.exp(-Math.max(0, t - at) * 9) * (t >= at ? 1 : 0) });
+        const path = b.querySelector('path'); path.style.strokeDasharray = 48; path.style.strokeDashoffset = 48 * (1 - ease.out3(range(t, at + .04, at + .2)));
+        this.rows[i].querySelector('span').style.color = t >= at ? 'var(--muted)' : 'var(--ink)';
+      });
+      M.$('#count').textContent = M.counter(t, 5.5, 30, { preset: [60, 18] });
+      set(M.$('#s2 .streak'), { o: clamp((t - 5.45) / .08), y: (1 - sp(t - 5.45, 'ui')) * 24 });
+    } },
+
+  { id: 's3', a: 7.5, b: 9.5,
+    setup() { this.w = M.words(M.$('#l1'), 'خلّ بكرة'); },
+    draw(t) {
+      const cam = M.impact(t, [7.75, 8.0, 8.5], { amp: 22, zoom: .05 });
+      const left = -M.seamOut(t, 9.5, .3, 1100);    // الخروج مع التيار: يمين ← يسار
+      set(M.$('#cam3'), { x: cam.x + left, y: cam.y, s: cam.s });
+      this.w.forEach((el, i) => { M.slam(el, t, [7.75, 8.0][i], { from: 1.9 }); if (t < [7.75, 8.0][i]) el.style.opacity = 0; });
+      M.slam(M.$('#today'), t, 8.5, { from: 2.6 }); if (t < 8.5) M.$('#today').style.opacity = 0;
+    } },
+
+  { id: 's4', a: 9.5, b: 12,
+    setup() { this.w = M.words(M.$('#tag'), 'عاداتك، بنبض يومي.'); },
+    draw(t) {
+      const r = sp(t - 9.8, 'heavy');
+      set(M.$('#ring'), { s: lerp(.2, 1, r), o: clamp((t - 9.8) / .08) });
+      M.slam(M.$('#logo'), t, 10.0, { from: 1.5 }); if (t < 10.0) M.$('#logo').style.opacity = 0;
+      this.w.forEach((el, i) => M.wordIn(el, t, 10.5 + M.stagger(i, .1), { rise: 30 }));
+      const cta = M.$('#cta'), c = sp(t - 11.0, 'ui');
+      set(cta, { s: lerp(.6, 1, c) * (1 + .03 * B.pulse(t) * clamp(t - 11.4)), o: clamp((t - 11.0) / .06) });
+      set(M.$('#sheen'), { x: lerp(-200, 640, ease.inOut3(range(t, 11.35, 11.85))) });
+    } },
+];
+
+SCENES.forEach(s => s.setup && s.setup());
+window.FILM = FILM;
+window.renderAt = async function (t) {
+  for (const s of SCENES) { const on = t >= s.a && t < s.b; M.show(document.getElementById(s.id), on); if (on) s.draw(t); }
+  drawDot(t);
+};
+window.__ready = document.fonts.ready.then(() => Promise.all([...document.fonts].map(f => f.load()))).then(() => window.renderAt(0)).then(() => true);
+
+if (location.search.includes('preview')) {
+  const st = document.getElementById('stage');
+  const fit = () => { const k = Math.min(innerWidth / FILM.width, innerHeight / FILM.height); st.style.transform = `scale(${k})`; };
+  fit(); addEventListener('resize', fit);
+  const t0 = performance.now();
+  (function loop() { window.renderAt(((performance.now() - t0) / 1000) % FILM.duration); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>
