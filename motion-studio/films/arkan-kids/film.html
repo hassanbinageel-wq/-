@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>أركان الدين — للأطفال</title>
+<style>
+  @font-face { font-family:'B'; font-weight:500; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-500-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:700; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:800; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-800-normal.woff2') format('woff2'); }
+  @font-face { font-family:'K'; font-weight:700; src:url('node_modules/@fontsource/marhey/files/marhey-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'N'; font-weight:700; src:url('node_modules/@fontsource/amiri/files/amiri-arabic-700-normal.woff2') format('woff2'); }
+
+  :root { --cream:#FBF6EC; --sky:#DCEFF2; --dg:#1F5C4A; --g:#3BA57A; --gold:#D9A441; --blue:#3E8FB0; --roof:#C8553D; --hill1:#8CC9A0; --hill2:#5FAF85; --ink:#2B2A28; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#000; overflow:hidden; }
+  #stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:linear-gradient(180deg, #BFE3EC 0%, var(--sky) 35%, var(--cream) 72%); font-family:'B',sans-serif; color:var(--ink); transform-origin:0 0; }
+  .abs { position:absolute; }
+  .paper { filter: drop-shadow(0 8px 0 rgba(60,40,10,.13)) drop-shadow(0 16px 22px rgba(60,40,10,.12)); }
+  .w { display:inline-block; }
+  #grain { position:absolute; inset:0; opacity:.16; mix-blend-mode:multiply; pointer-events:none; }
+
+  /* السماء */
+  #sun { left:150px; top:90px; width:170px; height:170px; }
+  .cloud { width:260px; height:110px; }
+  /* الأرض */
+  #hills { left:0; top:0; width:1920px; height:1080px; }
+
+  /* العنوان */
+  #title { left:0; right:0; top:330px; display:flex; justify-content:center; transform-origin:960px 50%; }
+  #banner { position:relative; padding:24px 90px 36px; background:var(--dg); color:#fff; border-radius:28px; font:800 120px 'B'; line-height:1.15; }
+  #banner:before, #banner:after { content:''; position:absolute; top:40px; width:70px; height:110px; background:#174636; z-index:-1; }
+  #banner:before { right:-40px; clip-path:polygon(0 0,100% 0,70% 50%,100% 100%,0 100%); }
+  #banner:after { left:-40px; clip-path:polygon(0 0,100% 0,100% 100%,0 100%,30% 50%); }
+  #three { left:1370px; top:520px; width:230px; height:230px; border-radius:50%; background:var(--gold); color:#fff; font:800 170px 'B'; display:flex; align-items:center; justify-content:center; line-height:1; }
+  #qmark { left:1560px; top:470px; width:120px; height:120px; border-radius:50%; background:#fff; color:var(--dg); font:800 90px 'B'; display:flex; align-items:center; justify-content:center; }
+
+  /* الطريق والبيت */
+  #road { left:0; top:0; width:1920px; height:1080px; }
+  .pillar { position:absolute; bottom:220px; width:150px; height:400px; transform-origin:50% 100%; }
+  .pillar .shaft { position:absolute; left:14px; right:14px; top:30px; bottom:30px; border-radius:10px; background:repeating-linear-gradient(90deg, rgba(255,255,255,.18) 0 14px, rgba(255,255,255,0) 14px 30px); }
+  .pillar .cap, .pillar .base { position:absolute; left:0; right:0; height:34px; border-radius:10px; background:inherit; filter:brightness(.88); }
+  .pillar .cap { top:0; } .pillar .base { bottom:0; }
+  .pillar .name { position:absolute; left:-40px; right:-40px; top:150px; text-align:center; color:#fff; font:800 40px 'B'; text-shadow:0 3px 0 rgba(0,0,0,.18); }
+  #p1 { left:365px; background:var(--g); } #p2 { left:625px; background:var(--gold); } #p3 { left:885px; background:var(--blue); }
+  #baseplate { left:310px; top:860px; width:780px; height:42px; border-radius:12px; background:#B98E5A; }
+  #outline { left:0; top:0; width:1920px; height:1080px; }
+  #roof { left:280px; top:230px; width:840px; height:260px; transform-origin:50% 100%; }
+  #roofword { left:280px; top:345px; width:840px; text-align:center; font:800 72px 'B'; color:#fff; }
+
+  /* بطاقات الشرح (يمين) */
+  .card { position:absolute; left:1190px; top:250px; width:640px; min-height:420px; background:#fff; border-radius:34px; padding:40px 46px; border-right:16px solid var(--c); }
+  .card h2 { font:800 92px 'B'; color:var(--c); line-height:1.1; }
+  .card p { font:700 56px 'B'; color:var(--ink); line-height:1.35; margin-top:14px; }
+  .card .icons { display:flex; gap:56px; justify-content:center; margin-top:26px; }
+  .icon { text-align:center; font:700 40px 'B'; color:#6A6153; }
+  .icon svg { width:150px; height:150px; display:block; margin:0 auto 6px; overflow:visible; }
+  #c0 { --c:var(--dg); } #c1 { --c:var(--g); } #c2 { --c:var(--gold); } #c3 { --c:var(--blue); }
+  .eq { font:800 66px 'B'; color:var(--dg); }
+  #ribbon { left:1210px; top:330px; width:600px; text-align:center; }
+  #ribbon div { display:inline-block; background:var(--roof); color:#fff; font:800 74px 'B'; padding:20px 50px 30px; border-radius:24px; }
+  #ribbon p { font:700 52px 'B'; color:var(--dg); margin-bottom:18px; }
+  .chip { position:absolute; left:1260px; width:520px; height:118px; border-radius:60px; display:flex; align-items:center; gap:24px; padding:0 34px; color:#fff; font:800 64px 'B'; }
+  .chip i { width:62px; height:62px; border-radius:50%; background:#fff; display:inline-flex; align-items:center; justify-content:center; font:800 40px 'B'; font-style:normal; color:var(--dg); }
+  #k1 { top:300px; background:var(--g); } #k2 { top:450px; background:var(--gold); } #k3 { top:600px; background:var(--blue); }
+  #remember { left:1300px; top:170px; font:700 72px 'K'; color:var(--roof); }
+
+  /* بطاقة النص الأصلي */
+  #scroll { left:360px; top:250px; width:1200px; padding:56px 70px 64px; background:#FFF9EA; border-radius:40px; border:6px solid var(--gold); text-align:center; }
+  #scroll small { display:block; font:700 46px 'B'; color:var(--gold); margin-bottom:10px; }
+  #scroll div { font:700 96px 'N'; color:var(--dg); line-height:1.6; }
+  .conf { position:absolute; width:22px; height:30px; border-radius:5px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="sun" class="abs paper" viewBox="-100 -100 200 200"><g id="rays" fill="#F2C14E"></g><circle r="52" fill="#F2B632"/></svg>
+  <svg class="abs cloud paper" id="cl1" viewBox="0 0 260 110"><path d="M40 100 H220 A40 40 0 0 0 214 22 A55 55 0 0 0 112 26 A42 42 0 0 0 40 100Z" fill="#fff"/></svg>
+  <svg class="abs cloud paper" id="cl2" viewBox="0 0 260 110"><path d="M40 100 H220 A40 40 0 0 0 214 22 A55 55 0 0 0 112 26 A42 42 0 0 0 40 100Z" fill="#fff"/></svg>
+
+  <svg id="hills" class="abs paper" viewBox="0 0 1920 1080">
+    <path id="h1" d="M0 760 C260 690 520 700 780 750 C1080 810 1380 700 1920 730 L1920 1080 L0 1080Z" fill="var(--hill1)"/>
+    <path id="h2" d="M0 860 C380 820 760 840 1100 870 C1420 900 1700 850 1920 860 L1920 1080 L0 1080Z" fill="var(--hill2)"/>
+    <rect y="900" width="1920" height="180" fill="#4E9A73"/>
+  </svg>
+  <svg id="road" class="abs" viewBox="0 0 1920 1080"><path id="roadp" pathLength="1" d="M1960 1040 C1600 990 1500 930 1250 920 C1000 910 900 890 760 860" fill="none" stroke="#F3E2B8" stroke-width="54" stroke-linecap="round"/><path id="roadd" pathLength="1" d="M1960 1040 C1600 990 1500 930 1250 920 C1000 910 900 890 760 860" fill="none" stroke="#fff" stroke-width="6" stroke-dasharray=".015 .02" stroke-linecap="round"/></svg>
+
+  <svg id="outline" class="abs" viewBox="0 0 1920 1080"><path id="outp" d="M310 860 H1090 M365 860 V460 M515 860 V460 M625 860 V460 M775 860 V460 M885 860 V460 M1035 860 V460 M290 470 H1110 L700 240 Z" fill="none" stroke="#1F5C4A" stroke-width="5" stroke-dasharray="18 16" stroke-linecap="round" opacity=".55"/></svg>
+
+  <div id="baseplate" class="abs paper"></div>
+  <div class="pillar paper" id="p1"><div class="cap"></div><div class="shaft"></div><div class="base"></div><div class="name">الإسلام</div></div>
+  <div class="pillar paper" id="p2"><div class="cap"></div><div class="shaft"></div><div class="base"></div><div class="name">الإيمان</div></div>
+  <div class="pillar paper" id="p3"><div class="cap"></div><div class="shaft"></div><div class="base"></div><div class="name">الإحسان</div></div>
+  <svg id="roof" class="abs paper" viewBox="0 0 840 260"><path d="M10 240 L420 10 L830 240 Z" fill="var(--roof)"/><rect x="0" y="228" width="840" height="32" rx="10" fill="#A9432F"/></svg>
+  <div id="roofword" class="abs">الدِّين</div>
+  <div id="dust" class="abs" style="left:0;top:0"></div>
+
+  <div id="title" class="abs paper"><div id="banner">أركانُ الدِّين</div></div>
+  <div id="three" class="abs paper">٣</div>
+  <div id="qmark" class="abs paper">؟</div>
+
+  <!-- البطاقات -->
+  <div class="card paper" id="c0"><h2>أركان</h2><p class="eq">= أُسُس وأعمدة</p><p>مثل أعمدة البيت!</p></div>
+  <div class="card paper" id="c1"><h2>الإسلام</h2><p>الأعمال الظاهرة</p>
+    <div class="icons">
+      <div class="icon" id="i11"><svg viewBox="0 0 100 100"><rect x="18" y="8" width="64" height="84" rx="8" fill="#3BA57A"/><path d="M30 50 V28 Q50 8 70 28 V50 Z" fill="#E8F5EE"/><rect x="26" y="62" width="48" height="6" rx="3" fill="#E8F5EE"/><rect x="26" y="74" width="48" height="6" rx="3" fill="#E8F5EE"/><path d="M24 92 v6 M34 92 v6 M44 92 v6 M56 92 v6 M66 92 v6 M76 92 v6" stroke="#2E8763" stroke-width="3"/></svg>الصلاة</div>
+      <div class="icon" id="i12"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#F2B632"/><circle cx="66" cy="40" r="36" fill="#fff"/><path d="M78 70 l3 7 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#F2B632"/></svg>الصوم</div>
+    </div></div>
+  <div class="card paper" id="c2"><h2>الإيمان</h2><p>تصديق القلب</p>
+    <div class="icons"><div class="icon" id="i21"><svg viewBox="0 0 100 100"><path id="heart" d="M50 86 C14 62 6 40 18 24 C30 10 46 16 50 30 C54 16 70 10 82 24 C94 40 86 62 50 86Z" fill="#D9A441"/><path d="M30 30 C26 36 26 44 30 50" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/></svg></div></div></div>
+  <div class="card paper" id="c3"><h2>الإحسان</h2><p>إخلاص العبادة<br>كأنّك ترى الله</p>
+    <div class="icons"><div class="icon" id="i31"><svg viewBox="-50 -50 100 100"><g id="srays" stroke="#3E8FB0" stroke-width="4" stroke-linecap="round"></g><path d="M0 -30 L8 -10 L30 -8 L13 6 L18 28 L0 16 L-18 28 L-13 6 L-30 -8 L-8 -10Z" fill="#3E8FB0"/></svg></div></div></div>
+
+  <div id="ribbon" class="abs paper"><p>الثلاثة معًا تصنع</p><div>المسلم الحقيقي</div></div>
+  <div id="remember" class="abs">هيّا نتذكّر!</div>
+  <div class="chip paper" id="k1"><i>١</i>الإسلام</div>
+  <div class="chip paper" id="k2"><i>٢</i>الإيمان</div>
+  <div class="chip paper" id="k3"><i>٣</i>الإحسان</div>
+
+  <div id="scroll" class="abs paper"><small>📖 النصّ من الكتاب</small><div>أَرْكَانُ الدِّينِ ثَلَاثَةٌ:<br>الإِسْلَامُ، الإِيمَانُ، الإِحْسَانُ</div></div>
+  <div id="conf" class="abs" style="left:0;top:0"></div>
+
+  <svg id="grain" viewBox="0 0 1920 1080"><filter id="pn"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0"/></filter><rect width="1920" height="1080" filter="url(#pn)"/></svg>
+</div>
+
+<script src="lib/motion.js"></script>
+<script src="timing.js"></script>
+<script>
+const V = TIMING.vo;                       // [{start, dur}] × 7 — من timing.py
+const at = (i, f = 0) => V[i - 1].start + V[i - 1].dur * f;   // لحظة داخل جملة التعليق
+const FILM = { width: 1920, height: 1080, fps: 30, duration: TIMING.duration, cuts: [] };
+const { sp, set, clamp, lerp, ease, range } = M;
+const $ = M.$;
+
+// ---------------------------------------------------------------- أدوات ورقية
+// دخول ورقي: يقفز من الأسفل بارتداد مرح ويميل قليلًا ثم يستقر
+function pop(el, t, t0, { preset = 'playful', from = .3, rot = -6, dy = 40 } = {}) {
+  const s = sp(t - t0, preset);
+  set(el, { s: lerp(from, 1, s), y: (1 - s) * dy, r: (1 - s) * rot, o: clamp((t - t0) / .08) });
+  return s;
+}
+function slideIn(el, t, t0, t1) {           // بطاقة: من اليمين بارتداد، تخرج للأعلى
+  const s = sp(t - t0, 'ui'), out = ease.power4In(range(t, t1, t1 + .35));
+  set(el, { x: (1 - s) * 760, y: -out * 700, r: (1 - s) * 5 - out * 4, o: clamp((t - t0) / .1) * (1 - out) });
+}
+const hide = el => { el.style.opacity = 0; };
+
+// ---------------------------------------------------------------- إعداد
+const rays = $('#rays');
+for (let i = 0; i < 12; i++) rays.insertAdjacentHTML('beforeend', `<rect x="-7" y="-96" width="14" height="30" rx="7" transform="rotate(${i * 30})"/>`);
+const sr = $('#srays');
+for (let i = 0; i < 8; i++) sr.insertAdjacentHTML('beforeend', `<line x1="0" y1="-36" x2="0" y2="-48" transform="rotate(${i * 45 + 22.5})"/>`);
+const dust = $('#dust'), puffs = [];
+for (let i = 0; i < 14; i++) { const d = document.createElement('div'); d.className = 'abs'; d.style.cssText = 'width:40px;height:40px;border-radius:50%;background:#F4EAD5;margin:-20px 0 0 -20px'; dust.appendChild(d); puffs.push(d); }
+const conf = $('#conf'), bits = [], R = M.rng(7), COL = ['#3BA57A', '#D9A441', '#3E8FB0', '#C8553D', '#F2B632'];
+for (let i = 0; i < 46; i++) { const d = document.createElement('div'); d.className = 'conf'; d.style.background = COL[i % 5]; conf.appendChild(d); bits.push({ d, x: R() * 1920, v: 160 + R() * 220, w: R() * 6, r0: R() * 360, delay: R() * .8 }); }
+
+// أزمنة الأحداث (مربوطة بكلمات التعليق)
+const E = {
+  title: .3, three: at(1, .72), road: at(2, .02), c0: at(2, .45), outline: at(2, .78),
+  p1: at(3, .12), c1: at(3, .2), rug: at(3, .62), moon: at(3, .82),
+  p2: at(4, .12), c2: at(4, .2), heart: at(4, .6),
+  p3: at(5, .1), c3: at(5, .18), star: at(5, .55),
+  glow: at(6, .0), roof: at(6, .25), ribbon: at(6, .6),
+  rem: at(7, .02), k1: at(7, .5), k2: at(7, .68), k3: at(7, .86),
+  scroll: at(7) + V[6].dur + .5,
+};
+
+window.FILM = FILM;
+window.renderAt = async function (t) {
+  // ----- عالم حي بهدوء: شمس تدور ببطء وغيوم تنساب
+  $('#rays').setAttribute('transform', `rotate(${t * 6})`);
+  set($('#sun'), { s: sp(t - .1, 'playful') });
+  set($('#cl1'), { x: 520 + ((t * 18) % 2300) - 300, y: 120 });
+  set($('#cl2'), { x: 1500 - ((t * 12) % 2300) + 300, y: 200, s: .8 });
+
+  // ----- العنوان: يكبر في البداية ثم يصعد ليصير ترويسة صغيرة
+  const tt = pop($('#title'), t, E.title, { preset: 'playful', from: .2, rot: -4 });
+  const up = ease.inOut3(range(t, at(1, 1) + .2, at(1, 1) + .9));
+  $('#title').style.transform = `translate(0px, ${lerp(0, -280, up) + (1 - tt) * 40}px) scale(${lerp(.2, 1, tt) * lerp(1, .5, up)})`;
+
+  // ----- ٣ أركان؟
+  if (t < at(2)) { pop($('#three'), t, E.three, { rot: -12 }); pop($('#qmark'), t, E.three + .25, { rot: 14 }); }
+  const qOut = ease.power4In(range(t, at(2) - .2, at(2) + .15));
+  if (t >= at(2) - .2) { set($('#three'), { y: qOut * -600, o: 1 - qOut }); set($('#qmark'), { y: qOut * -600, o: 1 - qOut }); }
+
+  // ----- الطريق الذي رسمه الله لنا: يُرسم من اليمين
+  const rd = ease.inOut3(range(t, E.road, E.road + 1.6));
+  for (const id of ['#roadp', '#roadd']) { const p = $(id); p.style.strokeDashoffset = 1 - rd; }
+  $('#roadp').style.strokeDasharray = '1 1';
+  $('#roadd').style.opacity = rd > .98 ? 1 : 0;
+
+  // ----- بطاقة «أركان = أسس وأعمدة» + الشكل المنقّط للبيت
+  slideIn($('#c0'), t, E.c0, E.p1 - .2);
+  $('#outp').style.strokeDashoffset = (1 - ease.out3(range(t, E.outline, E.outline + 1))) * 4000;
+  $('#outp').style.strokeDasharray = t < E.outline + 1 ? `18 16` : '18 16';
+  $('#outline').style.opacity = range(t, E.outline, E.outline + .3) * (1 - range(t, E.roof, E.roof + .3));
+
+  // ----- الأساس + الأعمدة ترتفع من الأرض (الحركة التوقيعية)
+  set($('#baseplate'), { sx: sp(t - (E.outline + .2), 'base'), o: clamp((t - E.outline - .2) / .1) });
+  [['#p1', E.p1], ['#p2', E.p2], ['#p3', E.p3]].forEach(([id, t0], i) => {
+    const el = $(id), s = sp(t - t0, [140, 11]);
+    const glow = t >= E.glow ? Math.exp(-Math.max(0, t - E.glow - i * .12) * 5) * (t - E.glow - i * .12 > 0 ? 1 : 0) : 0;
+    const k = [E.k1, E.k2, E.k3][i], bounce = t >= k ? Math.exp(-(t - k) * 6) * Math.sin((t - k) * 18) * .06 : 0;
+    set(el, { sy: Math.max(0, s), sx: 1 + glow * .08 + bounce, o: t >= t0 ? 1 : 0, y: -glow * 14 - Math.abs(bounce) * 200 });
+    el.querySelector('.name').style.opacity = clamp((t - t0 - .35) / .15);
+  });
+
+  // ----- البطاقات الثلاث
+  slideIn($('#c1'), t, E.c1, E.p2 - .2);  pop($('#i11'), t, E.rug, { rot: -10 }); pop($('#i12'), t, E.moon, { rot: 10 });
+  if (t < E.rug) hide($('#i11')); if (t < E.moon) hide($('#i12'));
+  slideIn($('#c2'), t, E.c2, E.p3 - .2);  pop($('#i21'), t, E.heart);
+  if (t < E.heart) hide($('#i21'));
+  $('#heart').setAttribute('transform', `translate(50 50) scale(${1 + .07 * Math.max(0, Math.sin((t - E.heart) * 7.5)) * (t > E.heart + .4 ? 1 : 0)}) translate(-50 -50)`);
+  slideIn($('#c3'), t, E.c3, E.glow - .1); pop($('#i31'), t, E.star, { rot: 30 });
+  if (t < E.star) hide($('#i31'));
+  $('#srays').style.opacity = .4 + .6 * Math.abs(Math.sin((t - E.star) * 3));
+
+  // ----- السقف يهبط بثقل ويرتجّ البيت + غبار ورقي
+  const rf = sp(t - E.roof, 'heavy');
+  set($('#roof'), { y: (1 - rf) * -700, o: t >= E.roof ? 1 : 0, sy: 1 - .06 * Math.exp(-Math.max(0, t - E.roof - .35) * 8) * (t > E.roof + .35 ? 1 : 0) });
+  $('#roofword').style.opacity = clamp((t - E.roof - .45) / .2);
+  const dt = t - E.roof - .35;
+  puffs.forEach((p, i) => {
+    const a = (i / puffs.length) * Math.PI - Math.PI, side = i % 2 ? 1 : -1;
+    const k = clamp(dt / .9);
+    set(p, { x: 700 + side * (300 + 280 * ease.out3(k)) + Math.cos(a) * 30, y: 470 - 60 * ease.out3(k) * (.5 + (i % 3) * .3), s: (.6 + (i % 4) * .25) * (1 + k), o: dt > 0 ? (1 - k) * .9 : 0 });
+  });
+  const shake = M.impact(t, [E.roof + .35], { amp: 10, zoom: .012 });
+  $('#stage').style.transform = `translate(${shake.x}px, ${shake.y}px)`;
+
+  // ----- «المسلم الحقيقي» + التذكير
+  pop($('#ribbon'), t, E.ribbon, { rot: -5 });
+  const rOut = ease.power4In(range(t, E.rem - .1, E.rem + .25));
+  if (t < E.ribbon) hide($('#ribbon')); else if (rOut > 0) set($('#ribbon'), { y: -rOut * 700, o: 1 - rOut });
+  const endOut = ease.power4In(range(t, E.scroll - .3, E.scroll));
+  pop($('#remember'), t, E.rem, { rot: -8 }); if (t < E.rem) hide($('#remember'));
+  [['#k1', E.k1], ['#k2', E.k2], ['#k3', E.k3]].forEach(([id, t0]) => { const el = $(id); pop(el, t, t0, { from: .5, dy: 0, rot: -4 }); if (t < t0) hide(el); });
+  if (endOut > 0) for (const id of ['#remember', '#k1', '#k2', '#k3']) set($(id), { x: endOut * 900, o: 1 - endOut });
+
+  // ----- الختام: النص الأصلي من الكتاب + قصاصات ملوّنة
+  const house = ease.inOut3(range(t, E.scroll - .3, E.scroll + .5));
+  pop($('#scroll'), t, E.scroll, { from: .4, rot: -3 }); if (t < E.scroll) hide($('#scroll'));
+  for (const id of ['#p1', '#p2', '#p3', '#roof', '#roofword', '#baseplate']) { const el = $(id); if (house > 0) el.style.opacity = (1 - house) * (+el.style.opacity || 0); }
+  const ct = t - E.scroll - .2;
+  bits.forEach(b => {
+    const k = ct - b.delay;
+    set(b.d, { x: b.x + Math.sin(k * 3 + b.w) * 40, y: -60 + k * b.v, r: b.r0 + k * 220, o: k > 0 ? 1 : 0 });
+  });
+};
+window.__ready = document.fonts.ready.then(() => Promise.all([...document.fonts].map(f => f.load()))).then(() => window.renderAt(0)).then(() => true);
+
+if (location.search.includes('preview')) {
+  const st = document.getElementById('stage');
+  const fit = () => { const k = Math.min(innerWidth / FILM.width, innerHeight / FILM.height); st.style.transform = `scale(${k})`; };
+  fit(); addEventListener('resize', fit);
+  const t0 = performance.now();
+  (function loop() { window.renderAt(((performance.now() - t0) / 1000) % FILM.duration); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>
