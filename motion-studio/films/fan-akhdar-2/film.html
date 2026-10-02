@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>فن أخضر 2 — حفل الختام</title>
+<style>
+  @font-face { font-family:'DIN'; src:url('assets/DINNextLTArabic-Regular.ttf') format('truetype'); }
+  :root { --deep:#0C3428; --green:#127A5E; --lime:#CFD45A; --cream:#F6F3E8; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#000; overflow:hidden; }
+  #stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:#000; font-family:'DIN',sans-serif; color:var(--cream); transform-origin:0 0; }
+  .abs { position:absolute; }
+  .layer { position:absolute; inset:0; pointer-events:none; }
+  #foot { position:absolute; left:0; top:0; width:1920px; height:1080px; transform-origin:1190px 420px; }
+  #vig { background:radial-gradient(120% 95% at 55% 42%, rgba(0,0,0,0) 55%, rgba(0,12,8,.45) 100%); }
+  #grade { background:linear-gradient(180deg, rgba(12,52,40,0) 55%, rgba(12,52,40,.38) 100%); }
+  .mk { display:inline-block; overflow:hidden; padding:.16em .05em .3em; margin:-.16em 0 -.3em; vertical-align:bottom; }
+  .mi { display:inline-block; }
+  .bold { -webkit-text-stroke:.022em currentColor; }   /* الخط المتوفر Regular فقط — تثقيل خفيف للعناوين */
+
+  /* الافتتاح والختام: لوح أخضر */
+  .panel { position:absolute; inset:0; background:linear-gradient(135deg, var(--deep) 0%, #0F5A45 55%, var(--green) 100%); overflow:hidden; }
+  .panel svg.pat { position:absolute; inset:-200px; width:2320px; height:1480px; opacity:.07; }
+  .edge { position:absolute; top:0; bottom:0; left:-14px; width:14px; background:var(--lime); }
+  .kicker { font-size:58px; color:var(--lime); }
+  .title { font-size:230px; line-height:1.1; color:#fff; }
+  .sub { font-size:50px; color:var(--cream); opacity:.92; }
+  #in .stack, #out .stack { position:absolute; left:0; right:0; top:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:6px; }
+  .rule { width:0; height:4px; background:var(--lime); border-radius:2px; margin:18px auto 22px; }
+  .stack .mk { margin-left:14px; }
+  .credit { font-size:38px; color:var(--cream); opacity:.9; direction:rtl; }
+  .credit b { font-weight:normal; color:var(--lime); }
+
+  /* الشريط السفلي */
+  #lt { right:110px; bottom:120px; display:flex; align-items:stretch; }
+  #lt .bar { width:12px; background:var(--lime); border-radius:3px; transform-origin:50% 100%; }
+  #lt .box { background:rgba(12,52,40,.88); padding:22px 40px 26px 46px; border-radius:6px 0 0 6px; margin-right:0; }
+  #lt .l1 { font-size:58px; color:#fff; line-height:1.25; }
+  #lt .l2 { font-size:36px; color:var(--lime); margin-top:4px; }
+  #lt .mk { margin-left:12px; }
+  #quote { right:110px; bottom:120px; display:flex; align-items:stretch; }
+  #quote .bar { width:12px; background:var(--lime); border-radius:3px; }
+  #quote .box { background:rgba(12,52,40,.88); padding:24px 46px 28px; border-radius:6px 0 0 6px; }
+  #quote .q { font-size:54px; color:#fff; line-height:1.35; }
+  #quote .mk { margin-left:12px; }
+  #grain { opacity:.05; mix-blend-mode:overlay; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <img id="foot" src="frames/f_0001.jpg" alt="">
+  <div id="grade" class="layer"></div>
+  <div id="vig" class="layer"></div>
+
+  <div id="lt" class="abs"><div class="bar"></div><div class="box"><div class="l1 bold" id="lt1"></div><div class="l2" id="lt2"></div></div></div>
+  <div id="quote" class="abs"><div class="bar"></div><div class="box"><div class="q" id="q1"></div></div></div>
+
+  <div id="out" class="panel">
+    <svg class="pat" viewBox="0 0 2320 1480"><defs><pattern id="lp2" width="160" height="160" patternUnits="userSpaceOnUse"><path d="M20 80 Q80 20 140 80 Q80 140 20 80Z" fill="none" stroke="#fff" stroke-width="2"/></pattern></defs><rect width="2320" height="1480" fill="url(#lp2)"/></svg>
+    <div class="edge"></div>
+    <div class="stack">
+      <div class="kicker" id="o0"></div>
+      <div class="title bold" id="o1"></div>
+      <div class="rule" id="orule"></div>
+      <div class="credit" id="o2"></div>
+      <div class="credit" id="o3" style="direction:ltr"></div>
+    </div>
+  </div>
+
+  <div id="in" class="panel">
+    <svg class="pat" viewBox="0 0 2320 1480"><defs><pattern id="lp" width="160" height="160" patternUnits="userSpaceOnUse"><path d="M20 80 Q80 20 140 80 Q80 140 20 80Z" fill="none" stroke="#fff" stroke-width="2"/></pattern></defs><rect id="patr" width="2320" height="1480" fill="url(#lp)"/></svg>
+    <div class="stack">
+      <div class="kicker" id="i0"></div>
+      <div class="title bold" id="i1"></div>
+      <div class="rule" id="irule"></div>
+      <div class="sub" id="i2"></div>
+    </div>
+    <div class="edge"></div>
+  </div>
+  <canvas id="grain" class="layer" width="480" height="270" style="width:1920px;height:1080px"></canvas>
+</div>
+
+<script src="lib/motion.js"></script>
+<script>
+const FPS_SRC = 25, NFR = 188;
+const T0 = 1.6, TEND = T0 + NFR / FPS_SRC, T_OUT = 8.7;
+const FILM = { width: 1920, height: 1080, fps: 25, duration: 12.2, cuts: [] };
+const { sp, set, clamp, lerp, ease, range } = M; const $ = M.$;
+
+function maskWords(el, text) { el.innerHTML = ''; return text.split(/\s+/).filter(Boolean).map(w => { const m = document.createElement('span'); m.className = 'mk'; const s = document.createElement('span'); s.className = 'mi'; s.textContent = w; m.appendChild(s); el.appendChild(m); return s; }); }
+function mask(s, t, at, out = 99) { const a = sp(t - at, 'type'), b = ease.power4In(range(t, out, out + .25)); s.style.transform = `translateY(${(1 - a) * 150 - b * 150}%)`; }
+const words = (id, txt) => maskWords($(id), txt);
+
+const W = {
+  i0: words('#i0', 'حفل اختتام مشروع'), i1: words('#i1', 'فن أخضر 2'), i2: words('#i2', 'لنحتفي بوعي أطفالنا صُنّاع الاستدامة'),
+  lt1: words('#lt1', 'حفل اختتام مشروع «فن أخضر 2»'), lt2: words('#lt2', 'الأربعاء 30 سبتمبر'),
+  q1: words('#q1', 'والأعمال الإبداعية التي صنعتها أيديهم الصغيرة'),
+  o0: words('#o0', 'فن أخضر 2'), o1: words('#o1', 'صُنّاع الاستدامة'),
+};
+$('#o2').innerHTML = '<span class="mk"><span class="mi"><b>بدعم من</b>&nbsp; الاتحاد الأوروبي · معهد غوته</span></span>';
+$('#o3').innerHTML = '<span class="mk"><span class="mi">artmix · Yemen Creative Hubs</span></span>';
+
+const foot = $('#foot'); let curFrame = 1;
+async function setFrame(n) {
+  n = Math.max(1, Math.min(NFR, n));
+  if (n === curFrame && foot.complete) return;
+  curFrame = n; foot.src = `frames/f_${String(n).padStart(4, '0')}.jpg`;
+  await foot.decode().catch(() => {});
+}
+const gctx = $('#grain').getContext('2d'), gimg = gctx.createImageData(480, 270);
+
+window.FILM = FILM;
+window.renderAt = async function (t) {
+  // ----- اللقطة: مصححة لونيًا، دفع كاميرا بطيء نحو المتحدثة، تجمد على آخر إطار في الختام
+  await setFrame(Math.floor((t - T0) * FPS_SRC) + 1);
+  const reveal = ease.power4Out(range(t, T0, T0 + .9));
+  const blurOut = ease.inOut3(range(t, T_OUT, T_OUT + .8));
+  set(foot, { s: lerp(1.12, 1.0, reveal) * (1 + .045 * range(t, T0, TEND)), blur: blurOut * 14 });
+
+  // ----- الافتتاح: لوح أخضر بنمط أوراق، عنوان يرتفع كلمة كلمة، ثم يخرج يمين←يسار كاشفًا اللقطة
+  $('#patr').setAttribute('transform', `translate(${(t * 12) % 160} 0)`);
+  W.i0.forEach((s, i) => mask(s, t, .15 + i * .07, T0 - .9 + i * .03));
+  W.i1.forEach((s, i) => mask(s, t, .35 + i * .1, T0 - .85 + i * .03));
+  $('#irule').style.width = `${ease.out3(range(t, .7, 1.2)) * 260}px`;
+  W.i2.forEach((s, i) => mask(s, t, .8 + i * .05, T0 - .9 + i * .02));
+  $('#irule').style.opacity = 1 - range(t, T0 - .85, T0 - .6);
+  const wipe = ease.power4In(range(t, T0 - .45, T0 + .1));
+  $('#in').style.transform = `translateX(${-wipe * 2000}px)`;
+  $('#in').style.visibility = wipe >= 1 ? 'hidden' : 'visible';
+
+  // ----- الشريط السفلي: الحدث والتاريخ
+  const ltOn = t >= 2.4 && t < 6.2;
+  $('#lt').style.visibility = ltOn ? 'visible' : 'hidden';
+  if (ltOn) {
+    const k = sp(t - 2.4, 'ui'), o = ease.power4In(range(t, 5.75, 6.05));
+    $('#lt .bar').style.transform = `scaleY(${clamp(k * 1.05)})`;
+    $('#lt .box').style.clipPath = `inset(0 0 0 ${(1 - ease.out3(range(t, 2.5, 3.0))) * 100}%)`;
+    set($('#lt'), { x: -o * 60, o: 1 - o });
+    W.lt1.forEach((s, i) => mask(s, t, 2.65 + i * .06));
+    W.lt2.forEach((s, i) => mask(s, t, 2.95 + i * .06));
+  }
+  // ----- اقتباس الشاشة: الأعمال الإبداعية
+  const qOn = t >= 6.2 && t < T_OUT;
+  $('#quote').style.visibility = qOn ? 'visible' : 'hidden';
+  if (qOn) {
+    const k = sp(t - 6.2, 'ui'), o = ease.power4In(range(t, T_OUT - .4, T_OUT - .1));
+    $('#quote .bar').style.transform = `scaleY(${clamp(k * 1.05)})`;
+    $('#quote .box').style.clipPath = `inset(0 0 0 ${(1 - ease.out3(range(t, 6.3, 6.8))) * 100}%)`;
+    set($('#quote'), { x: -o * 60, o: 1 - o });
+    W.q1.forEach((s, i) => mask(s, t, 6.45 + i * .06));
+  }
+
+  // ----- الختام: اللوح يدخل من اليمين فوق اللقطة المتجمدة
+  const oin = ease.power4Out(range(t, T_OUT, T_OUT + .7));
+  $('#out').style.visibility = t >= T_OUT ? 'visible' : 'hidden';
+  $('#out').style.transform = `translateX(${(1 - oin) * 2000}px)`;
+  $('#out').style.opacity = .93;
+  W.o0.forEach((s, i) => mask(s, t, T_OUT + .5 + i * .07));
+  W.o1.forEach((s, i) => mask(s, t, T_OUT + .7 + i * .1));
+  $('#orule').style.width = `${ease.out3(range(t, T_OUT + 1.0, T_OUT + 1.5)) * 260}px`;
+  mask($('#o2 .mi'), t, T_OUT + 1.2); mask($('#o3 .mi'), t, T_OUT + 1.35);
+
+  // ----- حبيبات خفيفة حتمية
+  const r = M.rng(Math.round(t * FILM.fps) + 3), d = gimg.data;
+  for (let i = 0; i < d.length; i += 4) { const v = r() * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+  gctx.putImageData(gimg, 0, 0);
+};
+window.__ready = document.fonts.load('60px DIN').then(() => document.fonts.ready).then(() => window.renderAt(0)).then(() => true);
+</script>
+</body>
+</html>

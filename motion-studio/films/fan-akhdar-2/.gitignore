@@ -1,0 +1,6 @@
+source.mp4
+frames/
+assets/*.ttf
+assets/source_audio.wav
+*.mp4
+out/
