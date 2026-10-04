@@ -40,7 +40,7 @@
   #rays { left:525px; top:330px; width:10px; height:10px; }
 
   /* البطاقات */
-  .card { position:absolute; left:880px; top:200px; width:470px; background:#fff; border-radius:32px; padding:34px 40px 30px; border-right:14px solid var(--c); }
+  .card { position:absolute; left:960px; top:200px; width:470px; background:#fff; border-radius:32px; padding:34px 40px 30px; border-right:14px solid var(--c); }
   .card h2 { font:800 72px 'B'; color:var(--c); line-height:1.1; }
   .card p { font:700 42px 'B'; line-height:1.35; margin-top:10px; }
   .card .icons { display:flex; gap:48px; justify-content:center; margin-top:18px; }
@@ -66,7 +66,6 @@
   /* الطفل المقدّم */
   #boy { position:absolute; left:1364px; top:0; width:633px; height:1777px; transform-origin:316px 1777px; }
   #body { position:absolute; left:0; top:404px; }
-  .arm { position:absolute; }
   #headw { position:absolute; left:0; top:0; width:633px; height:451px; transform-origin:301px 445px; }
   #headw img, #headw svg { position:absolute; left:0; top:0; width:633px; height:451px; }
   #shadow { position:absolute; left:1555px; top:1014px; width:250px; height:40px; border-radius:50%; background:rgba(30,60,40,.28); filter:blur(6px); }
@@ -144,8 +143,6 @@
     <div id="shadow"></div>
     <div id="boy">
       <img id="body" src="assets/man_body.png" alt="">
-      <img id="armL" class="arm" src="assets/man_armL.png" alt="" style="left:8px;top:487px;transform-origin:138px 64px">
-      <img id="armR" class="arm" src="assets/man_armR.png" alt="" style="left:443px;top:472px;transform-origin:45px 89px">
       <div id="headw">
         <img src="assets/man_head.png" alt="">
         <svg viewBox="0 0 633 451">
@@ -300,15 +297,6 @@ window.renderAt = async function (t) {
   const nod = talk * 3 + Math.sin(t * 1.3) * 1;
   const tilt = Math.sin(t * 1.7) * (1 + talk * 2) + (t > E.bravo ? 3 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
   $('#headw').style.transform = `translate(0px, ${-nod}px) rotate(${tilt}deg)`;
-  // اليدان: تمايل خفيف مع الصوت + إيماءة تأكيد عند بداية كل عبارة (تتبادل اليدان) + رفع اليد نحو العمود + فتحهما عند «أحسنتم»
-  let gL = 0, gR = 0;
-  P.forEach((p, i) => { if (!p.text || t < p.a - .1) return; const k = sp(t - p.a + .1, [120, 14]) * (1 - ease.inOut3(range(t, p.b - .2, p.b + .35)));
-    if (i % 2) gL += 9 * k; else gR += 9 * k; });
-  for (const [tp] of POINT) { const k = sp(t - tp, [110, 13]) * (1 - ease.inOut3(range(t, tp + 1.9, tp + 2.5))); gL += 24 * k; }
-  if (t > E.bravo) { const k = sp(t - E.bravo, 'playful') * (1 - ease.inOut3(range(t, E.bravo + 2.4, E.bravo + 3))); gL += 18 * k; gR += 18 * k; }
-  const sway = Math.sin(t * 2.3) * 1.6 * talk;
-  $('#armL').style.transform = `rotate(${gL + sway}deg)`;            // موجب = اليد للخارج (يسار الشاشة نحو الأعمدة)
-  $('#armR').style.transform = `rotate(${-(gR + sway * .8)}deg)`;    // سالب = للخارج (يمين الشاشة)
   // الفم: يفتح مع غلاف الصوت؛ في الصمت تبقى ابتسامة الرسم الأصلية
   const mo = clamp((e - .06) * 1.25);
   $('#mouthg').style.opacity = clamp((mo - .06) / .08);   // في السكتات تعود ابتسامة الرسم الأصلية
