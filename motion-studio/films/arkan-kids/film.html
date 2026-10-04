@@ -48,11 +48,11 @@
   .icon svg { width:112px; height:112px; display:block; margin:0 auto 4px; overflow:visible; }
   #c0 { --c:var(--dg); } #c1 { --c:var(--g); } #c2 { --c:var(--gold); } #c3 { --c:var(--blue); }
   #three { left:1060px; top:250px; width:200px; height:200px; border-radius:50%; background:var(--gold); color:#fff; font:800 150px 'B'; display:flex; align-items:center; justify-content:center; line-height:1; }
-  #ribbon { left:880px; top:260px; width:500px; text-align:center; }
+  #ribbon { left:1010px; top:260px; width:500px; text-align:center; }
   #ribbon p { font:700 46px 'B'; color:var(--dg); margin-bottom:14px; }
   #ribbon div { display:inline-block; white-space:nowrap; background:var(--roof); color:#fff; font:800 58px 'B'; padding:16px 42px 26px; border-radius:22px; }
-  #remember { left:900px; top:150px; width:460px; text-align:center; font:700 64px 'K'; color:var(--roof); }
-  .chip { position:absolute; left:920px; width:420px; height:108px; border-radius:56px; display:flex; align-items:center; gap:22px; padding:0 30px; color:#fff; font:800 58px 'B'; }
+  #remember { left:1020px; top:150px; width:440px; text-align:center; font:700 64px 'K'; color:var(--roof); }
+  .chip { position:absolute; left:1040px; width:420px; height:108px; border-radius:56px; display:flex; align-items:center; gap:22px; padding:0 30px; color:#fff; font:800 58px 'B'; }
   .chip i { width:58px; height:58px; border-radius:50%; background:#fff; display:inline-flex; align-items:center; justify-content:center; font:800 36px 'B'; font-style:normal; color:var(--dg); }
   #k1 { top:290px; background:var(--g); } #k2 { top:430px; background:var(--gold); } #k3 { top:570px; background:var(--blue); }
 
@@ -66,6 +66,7 @@
   /* الطفل المقدّم */
   #boy { position:absolute; left:1364px; top:0; width:633px; height:1777px; transform-origin:316px 1777px; }
   #body { position:absolute; left:0; top:404px; }
+  .arm { position:absolute; }
   #headw { position:absolute; left:0; top:0; width:633px; height:451px; transform-origin:301px 445px; }
   #headw img, #headw svg { position:absolute; left:0; top:0; width:633px; height:451px; }
   #shadow { position:absolute; left:1555px; top:1014px; width:250px; height:40px; border-radius:50%; background:rgba(30,60,40,.28); filter:blur(6px); }
@@ -120,7 +121,7 @@
     <div class="card paper" id="c1"><h2>الإسلام</h2><p>الأعمال الظاهرة</p>
       <div class="icons">
         <div class="icon" id="i11"><svg viewBox="0 0 100 100"><g id="rug"><rect x="18" y="8" width="64" height="84" rx="8" fill="#3BA57A"/><path d="M30 50 V28 Q50 8 70 28 V50 Z" fill="#E8F5EE"/><rect x="26" y="62" width="48" height="6" rx="3" fill="#E8F5EE"/><rect x="26" y="74" width="48" height="6" rx="3" fill="#E8F5EE"/></g></svg>الصلاة</div>
-        <div class="icon" id="i12"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#F2B632"/><circle cx="66" cy="40" r="36" fill="#fff"/><path d="M78 70 l3 7 7 1 -5 5 1 7 -6 -4 -6 4 1 -7 -5 -5 7 -1z" fill="#F2B632"/></svg>الصوم</div>
+        <div class="icon" id="i12"><svg viewBox="0 0 100 100"><path d="M12 16 H50 L45 82 Q44 88 38 88 H24 Q18 88 17 82 Z" fill="#DDF1F8" stroke="#3E8FB0" stroke-width="3.5" stroke-linejoin="round"/><path d="M15.5 42 H46.5 L44.2 81 Q43.6 85 38 85 H24 Q18.6 85 18 81 Z" fill="#7CC6E6"/><path d="M22 50 Q24 60 22 72" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><ellipse cx="68" cy="80" rx="13" ry="8" fill="#8A4B22" transform="rotate(-18 68 80)"/><ellipse cx="86" cy="72" rx="12" ry="7.5" fill="#7A3F1B" transform="rotate(24 86 72)"/><ellipse cx="76" cy="62" rx="12" ry="7.5" fill="#94542A" transform="rotate(-8 76 62)"/><path d="M68 58 Q74 56 80 58" stroke="#C88A5A" stroke-width="2" fill="none" stroke-linecap="round"/></svg>الصوم</div>
       </div></div>
     <div class="card paper" id="c2"><h2>الإيمان</h2><p>تصديق القلب</p>
       <div class="icons"><div class="icon" id="i21"><svg viewBox="0 0 100 100"><path id="heart" d="M50 86 C14 62 6 40 18 24 C30 10 46 16 50 30 C54 16 70 10 82 24 C94 40 86 62 50 86Z" fill="#D9A441"/><path d="M30 30 C26 36 26 44 30 50" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/></svg></div></div></div>
@@ -134,7 +135,8 @@
     <div id="scroll" class="abs paper"><small>📖 النصّ من الكتاب</small><div>أَرْكَانُ الدِّينِ ثَلَاثَةٌ:<br>الإِسْلَامُ، الإِيمَانُ، الإِحْسَانُ</div></div>
 
     <!-- المقدّم -->
-    <svg id="arrow" class="abs" viewBox="0 0 1920 1080"><path id="arrp" pathLength="1" d="" fill="none" stroke="#1F5C4A" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 1"/><path id="arrh" d="" fill="#1F5C4A"/></svg>
+    <svg id="marker" class="abs" viewBox="-40 -60 80 80" style="width:80px;height:80px;left:0;top:0;overflow:visible"><path d="M-22 -30 H22 V-6 H34 L0 26 L-34 -6 H-22 Z" fill="#1F5C4A" stroke="#fff" stroke-width="5" stroke-linejoin="round"/></svg>
+    <div id="halo" class="abs" style="left:0;top:0;width:210px;height:450px;border-radius:26px;border:6px solid #F2C14E;box-shadow:0 0 30px rgba(242,193,78,.6)"></div>
   </div>
 
   <!-- المقدّم خارج الكاميرا: لا يقصّه الزوم أبدًا -->
@@ -142,6 +144,8 @@
     <div id="shadow"></div>
     <div id="boy">
       <img id="body" src="assets/man_body.png" alt="">
+      <img id="armL" class="arm" src="assets/man_armL.png" alt="" style="left:8px;top:487px;transform-origin:138px 64px">
+      <img id="armR" class="arm" src="assets/man_armR.png" alt="" style="left:443px;top:472px;transform-origin:45px 89px">
       <div id="headw">
         <img src="assets/man_head.png" alt="">
         <svg viewBox="0 0 633 451">
@@ -296,6 +300,15 @@ window.renderAt = async function (t) {
   const nod = talk * 3 + Math.sin(t * 1.3) * 1;
   const tilt = Math.sin(t * 1.7) * (1 + talk * 2) + (t > E.bravo ? 3 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
   $('#headw').style.transform = `translate(0px, ${-nod}px) rotate(${tilt}deg)`;
+  // اليدان: تمايل خفيف مع الصوت + إيماءة تأكيد عند بداية كل عبارة (تتبادل اليدان) + رفع اليد نحو العمود + فتحهما عند «أحسنتم»
+  let gL = 0, gR = 0;
+  P.forEach((p, i) => { if (!p.text || t < p.a - .1) return; const k = sp(t - p.a + .1, [120, 14]) * (1 - ease.inOut3(range(t, p.b - .2, p.b + .35)));
+    if (i % 2) gL += 9 * k; else gR += 9 * k; });
+  for (const [tp] of POINT) { const k = sp(t - tp, [110, 13]) * (1 - ease.inOut3(range(t, tp + 1.9, tp + 2.5))); gL += 24 * k; }
+  if (t > E.bravo) { const k = sp(t - E.bravo, 'playful') * (1 - ease.inOut3(range(t, E.bravo + 2.4, E.bravo + 3))); gL += 18 * k; gR += 18 * k; }
+  const sway = Math.sin(t * 2.3) * 1.6 * talk;
+  $('#armL').style.transform = `rotate(${gL + sway}deg)`;            // موجب = اليد للخارج (يسار الشاشة نحو الأعمدة)
+  $('#armR').style.transform = `rotate(${-(gR + sway * .8)}deg)`;    // سالب = للخارج (يمين الشاشة)
   // الفم: يفتح مع غلاف الصوت؛ في الصمت تبقى ابتسامة الرسم الأصلية
   const mo = clamp((e - .06) * 1.25);
   $('#mouthg').style.opacity = clamp((mo - .06) / .08);   // في السكتات تعود ابتسامة الرسم الأصلية
@@ -307,14 +320,13 @@ window.renderAt = async function (t) {
   // فقاعة التحية
   pop($('#bubble'), t, E.hello + .1, { rot: 8, from: .2 }); if (t < E.hello + .1) hide($('#bubble'));
   const bo = ease.power4In(range(t, at(0, 'b') + .5, at(0, 'b') + .8)); if (bo > 0) set($('#bubble'), { s: 1 - bo * .6, o: 1 - bo });
-  // سهم الإشارة نحو العمود
-  let ap = null, ax = 0; for (const [tp, x] of POINT) if (t >= tp && t < tp + 1.8) { ap = t - tp; ax = x; }
-  if (ap !== null) {
-    const d = `M 1560 520 C 1380 380 ${ax + 260} 330 ${ax + 40} 420`;
-    $('#arrp').setAttribute('d', d); $('#arrp').style.strokeDashoffset = 1 - ease.out3(clamp(ap / .5));
-    const o = 1 - range(ap, 1.3, 1.8); $('#arrow').style.opacity = o;
-    $('#arrh').setAttribute('d', `M ${ax + 40} 420 l 30 -6 l -12 30 z`); $('#arrh').style.opacity = ap > .45 ? 1 : 0;
-  } else $('#arrow').style.opacity = 0;
+  // مؤشر قافز فوق العمود الذي يُشرح + هالة حوله (لا خطوط فوق الكلام)
+  let mk = null; for (const [tp, x] of POINT) if (t >= tp + .2 && t < tp + 2.4) mk = [t - tp - .2, x];
+  if (mk) {
+    const [u, x] = mk, inn = sp(u, 'playful'), o = 1 - range(u, 1.8, 2.2);
+    set($('#marker'), { x: x - 40, y: 350 - 40 - Math.abs(Math.sin(u * 7)) * 18 - (1 - inn) * 60, s: inn, o });
+    set($('#halo'), { x: x - 105, y: 435, o: o * (.55 + .45 * Math.sin(u * 6) ** 2), s: lerp(1.15, 1, sp(u, 'ui')) });
+  } else { $('#marker').style.opacity = 0; $('#halo').style.opacity = 0; }
 
   // ----- الترجمة: العبارة المنطوقة الآن، كلمة كلمة من خلف خط
   let idx = -1; for (let i = 0; i < P.length; i++) if (t >= P[i].a - .05 && t < (P[i + 1] ? P[i + 1].a - .08 : P[i].b + 1.5)) idx = i;
