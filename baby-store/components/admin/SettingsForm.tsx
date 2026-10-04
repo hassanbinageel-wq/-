@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { api, useAction, PageHead, Field, Switch, NumInput, Tabs } from './ui'
 import type { AllSettings } from '@/lib/shared/types'
 
-export function SettingsForm({ initial, tab: tab0, demo }: { initial: AllSettings; tab: string; demo: { products: number; zones: number; coupons: number } }) {
+export function SettingsForm({ initial, tab: tab0, demo }: { initial: AllSettings; tab: string; demo: { products: number; zones: number; coupons: number; wraps: number } }) {
   const [tab, setTab] = useState(tab0)
   const [s, setS] = useState(initial)
   const { run, busy } = useAction()
@@ -153,7 +153,7 @@ export function SettingsForm({ initial, tab: tab0, demo }: { initial: AllSetting
         <div className="a-card a-form">
           <h2 style={{ margin: 0 }}>حذف البيانات التجريبية</h2>
           <p style={{ margin: 0 }}>
-            المتبقي: <b>{demo.products}</b> منتج تجريبي، <b>{demo.zones}</b> منطقة توصيل تجريبية، <b>{demo.coupons}</b> كوبون تجريبي.
+            المتبقي: <b>{demo.products}</b> منتج تجريبي، <b>{demo.zones}</b> منطقة توصيل تجريبية، <b>{demo.coupons}</b> كوبون تجريبي، <b>{demo.wraps}</b> خيار تغليف تجريبي.
           </p>
           <div className="a-notice a-notice--warn">لن تُحذف الطلبات (تبقى أسماء المنتجات محفوظة فيها). أضف مناطق توصيلك الحقيقية قبل الحذف حتى لا يتوقف التوصيل.</div>
           <Field label="اكتب «حذف» للتأكيد">

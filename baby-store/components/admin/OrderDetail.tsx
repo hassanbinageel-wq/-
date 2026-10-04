@@ -112,7 +112,7 @@ export function OrderDetail(p: Props) {
             {o.stock_state === 'reserved' && expires && (
               <>
                 {' '}
-                — حتى {fmt(o.reservation_expires_at)} ({relativeHours(expires)})
+                — حتى {fmt(o.reservation_expires_at)} (<span suppressHydrationWarning>{relativeHours(expires)}</span>)
               </>
             )}
             {o.stock_state === 'released' && <div className="small">انتهت مهلة التحويل وتحررت الكميات. إذا وصل التحويل الآن، تحقق من التوفر وأعد الحجز قبل تأكيد تجهيز الطلب.</div>}
@@ -465,7 +465,7 @@ export function OrderDetail(p: Props) {
           </section>
         </div>
 
-        <div className="a-grid">
+        <div className="a-grid a-side-first">
           {/* حالة الطلب */}
           <section className="a-card">
             <h2>حالة الطلب</h2>

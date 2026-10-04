@@ -131,6 +131,7 @@ export function AppearanceEditor(p: Props) {
   const [versions, setVersions] = useState(false)
   const [picker, setPicker] = useState<string | null>(null)
   const [addType, setAddType] = useState<HomeSectionType>('new')
+  const [hasDraft, setHasDraft] = useState(p.hasDraft)
 
   const up = (fn: (x: Appearance) => Appearance) => {
     setA((x) => fn(structuredClone(x)))
@@ -144,6 +145,7 @@ export function AppearanceEditor(p: Props) {
   const saveDraft = async () => {
     await api('PUT', 'appearance', a)
     setDirty(false)
+    setHasDraft(true)
     setFrameKey((k) => k + 1)
   }
 
@@ -163,8 +165,8 @@ export function AppearanceEditor(p: Props) {
           <p>
             {dirty ? (
               <span className="a-badge a-badge--warn">تعديلات غير محفوظة</span>
-            ) : p.hasDraft ? (
-              <span className="a-badge a-badge--info">مسودة محفوظة غير منشورة {p.updatedAt && `— ${formatDateTime(p.updatedAt)}`}</span>
+            ) : hasDraft ? (
+              <span className="a-badge a-badge--info">مسودة محفوظة غير منشورة {p.updatedAt && p.hasDraft && `— ${formatDateTime(p.updatedAt)}`}</span>
             ) : (
               <span className="a-badge a-badge--ok">مطابق للنسخة المنشورة</span>
             )}
@@ -174,7 +176,7 @@ export function AppearanceEditor(p: Props) {
           <button type="button" className="a-btn a-btn--ghost" onClick={() => setVersions(true)}>
             <History size={16} /> النسخ السابقة
           </button>
-          {(p.hasDraft || dirty) && (
+          {(hasDraft || dirty) && (
             <button
               type="button"
               className="a-btn a-btn--ghost"
@@ -194,7 +196,7 @@ export function AppearanceEditor(p: Props) {
             type="button"
             className="a-btn"
             disabled={busy}
-            onClick={() => run(async () => { await api('PUT', 'appearance', a); await api('POST', 'appearance/publish', {}); setDirty(false); router.refresh() }, 'تم نشر المظهر للزوار')}
+            onClick={() => run(async () => { await api('PUT', 'appearance', a); await api('POST', 'appearance/publish', {}); setDirty(false); setHasDraft(false); router.refresh() }, 'تم نشر المظهر للزوار')}
           >
             <Upload size={16} /> نشر
           </button>

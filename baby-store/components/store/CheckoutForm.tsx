@@ -67,7 +67,7 @@ function Field({ id, label, error, hint, children, optional }: { id: string; lab
 }
 
 export function CheckoutForm(props: CheckoutProps) {
-  const { cart, hydrated, money, coupon, clearCart, config, updateSnapshots } = useStore()
+  const { cart, hydrated, money, coupon, clearCart, config, updateSnapshots, setCoupon } = useStore()
   const router = useRouter()
   const defaultFulfillment: 'delivery' | 'pickup' = props.deliveryEnabled ? 'delivery' : 'pickup'
   const initial: Form = {
@@ -83,6 +83,7 @@ export function CheckoutForm(props: CheckoutProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [errorCode, setErrorCode] = useState<string | null>(null)
   const [serverQuote, setServerQuote] = useState<Quote | null>(null)
   const [loaded, setLoaded] = useState(false)
   const honeypot = useRef<HTMLInputElement>(null)
@@ -207,6 +208,7 @@ export function CheckoutForm(props: CheckoutProps) {
     if (submitting || !quote) return
     setSubmitting(true)
     setServerError(null)
+    setErrorCode(null)
     let key = ''
     try {
       key = sessionStorage.getItem(K_KEY) || newKey()
@@ -267,6 +269,7 @@ export function CheckoutForm(props: CheckoutProps) {
           updateSnapshots(upd)
         }
         setServerError(d.error || 'تعذر إنشاء الطلب')
+        setErrorCode(d.code || null)
         setSubmitting(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
         return
@@ -401,6 +404,20 @@ export function CheckoutForm(props: CheckoutProps) {
       {serverError && (
         <div className="notice notice--danger" role="alert" style={{ marginBottom: 16 }}>
           <AlertCircle size={18} /> <span>{serverError}</span>
+          {errorCode === 'COUPON_INVALID' && coupon && (
+            <button
+              type="button"
+              className="link"
+              style={{ marginInlineStart: 'auto', whiteSpace: 'nowrap' }}
+              onClick={() => {
+                setCoupon(null)
+                setServerError(null)
+                setErrorCode(null)
+              }}
+            >
+              إزالة الكوبون والمتابعة
+            </button>
+          )}
         </div>
       )}
       <div className="cart-layout">

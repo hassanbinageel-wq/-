@@ -12,6 +12,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     products: (db().prepare('SELECT COUNT(*) n FROM products WHERE is_demo=1').get() as { n: number }).n,
     zones: (db().prepare('SELECT COUNT(*) n FROM shipping_zones WHERE is_demo=1').get() as { n: number }).n,
     coupons: (db().prepare('SELECT COUNT(*) n FROM coupons WHERE is_demo=1').get() as { n: number }).n,
+    wraps: (db().prepare('SELECT COUNT(*) n FROM gift_wraps WHERE is_demo=1').get() as { n: number }).n,
   }
   return <SettingsForm initial={s} tab={(await searchParams).tab || 'store'} demo={demo} />
 }

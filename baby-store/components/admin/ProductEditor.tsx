@@ -7,6 +7,7 @@ import { Plus, Trash2, Wand2, ExternalLink, Copy, Archive, X } from 'lucide-reac
 import { api, useAdmin, useAction, Field, Switch, MoneyInput, NumInput, DateTimeInput, ImagesManager, ProductPicker, confirmAction, type PickedProduct } from './ui'
 import type { ProductInput } from '@/lib/server/products'
 import type { ProductOption } from '@/lib/shared/types'
+import { formatDateTime } from '@/lib/shared/dates'
 
 export type EditorRefs = {
   categories: { id: number; name: string }[]
@@ -345,7 +346,7 @@ export function ProductEditor({ initial, refs, isNew }: { initial: ProductInput 
                       <tbody>
                         {variants.map((v, i) => (
                           <tr key={(v.id || 'n') + v.options.join('|')}>
-                            <td>
+                            <td style={{ whiteSpace: 'nowrap' }}>
                               <b>{v.options.filter(Boolean).join(' / ')}</b>
                             </td>
                             <td style={{ minWidth: 120 }}>
@@ -641,7 +642,7 @@ export function ProductEditor({ initial, refs, isNew }: { initial: ProductInput 
                       </Link>
                     )}
                     <time>
-                      الرصيد بعدها {m.stock_after} — {m.user_name || 'النظام'} — {new Date(m.created_at.replace(' ', 'T') + 'Z').toLocaleString('ar-YE-u-nu-latn')}
+                      الرصيد بعدها {m.stock_after} — {m.user_name || 'النظام'} — {formatDateTime(m.created_at)}
                     </time>
                   </li>
                 ))}

@@ -112,7 +112,7 @@ export function setupChecklist() {
     { done: one('SELECT COUNT(*) n FROM shipping_zones WHERE active=1 AND is_demo=0') > 0, text: 'راجع مناطق التوصيل ورسومها (الحالية تجريبية)', href: '/admin/shipping' },
     { done: one('SELECT COUNT(*) n FROM products WHERE is_demo=1') === 0, text: 'أضف منتجاتك ثم احذف المنتجات التجريبية', href: '/admin/settings?tab=demo' },
     { done: pagesDefault === 0, text: 'راجع صفحات السياسات (الشحن، الاستبدال، الخصوصية، من نحن)', href: '/admin/pages' },
-    { done: !!store.whatsappNumber, text: `تأكد من رقم واتساب الطلبات (+${store.whatsappCountryCode} ${store.whatsappNumber})`, href: '/admin/settings' },
+    { done: !!store.whatsappNumber, text: `تأكد من رقم واتساب الطلبات (\u2066+${store.whatsappCountryCode} ${store.whatsappNumber}\u2069)`, href: '/admin/settings' },
     { done: one("SELECT COUNT(*) n FROM appearance_versions WHERE status='published' AND data LIKE '%\"logoId\":null%'") === 0, text: 'ارفع شعار المتجر وأيقونة المتصفح (اختياري)', href: '/admin/appearance' },
     { done: one('SELECT COUNT(*) n FROM admin_users WHERE active=1') > 1, text: 'أنشئ حسابات الموظفين بصلاحيات منفصلة (اختياري)', href: '/admin/users' },
   ]
