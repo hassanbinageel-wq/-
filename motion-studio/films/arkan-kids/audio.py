@@ -8,7 +8,7 @@ T = json.load(open(os.path.join(HERE, 'timing.json'))); P = T['phrases']
 at = lambda i, k='a': P[i][k]
 k = Kit(dur=T['duration']); E = k.EARLY
 vo, sfx = k.bus(), k.bus()
-r = subprocess.run(['ffmpeg', '-v', 'error', '-i', os.path.join(HERE, 'assets/vo/child_full.wav'), '-ac', '1', '-ar', str(k.SR), '-f', 'f32le', '-'], capture_output=True)
+r = subprocess.run(['ffmpeg', '-v', 'error', '-i', os.path.join(HERE, 'assets/vo/voice.wav'), '-ac', '1', '-ar', str(k.SR), '-f', 'f32le', '-'], capture_output=True)
 x = np.frombuffer(r.stdout, np.float32).astype(float); vo.add(x / (np.max(np.abs(x)) + 1e-9) * .95, T['off'])
 def paper(d=.35, l=.2):
     t = k.ts(d); return l * k.filt(k.noise(d), 'bandpass', [1800, 7000]) * np.sin(np.pi * np.minimum(1, t / d)) ** 2

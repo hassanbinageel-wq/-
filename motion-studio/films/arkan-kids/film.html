@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>أركان الدين — يشرحها صديقنا</title>
+<title>أركان الدين — شرح مبسّط</title>
 <style>
   @font-face { font-family:'B'; font-weight:500; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-500-normal.woff2') format('woff2'); }
   @font-face { font-family:'B'; font-weight:700; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-700-normal.woff2') format('woff2'); }
@@ -64,11 +64,11 @@
   #banner:after { left:-38px; clip-path:polygon(0 0,100% 0,100% 100%,0 100%,30% 50%); }
 
   /* الطفل المقدّم */
-  #boy { position:absolute; left:1289px; top:0; width:783px; height:1712px; transform-origin:391px 1712px; }
-  #body { position:absolute; left:0; top:737px; }
-  #headw { position:absolute; left:0; top:0; width:783px; height:795px; transform-origin:349px 789px; }
-  #headw img, #headw svg { position:absolute; left:0; top:0; width:783px; height:795px; }
-  #shadow { position:absolute; left:1530px; top:1022px; width:300px; height:40px; border-radius:50%; background:rgba(30,60,40,.28); filter:blur(6px); }
+  #boy { position:absolute; left:1364px; top:0; width:633px; height:1777px; transform-origin:316px 1777px; }
+  #body { position:absolute; left:0; top:404px; }
+  #headw { position:absolute; left:0; top:0; width:633px; height:451px; transform-origin:301px 445px; }
+  #headw img, #headw svg { position:absolute; left:0; top:0; width:633px; height:451px; }
+  #shadow { position:absolute; left:1555px; top:1014px; width:250px; height:40px; border-radius:50%; background:rgba(30,60,40,.28); filter:blur(6px); }
   #bubble { left:1150px; top:190px; }
   #bubble div { background:#fff; border-radius:40px; padding:22px 40px 30px; font:800 56px 'B'; color:var(--dg); position:relative; white-space:nowrap; }
   #bubble div:after { content:''; position:absolute; right:40px; bottom:-26px; border:16px solid transparent; border-top:22px solid #fff; border-left:24px solid #fff; }
@@ -141,17 +141,17 @@
   <div id="presenter" class="L" style="pointer-events:none">
     <div id="shadow"></div>
     <div id="boy">
-      <img id="body" src="assets/boy_body.png" alt="">
+      <img id="body" src="assets/man_body.png" alt="">
       <div id="headw">
-        <img src="assets/boy_head.png" alt="">
-        <svg viewBox="0 0 783 795">
-          <ellipse id="lidL" cx="176" cy="533" rx="72" ry="0" fill="#F9C49D"/><ellipse id="lidR" cx="453" cy="544" rx="78" ry="0" fill="#F9C49D"/>
-          <path id="lashL" d="M124 536 Q176 562 228 536" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
-          <path id="lashR" d="M393 547 Q453 573 513 547" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+        <img src="assets/man_head.png" alt="">
+        <svg viewBox="0 0 633 451">
+          <ellipse id="lidL" cx="198" cy="247" rx="31" ry="0" fill="#F8BF99"/><ellipse id="lidR" cx="318" cy="245" rx="35" ry="0" fill="#F8BF99"/>
+          <path id="lashL" d="M170 249 Q198 260 226 249" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+          <path id="lashR" d="M286 247 Q318 258 350 247" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
           <g id="mouthg" opacity="0">
-            <ellipse cx="320" cy="662" rx="104" ry="52" fill="#F9C49D"/>
-            <ellipse id="mo" cx="317" cy="660" rx="40" ry="10" fill="#5A2A1E" stroke="#222" stroke-width="6"/>
-            <ellipse id="tg" cx="317" cy="672" rx="20" ry="6" fill="#E87F86"/>
+            <ellipse cx="263" cy="347" rx="52" ry="15" fill="#F8BF99"/>
+            <ellipse id="mo" cx="263" cy="347" rx="20" ry="4" fill="#5A2A1E" stroke="#222" stroke-width="4"/>
+            <ellipse id="tg" cx="263" cy="353" rx="10" ry="3" fill="#E87F86"/>
           </g>
         </svg>
       </div>
@@ -290,8 +290,8 @@ window.renderAt = async function (t) {
   let lean = 0; for (const [tp] of POINT) lean += -4 * Math.sin(Math.PI * clamp((t - tp) / 2.2));
   lean += -3 * Math.sin(Math.PI * clamp((t - E.k1 + .2) / 3.4));
   const bob = Math.sin(t * 2.1) * 4 + talk * 6;
-  const S = .44;
-  set($('#boy'), { x: (1 - inS) * 700, y: (1035 - 1712) - hop - bob * .3, s: S, r: lean });   // القدمان على الأرض عند y=1045
+  const S = .43;
+  set($('#boy'), { x: (1 - inS) * 700, y: (1030 - 1777) - hop * .5 - bob * .3, s: S, r: lean });   // القدمان على الأرض عند y=1045
   set($('#shadow'), { x: (1 - inS) * 700, sx: 1 - hop / 300, o: .9 });
   const nod = talk * 3 + Math.sin(t * 1.3) * 1;
   const tilt = Math.sin(t * 1.7) * (1 + talk * 2) + (t > E.bravo ? 3 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
@@ -299,11 +299,11 @@ window.renderAt = async function (t) {
   // الفم: يفتح مع غلاف الصوت؛ في الصمت تبقى ابتسامة الرسم الأصلية
   const mo = clamp((e - .06) * 1.25);
   $('#mouthg').style.opacity = clamp((mo - .06) / .08);   // في السكتات تعود ابتسامة الرسم الأصلية
-  $('#mo').setAttribute('rx', 34 + mo * 20); $('#mo').setAttribute('ry', 6 + mo * 34); $('#mo').setAttribute('cy', 656 + mo * 8);
-  $('#tg').setAttribute('cy', 666 + mo * 24); $('#tg').setAttribute('ry', 3 + mo * 10); $('#tg').style.opacity = mo > .25 ? 1 : 0;
+  $('#mo').setAttribute('rx', 20 + mo * 9); $('#mo').setAttribute('ry', 3 + mo * 12); $('#mo').setAttribute('cy', 346 + mo * 3);
+  $('#tg').setAttribute('cy', 349 + mo * 8); $('#tg').setAttribute('ry', 2 + mo * 4); $('#tg').style.opacity = mo > .25 ? 1 : 0;
   // رمش حتمي كل ~3.3 ث
   const bp = ((t + .7) % 3.3) / .16, blink = bp < 1 ? Math.sin(Math.PI * bp) : 0;
-  for (const s of ['L', 'R']) { $('#lid' + s).setAttribute("ry", 70 * blink); $('#lash' + s).style.opacity = blink > .8 ? 1 : 0; }
+  for (const s of ['L', 'R']) { $('#lid' + s).setAttribute("ry", 27 * blink); $('#lash' + s).style.opacity = blink > .8 ? 1 : 0; }
   // فقاعة التحية
   pop($('#bubble'), t, E.hello + .1, { rot: 8, from: .2 }); if (t < E.hello + .1) hide($('#bubble'));
   const bo = ease.power4In(range(t, at(0, 'b') + .5, at(0, 'b') + .8)); if (bo > 0) set($('#bubble'), { s: 1 - bo * .6, o: 1 - bo });
