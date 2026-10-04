@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>أركان الإسلام — شرح مبسّط</title>
+<style>
+  @font-face { font-family:'B'; font-weight:500; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-500-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:700; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:800; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-800-normal.woff2') format('woff2'); }
+  @font-face { font-family:'K'; font-weight:700; src:url('node_modules/@fontsource/marhey/files/marhey-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'N'; font-weight:700; src:url('node_modules/@fontsource/amiri/files/amiri-arabic-700-normal.woff2') format('woff2'); }
+
+  :root { --cream:#FBF6EC; --dg:#1F5C4A; --g:#3BA57A; --gold:#D9A441; --blue:#3E8FB0; --roof:#C8553D; --ink:#2B2A28; --skin:#F9C49D;
+          --r1:#3BA57A; --r2:#3E8FB0; --r3:#D9A441; --r4:#8E6BBF; --r5:#C8553D; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#000; overflow:hidden; }
+  #stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:linear-gradient(180deg,#A9DCEA 0%,#CFEAF0 38%,#F4EEDF 74%); font-family:'B',sans-serif; color:var(--ink); }
+  .abs { position:absolute; }
+  .L { position:absolute; inset:0; }
+  .paper { filter: drop-shadow(0 7px 0 rgba(60,40,10,.12)) drop-shadow(0 14px 20px rgba(60,40,10,.12)); }
+  .mk { display:inline-block; overflow:hidden; padding:.16em .06em .3em; margin:-.16em 0 -.3em; vertical-align:bottom; }
+  .mi { display:inline-block; }
+
+  #sun { left:120px; top:70px; width:180px; height:180px; }
+  .cloud { width:280px; height:118px; }
+  #world { position:absolute; inset:0; transform-origin:960px 620px; }
+
+  /* بيت الإسلام: خمسة أعمدة — من اليمين: الشهادتان، الصلاة، الزكاة، الصوم، الحج */
+  #house { position:absolute; left:0; top:0; width:1920px; height:1080px; transform-origin:530px 900px; }
+  .pillar { position:absolute; top:460px; width:120px; height:400px; }
+  .pillar .shaft { position:absolute; left:12px; right:12px; top:32px; bottom:32px; border-radius:10px; background:var(--c); transform-origin:50% 100%;
+                   background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.2) 0 12px, rgba(255,255,255,0) 12px 26px); }
+  .pillar .cap, .pillar .base { position:absolute; left:0; right:0; height:34px; border-radius:10px; background:var(--c); filter:brightness(.86); }
+  .pillar .cap { top:0; } .pillar .base { bottom:0; }
+  .pillar .num { position:absolute; left:50%; top:62px; width:54px; height:54px; margin-left:-27px; border-radius:50%; background:#fff; color:var(--c); font:800 34px/54px 'B'; text-align:center; }
+  .pillar .name { position:absolute; left:-40px; right:-40px; top:150px; text-align:center; }
+  .pillar .name span { display:inline-block; background:#fff; color:var(--c); font:800 27px 'B'; line-height:1; padding:6px 12px 12px; border-radius:16px; box-shadow:0 3px 0 rgba(0,0,0,.12); }
+  #q1 { left:790px; --c:var(--r1); } #q2 { left:630px; --c:var(--r2); } #q3 { left:470px; --c:var(--r3); } #q4 { left:310px; --c:var(--r4); } #q5 { left:150px; --c:var(--r5); }
+  #baseplate { left:120px; top:860px; width:820px; height:44px; border-radius:12px; background:#B98E5A; transform-origin:50% 50%; }
+  #roof { left:90px; top:228px; width:880px; height:262px; transform-origin:50% 100%; }
+  #roofword { left:90px; top:340px; width:880px; text-align:center; font:800 76px 'B'; color:#fff; }
+  #rays { left:530px; top:330px; width:10px; height:10px; }
+
+  /* البطاقات */
+  .card { position:absolute; left:960px; top:150px; width:470px; background:#fff; border-radius:32px; padding:26px 36px 30px; border-right:14px solid var(--c); text-align:center; }
+  .card .hd { display:flex; align-items:center; gap:12px; justify-content:flex-start; font:700 34px 'B'; color:#8A8174; }
+  .card .hd i { width:52px; height:52px; border-radius:50%; background:var(--c); color:#fff; font:800 34px/52px 'B'; font-style:normal; text-align:center; }
+  .card h2 { font:800 70px 'B'; color:var(--c); line-height:1.15; margin-top:6px; text-align:right; }
+  .card .row { display:flex; justify-content:center; align-items:flex-end; gap:40px; margin-top:16px; }
+  .icon { text-align:center; font:700 32px 'B'; color:#6A6153; }
+  .icon svg { width:108px; height:108px; display:block; margin:0 auto 4px; overflow:visible; }
+  #c1 { --c:var(--r1); } #c2 { --c:var(--r2); } #c3 { --c:var(--r3); } #c4 { --c:var(--r4); } #c5 { --c:var(--r5); }
+  .sh { font:700 56px 'N'; color:var(--dg); line-height:1.5; margin-top:8px; }
+  .sh div { display:block; }
+  .tick { display:flex; align-items:center; gap:14px; font:700 38px 'B'; color:var(--ink); margin-top:10px; }
+  .tick b { flex:none; width:44px; height:44px; border-radius:50%; background:var(--c); position:relative; }
+  .tick b:after { content:''; position:absolute; left:15px; top:8px; width:11px; height:20px; border:solid #fff; border-width:0 6px 6px 0; transform:rotate(45deg); }
+  .times { display:grid; grid-template-columns:repeat(5,72px); justify-content:center; gap:0 4px; margin-top:16px; }
+  .times div { text-align:center; font:700 21px 'B'; white-space:nowrap; color:#6A6153; }
+  .times span { display:block; width:54px; height:54px; margin:0 auto 4px; border-radius:50%; background:var(--r2); color:#fff; font:800 30px/54px 'B'; }
+  .note { font:700 38px 'B'; color:var(--ink); margin-top:8px; }
+  .tag { display:inline-flex; align-items:center; gap:10px; padding:6px 26px 12px; border-radius:40px; background:var(--c); color:#fff; font:800 38px 'B'; margin-top:10px; }
+  #daybar { width:390px; height:170px; display:block; margin:6px auto 0; overflow:visible; }
+
+  /* بطاقة التذكير + الرقم ٥ */
+  #recap { left:960px; top:170px; width:470px; --c:var(--roof); }
+  #recap svg { width:390px; height:300px; display:block; margin:6px auto 0; }
+  #five { left:1050px; top:220px; width:260px; height:260px; border-radius:50%; background:var(--dg); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; }
+  #five b { font:800 170px 'B'; line-height:.9; } #five span { font:700 44px 'B'; margin-top:6px; }
+
+  /* اليد للعدّ */
+  #hand { left:950px; top:170px; width:460px; height:720px; overflow:visible; }
+
+  /* العنوان */
+  #title { left:0; top:0; }
+  #banner { position:relative; padding:20px 80px 32px; background:var(--dg); color:#fff; border-radius:26px; font:800 116px 'B'; line-height:1.15; white-space:nowrap; }
+  #banner:before, #banner:after { content:''; position:absolute; top:36px; width:66px; height:104px; background:#174636; z-index:-1; }
+  #banner:before { right:-38px; clip-path:polygon(0 0,100% 0,70% 50%,100% 100%,0 100%); }
+  #banner:after { left:-38px; clip-path:polygon(0 0,100% 0,100% 100%,0 100%,30% 50%); }
+
+  /* المقدّم */
+  #boy { position:absolute; left:1364px; top:0; width:633px; height:1777px; transform-origin:316px 1777px; }
+  #body { position:absolute; left:0; top:404px; }
+  #headw { position:absolute; left:0; top:0; width:633px; height:451px; transform-origin:301px 445px; }
+  #headw img, #headw svg { position:absolute; left:0; top:0; width:633px; height:451px; }
+  #shadow { position:absolute; left:1555px; top:1014px; width:250px; height:40px; border-radius:50%; background:rgba(30,60,40,.28); filter:blur(6px); }
+  #bubble { left:1150px; top:190px; }
+  #bubble div { background:#fff; border-radius:40px; padding:22px 40px 30px; font:800 56px 'B'; color:var(--dg); position:relative; white-space:nowrap; }
+  #bubble div:after { content:''; position:absolute; right:40px; bottom:-26px; border:16px solid transparent; border-top:22px solid #fff; border-left:24px solid #fff; }
+
+  /* الختام */
+  #scroll { left:170px; top:170px; width:1220px; padding:44px 60px 54px; background:#FFF9EA; border-radius:40px; border:6px solid var(--gold); text-align:center; }
+  #scroll small { display:block; font:700 42px 'B'; color:var(--gold); margin-bottom:8px; }
+  #scroll div { font:700 80px 'N'; color:var(--dg); line-height:1.6; }
+  .conf { position:absolute; width:22px; height:30px; border-radius:5px; }
+
+  /* الترجمة */
+  #subs { left:120px; width:1320px; top:968px; display:flex; justify-content:center; }
+  #subs div { background:rgba(23,60,46,.82); color:#fff; font:700 44px 'B'; padding:10px 34px 18px; border-radius:22px; white-space:nowrap; }
+  #subs .mk { margin-left:10px; }
+  #grain { opacity:.13; mix-blend-mode:multiply; pointer-events:none; }
+  #vig { background:radial-gradient(130% 100% at 50% 45%, rgba(0,0,0,0) 62%, rgba(40,30,10,.22) 100%); pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="far" class="L">
+    <svg id="sun" class="abs paper" viewBox="-100 -100 200 200"><g id="sunrays" fill="#F2C14E"></g><circle r="52" fill="#F2B632"/></svg>
+    <svg class="abs cloud paper" id="cl1" viewBox="0 0 260 110"><path d="M40 100 H220 A40 40 0 0 0 214 22 A55 55 0 0 0 112 26 A42 42 0 0 0 40 100Z" fill="#fff"/></svg>
+    <svg class="abs cloud paper" id="cl2" viewBox="0 0 260 110"><path d="M40 100 H220 A40 40 0 0 0 214 22 A55 55 0 0 0 112 26 A42 42 0 0 0 40 100Z" fill="#fff"/></svg>
+    <svg id="farhills" class="L paper" viewBox="0 0 1920 1080"><path d="M-200 780 C200 690 520 700 820 760 C1120 820 1420 700 2120 740 L2120 1080 L-200 1080Z" fill="#9FD3AE"/></svg>
+  </div>
+
+  <div id="world">
+    <svg class="L paper" viewBox="0 0 1920 1080"><path d="M-300 860 C200 820 700 840 1100 868 C1420 890 1800 846 2220 860 L2220 1400 L-300 1400Z" fill="#6DB98E"/><rect x="-300" y="905" width="2520" height="400" fill="#549E77"/></svg>
+    <svg id="road" class="L" viewBox="0 0 1920 1080"><path id="roadp" pathLength="1" d="M1700 1100 C1500 1020 1300 960 1100 930 C900 905 760 890 600 880" fill="none" stroke="#F3E2B8" stroke-width="56" stroke-linecap="round"/><path id="roadd" pathLength="1" d="M1700 1100 C1500 1020 1300 960 1100 930 C900 905 760 890 600 880" fill="none" stroke="#fff" stroke-width="6" stroke-dasharray=".015 .02" stroke-linecap="round"/></svg>
+
+    <div id="house">
+      <svg id="outline" class="L" viewBox="0 0 1920 1080"><path id="outp" d="M120 860 H940 M150 860 V460 M270 860 V460 M310 860 V460 M430 860 V460 M470 860 V460 M590 860 V460 M630 860 V460 M750 860 V460 M790 860 V460 M910 860 V460 M100 470 H960 L530 240 Z" fill="none" stroke="#1F5C4A" stroke-width="5" stroke-dasharray="18 16" stroke-linecap="round" opacity=".55"/></svg>
+      <svg id="rays" class="abs" viewBox="0 0 10 10" style="overflow:visible"><g id="raysg"></g></svg>
+      <div id="baseplate" class="abs paper"></div>
+      <div class="pillar paper" id="q1"><div class="shaft"></div><div class="base"></div><div class="cap"></div><div class="num">١</div><div class="name"><span>الشَّهادتان</span></div></div>
+      <div class="pillar paper" id="q2"><div class="shaft"></div><div class="base"></div><div class="cap"></div><div class="num">٢</div><div class="name"><span>الصَّلاة</span></div></div>
+      <div class="pillar paper" id="q3"><div class="shaft"></div><div class="base"></div><div class="cap"></div><div class="num">٣</div><div class="name"><span>الزَّكاة</span></div></div>
+      <div class="pillar paper" id="q4"><div class="shaft"></div><div class="base"></div><div class="cap"></div><div class="num">٤</div><div class="name"><span>الصَّوم</span></div></div>
+      <div class="pillar paper" id="q5"><div class="shaft"></div><div class="base"></div><div class="cap"></div><div class="num">٥</div><div class="name"><span>الحجّ</span></div></div>
+      <svg id="roof" class="abs paper" viewBox="0 0 880 262"><path d="M10 242 L440 12 L870 242 Z" fill="#1F5C4A"/><rect x="0" y="230" width="880" height="32" rx="10" fill="#174636"/></svg>
+      <div id="roofword" class="abs">الإسلام</div>
+      <div id="dust" class="abs" style="left:0;top:0"></div>
+    </div>
+
+    <!-- تذكير بالدرس السابق -->
+    <div class="card paper" id="recap"><div class="hd">تذكّر الدرس السابق</div>
+      <svg viewBox="0 0 390 300">
+        <path d="M20 96 L195 10 L370 96 Z" fill="#C8553D"/><rect x="10" y="88" width="370" height="16" rx="6" fill="#A9432F"/>
+        <text x="195" y="78" text-anchor="middle" font-family="B" font-weight="800" font-size="40" fill="#fff">الدِّين</text>
+        <g id="m1"><rect x="262" y="110" width="80" height="160" rx="8" fill="#3BA57A"/><text x="302" y="198" text-anchor="middle" font-family="B" font-weight="800" font-size="24" fill="#fff">الإسلام</text></g>
+        <g id="m2"><rect x="155" y="110" width="80" height="160" rx="8" fill="#D9A441"/><text x="195" y="198" text-anchor="middle" font-family="B" font-weight="800" font-size="24" fill="#fff">الإيمان</text></g>
+        <g id="m3"><rect x="48" y="110" width="80" height="160" rx="8" fill="#3E8FB0"/><text x="88" y="198" text-anchor="middle" font-family="B" font-weight="800" font-size="24" fill="#fff">الإحسان</text></g>
+        <rect x="30" y="270" width="330" height="18" rx="6" fill="#B98E5A"/>
+      </svg></div>
+    <div id="five" class="abs paper"><b>٥</b><span>أركان</span></div>
+
+    <!-- ١ الشهادتان -->
+    <div class="card paper" id="c1"><div class="hd"><i>١</i>الرُّكن الأوّل</div><h2>الشَّهادتان</h2>
+      <div class="sh"><div id="sh1">لا إلهَ إلّا الله</div><div id="sh2">محمّدٌ رسولُ الله</div></div>
+      <div class="tick" id="t11"><b></b>نعبدُ اللهَ وحدَه</div>
+      <div class="tick" id="t12"><b></b>نتّبعُ نبيَّنا محمّدًا</div></div>
+
+    <!-- ٢ الصلاة -->
+    <div class="card paper" id="c2"><div class="hd"><i>٢</i>الرُّكن الثاني</div><h2>إقامُ الصَّلاة</h2>
+      <div class="row">
+        <div class="icon" id="i21"><svg viewBox="0 0 100 100"><rect x="18" y="8" width="64" height="84" rx="8" fill="#3E8FB0"/><path d="M30 50 V28 Q50 8 70 28 V50 Z" fill="#E6F2F7"/><rect x="26" y="62" width="48" height="6" rx="3" fill="#E6F2F7"/><rect x="26" y="74" width="48" height="6" rx="3" fill="#E6F2F7"/></svg>نصلّي لله</div>
+        <div class="icon" id="i22"><svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="40" fill="#fff" stroke="#3E8FB0" stroke-width="7"/><g fill="#3E8FB0"><circle cx="50" cy="20" r="3"/><circle cx="82" cy="52" r="3"/><circle cx="50" cy="84" r="3"/><circle cx="18" cy="52" r="3"/></g><line id="hm" x1="50" y1="52" x2="50" y2="24" stroke="#2B2A28" stroke-width="5" stroke-linecap="round"/><line x1="50" y1="52" x2="68" y2="52" stroke="#2B2A28" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="52" r="5" fill="#2B2A28"/></svg>في أوقاتها</div>
+      </div>
+      <div class="times"><div id="w1"><span>١</span>الفجر</div><div id="w2"><span>٢</span>الظهر</div><div id="w3"><span>٣</span>العصر</div><div id="w4"><span>٤</span>المغرب</div><div id="w5"><span>٥</span>العشاء</div></div></div>
+
+    <!-- ٣ الزكاة -->
+    <div class="card paper" id="c3"><div class="hd"><i>٣</i>الرُّكن الثالث</div><h2>إيتاءُ الزَّكاة</h2>
+      <svg id="zk" viewBox="0 0 390 170" style="width:390px;height:170px;display:block;margin:10px auto 0;overflow:visible">
+        <g id="coins"><ellipse cx="320" cy="140" rx="44" ry="14" fill="#B8862E"/><rect x="276" y="110" width="88" height="30" fill="#D9A441"/><ellipse cx="320" cy="110" rx="44" ry="14" fill="#F2C14E"/>
+          <rect x="276" y="80" width="88" height="30" fill="#D9A441"/><ellipse cx="320" cy="80" rx="44" ry="14" fill="#F2C14E"/><rect x="276" y="50" width="88" height="30" fill="#D9A441"/><ellipse cx="320" cy="50" rx="44" ry="14" fill="#F7D37A"/><ellipse cx="320" cy="50" rx="24" ry="7" fill="none" stroke="#D9A441" stroke-width="3"/></g>
+        <path id="zpath" d="M262 70 Q195 -10 128 70" fill="none" stroke="#D9A441" stroke-width="5" stroke-dasharray="10 10" stroke-linecap="round"/>
+        <g id="hrt"><path d="M70 150 C24 120 14 92 30 72 C46 54 66 62 70 80 C74 62 94 54 110 72 C126 92 116 120 70 150Z" fill="#C8553D"/><path d="M42 80 C38 88 38 96 42 104" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/></g>
+        <g id="coinfly"><circle r="15" fill="#F2C14E" stroke="#B8862E" stroke-width="4"/></g>
+      </svg>
+      <div class="note" id="z1">جزءٌ محدَّدٌ من المال</div>
+      <div class="tag" id="z2">للفقراءِ والمحتاجين</div></div>
+
+    <!-- ٤ الصوم -->
+    <div class="card paper" id="c4"><div class="hd"><i>٤</i>الرُّكن الرابع</div><h2>صومُ رمضان</h2>
+      <div class="tag" id="ramadan"><svg viewBox="0 0 100 100" style="width:44px;height:44px"><path d="M64 8 A44 44 0 1 0 64 92 A36 36 0 1 1 64 8Z" fill="#F7D37A"/></svg>شهرُ رمضان</div>
+      <svg id="daybar" viewBox="0 0 390 170">
+        <line x1="10" y1="122" x2="380" y2="122" stroke="#B9A98F" stroke-width="5" stroke-linecap="round"/>
+        <path id="arc" d="M352 122 Q195 -40 38 122" fill="none" stroke="#8E6BBF" stroke-width="5" stroke-dasharray="10 12" stroke-linecap="round" opacity=".55"/>
+        <path id="arcdone" d="M352 122 Q195 -40 38 122" pathLength="1" fill="none" stroke="#8E6BBF" stroke-width="7" stroke-linecap="round"/>
+        <g id="dsun"><circle r="22" fill="#F2B632"/><g id="dsr" stroke="#F2B632" stroke-width="5" stroke-linecap="round"></g></g>
+        <text x="352" y="162" text-anchor="middle" font-family="B" font-weight="700" font-size="28" fill="#6A6153">الفجر</text>
+        <text x="38" y="162" text-anchor="middle" font-family="B" font-weight="700" font-size="28" fill="#6A6153">المغرب</text>
+      </svg>
+      <div class="row" style="margin-top:4px;align-items:center;gap:22px">
+        <div class="icon" id="iftar"><svg viewBox="0 0 100 100" style="width:86px;height:86px"><path d="M12 16 H50 L45 82 Q44 88 38 88 H24 Q18 88 17 82 Z" fill="#DDF1F8" stroke="#3E8FB0" stroke-width="3.5" stroke-linejoin="round"/><path d="M15.5 42 H46.5 L44.2 81 Q43.6 85 38 85 H24 Q18.6 85 18 81 Z" fill="#7CC6E6"/><ellipse cx="68" cy="80" rx="13" ry="8" fill="#8A4B22" transform="rotate(-18 68 80)"/><ellipse cx="86" cy="72" rx="12" ry="7.5" fill="#7A3F1B" transform="rotate(24 86 72)"/><ellipse cx="76" cy="62" rx="12" ry="7.5" fill="#94542A" transform="rotate(-8 76 62)"/></svg></div>
+        <div class="note" id="obey" style="margin:0">طاعةً لله</div>
+      </div></div>
+
+    <!-- ٥ الحج -->
+    <div class="card paper" id="c5"><div class="hd"><i>٥</i>الرُّكن الخامس</div><h2>حجُّ البيت</h2>
+      <div class="icon" id="kaaba" style="margin-top:8px"><svg viewBox="0 0 100 100" style="width:150px;height:150px"><polygon points="22,30 40,18 96,18 78,30" fill="#3A3A3A"/><polygon points="78,30 96,18 96,74 78,86" fill="#111"/><rect x="22" y="30" width="56" height="56" fill="#1E1E1E"/><rect x="22" y="42" width="56" height="7" fill="#D9A441"/><polygon points="78,42 96,30 96,37 78,49" fill="#B8862E"/><rect x="56" y="62" width="12" height="24" rx="2" fill="#D9A441"/><ellipse cx="55" cy="92" rx="48" ry="6" fill="#E9E1D2"/></svg>مكّة المكرّمة</div>
+      <div><div class="tag" id="h1">مرّةً في العمر</div></div>
+      <div><div class="tag" id="h2" style="background:var(--dg)">لمن يستطيع</div></div></div>
+
+    <!-- يد العدّ: الإبهام = ١ (يمين الشاشة) ثم السبابة ... الخنصر = ٥ -->
+    <svg id="hand" class="abs paper" viewBox="0 0 460 720">
+      <g stroke="#2B2A28" stroke-width="6" stroke-linejoin="round">
+        <g id="f5"><rect x="62" y="190" width="68" height="240" rx="34" class="fs"/><circle cx="96" cy="232" r="27" class="fn"/><text x="96" y="244" text-anchor="middle" font-family="B" font-weight="800" font-size="34" stroke="none" class="ft">٥</text></g>
+        <g id="f4"><rect x="140" y="108" width="72" height="320" rx="36" class="fs"/><circle cx="176" cy="152" r="27" class="fn"/><text x="176" y="164" text-anchor="middle" font-family="B" font-weight="800" font-size="34" stroke="none" class="ft">٤</text></g>
+        <g id="f3"><rect x="222" y="78" width="72" height="350" rx="36" class="fs"/><circle cx="258" cy="122" r="27" class="fn"/><text x="258" y="134" text-anchor="middle" font-family="B" font-weight="800" font-size="34" stroke="none" class="ft">٣</text></g>
+        <g id="f2"><rect x="304" y="110" width="70" height="320" rx="35" class="fs"/><circle cx="339" cy="154" r="27" class="fn"/><text x="339" y="166" text-anchor="middle" font-family="B" font-weight="800" font-size="34" stroke="none" class="ft">٢</text></g>
+        <g id="f1wrap" transform="rotate(38 380 520)"><g id="f1"><rect x="350" y="300" width="74" height="250" rx="37" class="fs"/><circle cx="387" cy="342" r="27" class="fn"/><text x="387" y="354" text-anchor="middle" font-family="B" font-weight="800" font-size="34" stroke="none" class="ft">١</text></g></g>
+        <path d="M60 400 Q58 360 96 360 H360 Q402 360 402 420 V560 Q402 690 250 690 H200 Q60 690 60 560 Z" fill="#F9C49D"/>
+        <path d="M150 600 Q230 640 320 600" fill="none" stroke="#D99A72" stroke-width="5" stroke-linecap="round"/>
+      </g>
+    </svg>
+
+    <div id="scroll" class="abs paper"><small>📖 النصّ من الكتاب</small><div>أَرْكَانُ الإِسْلَامِ خَمْسَةٌ:<br>الشَّهَادَتَانِ، الصَّلَاةُ، الزَّكَاةُ،<br>الصَّوْمُ، الحَجُّ</div></div>
+
+    <svg id="marker" class="abs" viewBox="-40 -60 80 80" style="width:80px;height:80px;left:0;top:0;overflow:visible"><path d="M-22 -30 H22 V-6 H34 L0 26 L-34 -6 H-22 Z" fill="#1F5C4A" stroke="#fff" stroke-width="5" stroke-linejoin="round"/></svg>
+    <div id="halo" class="abs" style="left:0;top:0;width:170px;height:450px;border-radius:26px;border:6px solid #F2C14E;box-shadow:0 0 30px rgba(242,193,78,.6)"></div>
+  </div>
+
+  <div id="presenter" class="L" style="pointer-events:none">
+    <div id="shadow"></div>
+    <div id="boy">
+      <img id="body" src="assets/man_body.png" alt="">
+      <div id="headw">
+        <img src="assets/man_head.png" alt="">
+        <svg viewBox="0 0 633 451">
+          <ellipse id="lidL" cx="198" cy="247" rx="31" ry="0" fill="#F8BF99"/><ellipse id="lidR" cx="318" cy="245" rx="35" ry="0" fill="#F8BF99"/>
+          <path id="lashL" d="M170 249 Q198 260 226 249" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+          <path id="lashR" d="M286 247 Q318 258 350 247" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+          <g id="mouthg" opacity="0">
+            <ellipse cx="263" cy="347" rx="52" ry="15" fill="#F8BF99"/>
+            <ellipse id="mo" cx="263" cy="347" rx="20" ry="4" fill="#5A2A1E" stroke="#222" stroke-width="4"/>
+            <ellipse id="tg" cx="263" cy="353" rx="10" ry="3" fill="#E87F86"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div id="bubble" class="abs paper"><div>السلام عليكم!</div></div>
+  </div>
+
+  <div id="title" class="abs paper"><div id="banner">أركانُ الإسلام</div></div>
+  <div id="subs" class="abs"><div id="subtxt"></div></div>
+  <div id="conf" class="L" style="pointer-events:none"></div>
+  <div id="vig" class="L"></div>
+  <svg id="grain" class="L" viewBox="0 0 1920 1080"><filter id="pn"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0"/></filter><rect width="1920" height="1080" filter="url(#pn)"/></svg>
+</div>
+
+<script src="lib/motion.js"></script>
+<script src="timing.js"></script>
+<script>
+const P = TIMING.phrases, ENV = TIMING.env;
+const FILM = { width: 1920, height: 1080, fps: 30, duration: TIMING.duration, cuts: [] };
+const { sp, set, clamp, lerp, ease, range, track } = M; const $ = M.$;
+const env = t => { const f = t * TIMING.fps, i = Math.floor(f); const a = ENV[i] || 0, b = ENV[i + 1] || 0; return lerp(a, b, f - i); };
+
+// ---------------------------------------------------------------- أدوات
+function maskWords(el, text) { el.innerHTML = ''; return text.split(/\s+/).filter(Boolean).map(w => { const m = document.createElement('span'); m.className = 'mk'; const s = document.createElement('span'); s.className = 'mi'; s.textContent = w; m.appendChild(s); el.appendChild(m); return s; }); }
+function pop(el, t, t0, { preset = 'playful', from = .3, rot = -6, dy = 40 } = {}) { const s = sp(t - t0, preset); set(el, { s: lerp(from, 1, s), y: (1 - s) * dy, r: (1 - s) * rot, o: clamp((t - t0) / .08) }); return s; }
+function popIn(el, t, t0, o) { pop(el, t, t0, o); if (t < t0) el.style.opacity = 0; }
+function rise(el, t, t0) { const s = sp(t - t0, 'type'); set(el, { y: (1 - s) * 30, o: clamp((t - t0) / .15) }); }
+function card(el, t, t0, t1) {             // تدخل من اليمين وتخرج للأعلى
+  const s = sp(t - t0, 'ui'), out = ease.power4In(range(t, t1, t1 + .35));
+  set(el, { x: (1 - s) * 560, y: -out * 700, r: (1 - s) * 5 - out * 4, o: clamp((t - t0) / .1) * (1 - out) });
+}
+const at = (i, k = 'a') => P[i][k];
+
+// أحداث مربوطة بالعبارات المنطوقة (أرقام العبارات من timing.py)
+const HEAD = [10, 16, 20, 25, 30], NAME = [11, 17, 21, 26, 31];
+const E = {
+  boyIn: .25, hello: at(0), titleIn: .15, titleGlow: at(2), titleUp: at(3) - .3,
+  road: at(3) + .2, recap: at(3) + .1, m: [at(4) + .9, at(5), at(6)], focus: at(7) + .6, five: at(8), outline: at(9) + .1,
+  card: HEAD.map(i => at(i) - .1), build: NAME.map(i => at(i) + .1),
+  sh1: at(12) + .1, sh2: at(13) + .1, t11: at(14) + .2, t12: at(15) + .2,
+  rug: at(17) + .4, times: at(18) + .9, clock: at(19) + .3,
+  coins: at(22), coinfly: at(22) + 1.2, z1: at(22) + .3, heart: at(23), z2: at(23) + .2,
+  ramadan: at(27), dayA: at(28) + .2, dayB: at(28, 'b'), iftar: at(28, 'b') - .1, obey: at(29),
+  kaaba: at(32) + .3, h1: at(34), h2: at(35),
+  hand: at(36) + .3, fingers: at(37) + .2, roof: at(38) + .1, count: [39, 40, 41, 42, 43].map(i => at(i)),
+  bravo: at(44), scroll: at(44) + .35,
+};
+const PX = [850, 690, 530, 370, 210];                       // مراكز الأعمدة
+const POINT = E.build.map((t, i) => [t - .3, PX[i]]);
+
+// ---------------------------------------------------------------- إعداد
+for (let i = 0; i < 12; i++) $('#sunrays').insertAdjacentHTML('beforeend', `<rect x="-7" y="-96" width="14" height="30" rx="7" transform="rotate(${i * 30})"/>`);
+for (let i = 0; i < 8; i++) $('#dsr').insertAdjacentHTML('beforeend', `<line x1="0" y1="-30" x2="0" y2="-40" transform="rotate(${i * 45})"/>`);
+for (let i = 0; i < 14; i++) $('#raysg').insertAdjacentHTML('beforeend', `<rect x="-6" y="-420" width="12" height="150" rx="6" fill="#FFE7A3" transform="rotate(${-90 + i * 180 / 13})"/>`);
+const dust = $('#dust'), puffs = [];
+for (let i = 0; i < 16; i++) { const d = document.createElement('div'); d.className = 'abs'; d.style.cssText = 'width:44px;height:44px;border-radius:50%;background:#F4EAD5;margin:-22px 0 0 -22px'; dust.appendChild(d); puffs.push(d); }
+const conf = $('#conf'), bits = [], R = M.rng(7), COL = ['#3BA57A', '#3E8FB0', '#D9A441', '#8E6BBF', '#C8553D'];
+for (let i = 0; i < 60; i++) { const d = document.createElement('div'); d.className = 'conf'; d.style.background = COL[i % 5]; conf.appendChild(d); bits.push({ d, x: R() * 1920, v: 170 + R() * 230, w: R() * 6, r0: R() * 360, delay: R() * .9 }); }
+const RC = ['#3BA57A', '#3E8FB0', '#D9A441', '#8E6BBF', '#C8553D'];
+const SUBW = P.map(p => p.text);
+let subIdx = -1, subWords = [];
+const arcP = $('#arc'), arcL = arcP.getTotalLength(), zP = $('#zpath'), zL = zP.getTotalLength();
+
+window.FILM = FILM;
+window.renderAt = async function (t) {
+  // ----- الكاميرا
+  const cs = track(t, [[0, 1.08], [at(3), 1.0], [at(10) - .4, 1.04], [E.hand - .3, 1.0], [at(44), 1.0]], 'base');
+  const cx = track(t, [[0, -60], [at(3), 0], [at(10) - .4, 50], [E.hand - .3, 0]], 'base');
+  const hit = M.impact(t, [E.roof + .35], { amp: 12, zoom: .015 });
+  set($('#world'), { x: cx + hit.x, y: hit.y, s: cs * hit.s });
+  set($('#far'), { x: cx * .3, s: 1 + (cs - 1) * .3 });
+  $('#sunrays').setAttribute('transform', `rotate(${t * 6})`);
+  set($('#cl1'), { x: ((t * 16 + 500) % 2300) - 300, y: 110 });
+  set($('#cl2'), { x: 1700 - ((t * 11) % 2300), y: 210, s: .8 });
+
+  // ----- العنوان
+  const tin = sp(t - E.titleIn, 'playful'), up = ease.inOut3(range(t, E.titleUp, E.titleUp + .8));
+  const glow = t > E.titleGlow ? Math.exp(-(t - E.titleGlow) * 3) * Math.sin(Math.min(Math.PI, (t - E.titleGlow) * 8)) : 0;
+  const tx = lerp(300, 560, up), ty = lerp(330, 30, up), ts = lerp(.2, 1, tin) * lerp(1, .48, up) * (1 + glow * .08);
+  $('#title').style.transform = `translate(${tx}px, ${ty}px) scale(${ts})`; $('#title').style.transformOrigin = '0 0';
+  $('#title').style.opacity = clamp((t - E.titleIn) / .1) * (1 - range(t, E.scroll - .3, E.scroll));
+
+  // ----- الطريق + تذكير الدرس السابق + «٥»
+  const rd = ease.inOut3(range(t, E.road, E.road + 2.2));
+  $('#roadp').style.strokeDasharray = '1 1'; $('#roadp').style.strokeDashoffset = 1 - rd; $('#roadd').style.opacity = rd > .98 ? 1 : 0;
+  card($('#recap'), t, E.recap, E.five - .35);
+  E.m.forEach((t0, i) => { const b = t >= t0 ? Math.exp(-(t - t0) * 5) * Math.sin((t - t0) * 16) : 0;
+    const foc = ease.inOut3(range(t, E.focus, E.focus + .5));
+    const g = $('#m' + (i + 1)); g.setAttribute('transform', `translate(0 ${-Math.abs(b) * 18 - (i === 0 ? foc * 8 : 0)})`); g.style.opacity = i === 0 ? 1 : 1 - foc * .7; });
+  popIn($('#five'), t, E.five, { rot: -14 });
+  const fOut = ease.power4In(range(t, E.outline + .3, E.outline + .65)); if (fOut > 0) set($('#five'), { y: -fOut * 600, o: 1 - fOut });
+
+  // ----- المخطط المنقّط + القاعدة
+  $('#outp').style.strokeDashoffset = (1 - ease.out3(range(t, E.outline, E.outline + 1.2))) * 5200;
+  $('#outline').style.opacity = range(t, E.outline, E.outline + .3) * (1 - range(t, E.roof, E.roof + .3));
+  set($('#baseplate'), { sx: sp(t - E.outline - .3, 'base'), o: clamp((t - E.outline - .3) / .1) });
+
+  // ----- الأعمدة الخمسة
+  for (let i = 0; i < 5; i++) {
+    const el = $('#q' + (i + 1)), t0 = E.build[i], k = E.count[i];
+    const sh = sp(t - t0, [140, 12]), cap = sp(t - t0 - .35, 'heavy');
+    el.style.opacity = t >= t0 ? 1 : 0;
+    el.querySelector('.shaft').style.transform = `scaleY(${Math.max(0, sh)})`;
+    set(el.querySelector('.base'), { sx: clamp(sp(t - t0, 'snappy')) });
+    set(el.querySelector('.cap'), { y: (1 - cap) * -260, o: clamp((t - t0 - .35) / .05) });
+    el.querySelector('.name').style.opacity = clamp((t - t0 - .55) / .15);
+    set(el.querySelector('.num'), { s: sp(t - t0 - .6, 'playful'), o: clamp((t - t0 - .6) / .08) });
+    const b = t >= k ? Math.exp(-(t - k) * 5) * Math.sin((t - k) * 16) : 0;
+    const g = t >= k ? Math.exp(-(t - k) * 3) : 0;
+    set(el, { y: -Math.abs(b) * 26, s: 1 + g * .06 });
+  }
+
+  // ----- البطاقات الخمس
+  const exits = [...E.card.slice(1).map(x => x - .3), E.hand - .4];
+  for (let i = 0; i < 5; i++) card($('#c' + (i + 1)), t, E.card[i], exits[i]);
+  // ١ الشهادتان
+  rise($('#sh1'), t, E.sh1); rise($('#sh2'), t, E.sh2);
+  popIn($('#t11'), t, E.t11, { from: .6, rot: 0, dy: 20 }); popIn($('#t12'), t, E.t12, { from: .6, rot: 0, dy: 20 });
+  // ٢ الصلاة
+  popIn($('#i21'), t, E.rug, { rot: -10 }); popIn($('#i22'), t, E.clock, { rot: 10 });
+  $('#hm').setAttribute('transform', `rotate(${Math.max(0, t - E.clock) * 240} 50 52)`);
+  for (let j = 0; j < 5; j++) popIn($('#w' + (j + 1)), t, E.times + j * .28, { from: .2, rot: 0, dy: 20 });
+  // ٣ الزكاة
+  const cs3 = sp(t - E.coins, 'playful');
+  $('#coins').setAttribute('transform', `translate(320 140) scale(${Math.max(0, cs3)}) translate(-320 -140)`); $('#coins').style.opacity = t >= E.coins ? 1 : 0;
+  $('#zpath').style.opacity = clamp((t - E.coinfly + .2) / .2) * .9;
+  const hb = t > E.heart ? 1 + .1 * Math.max(0, Math.sin((t - E.heart) * 7)) : 1;
+  $('#hrt').style.opacity = t >= E.heart ? 1 : 0;
+  $('#hrt').setAttribute('transform', `translate(70 105) scale(${sp(t - E.heart, 'playful') * hb}) translate(-70 -105)`);
+  const cf = t - E.coinfly; let cu = -1;
+  if (cf > 0 && t < exits[2]) { cu = (cf % 1.1) / .9; }
+  if (cu >= 0 && cu <= 1) { const p = zP.getPointAtLength(ease.inOut3(cu) * zL); $('#coinfly').setAttribute('transform', `translate(${p.x} ${p.y}) scale(${1 - .3 * Math.sin(Math.PI * cu)})`); $('#coinfly').style.opacity = 1; }
+  else $('#coinfly').style.opacity = 0;
+  rise($('#z1'), t, E.z1); popIn($('#z2'), t, E.z2, { from: .5, rot: -3, dy: 20 });
+  // ٤ الصوم
+  popIn($('#ramadan'), t, E.ramadan, { from: .5, rot: -3, dy: 20 });
+  const dk = ease.inOut2 ? ease.inOut2(range(t, E.dayA, E.dayB)) : ease.inOut3(range(t, E.dayA, E.dayB));
+  const dp = arcP.getPointAtLength(dk * arcL);
+  $('#dsun').setAttribute('transform', `translate(${dp.x} ${dp.y})`);
+  $('#dsun').style.opacity = clamp((t - E.dayA + .3) / .2);
+  $('#arcdone').style.strokeDasharray = '1 1'; $('#arcdone').style.strokeDashoffset = 1 - dk;
+  $('#dsr').setAttribute('transform', `rotate(${t * 40})`);
+  popIn($('#iftar'), t, E.iftar, { rot: 10 }); rise($('#obey'), t, E.obey);
+  // ٥ الحج
+  popIn($('#kaaba'), t, E.kaaba, { from: .2, rot: 0 });
+  popIn($('#h1'), t, E.h1, { from: .5, rot: -3, dy: 20 }); popIn($('#h2'), t, E.h2, { from: .5, rot: 3, dy: 20 });
+
+  // ----- السقف «الإسلام» يهبط
+  const rf = sp(t - E.roof, 'heavy');
+  set($('#roof'), { y: (1 - rf) * -720, o: t >= E.roof ? 1 : 0, sy: 1 - .06 * (t > E.roof + .35 ? Math.exp(-(t - E.roof - .35) * 8) : 0) });
+  $('#roofword').style.opacity = clamp((t - E.roof - .45) / .2);
+  const ry = ease.out3(range(t, E.roof + .4, E.roof + 1.2));
+  set($('#rays'), { s: ry, o: t > E.roof + .4 ? (1 - range(t, E.roof + 1.2, E.roof + 2.2)) * .9 : 0 });
+  $('#raysg').setAttribute('transform', `rotate(${(t - E.roof) * 6})`);
+  const dt = t - E.roof - .35;
+  puffs.forEach((p, i) => { const side = i % 2 ? 1 : -1, k = clamp(dt / .9);
+    set(p, { x: 530 + side * (330 + 260 * ease.out3(k)), y: 470 - 60 * ease.out3(k) * (.5 + (i % 3) * .3), s: (.6 + (i % 4) * .25) * (1 + k), o: dt > 0 ? (1 - k) * .9 : 0 }); });
+
+  // ----- يد العدّ: تظهر، تنفتح الأصابع، ثم يتلوّن كل إصبع مع اسمه
+  const hin = sp(t - E.hand, 'ui'), hout = ease.power4In(range(t, E.bravo - .3, E.bravo));
+  set($('#hand'), { y: (1 - hin) * 700 - hout * 0, x: hout * 700, o: clamp((t - E.hand) / .1) * (1 - hout) });
+  for (let j = 1; j <= 5; j++) {
+    const f = $('#f' + j), open = sp(t - E.fingers - (j - 1) * .12, [170, 13]), k = E.count[j - 1], on = t >= k;
+    f.setAttribute('transform', `translate(0 ${(1 - open) * 170})`);
+    const pulse = on ? 1 + .12 * Math.exp(-(t - k) * 6) : 1;
+    f.querySelector('.fs').setAttribute('fill', on ? RC[j - 1] : '#F9C49D');
+    f.querySelector('.fn').setAttribute('fill', '#fff'); f.querySelector('.fn').style.opacity = on ? 1 : 0;
+    f.querySelector('.fn').setAttribute('r', 27 * pulse);
+    f.querySelector('.ft').setAttribute('fill', RC[j - 1]); f.querySelector('.ft').style.opacity = on ? 1 : 0;
+  }
+
+  // ----- الختام
+  const hz = ease.inOut3(range(t, E.scroll - .3, E.scroll + .5));
+  set($('#house'), { s: 1 - hz * .15, o: 1 - hz });
+  popIn($('#scroll'), t, E.scroll, { from: .4, rot: -3 });
+  const ct = t - E.bravo - .1;
+  bits.forEach(b => { const k = ct - b.delay; set(b.d, { x: b.x + Math.sin(k * 3 + b.w) * 40, y: -60 + k * b.v, r: b.r0 + k * 220, o: k > 0 ? 1 : 0 }); });
+
+  // ----- المقدّم: يدخل بقفزة، يتنفس، يتمايل مع صوته، يميل نحو العمود، ويرمش
+  const e = env(t), talk = clamp(e * 1.4);
+  const inS = sp(t - E.boyIn, [160, 13]);
+  const hop = Math.max(0, Math.sin(Math.PI * clamp((t - E.boyIn) / .55))) * 60 + (t > E.bravo ? Math.max(0, Math.sin(Math.PI * clamp((t - E.bravo) / .5))) * 70 : 0);
+  let lean = 0; for (const [tp] of POINT) lean += -4 * Math.sin(Math.PI * clamp((t - tp) / 2.2));
+  lean += -3 * Math.sin(Math.PI * clamp((t - E.count[0] + .2) / 5));
+  const bob = Math.sin(t * 2.1) * 4 + talk * 6;
+  set($('#boy'), { x: (1 - inS) * 700, y: (1030 - 1777) - hop * .5 - bob * .3, s: .43, r: lean });
+  set($('#shadow'), { x: (1 - inS) * 700, sx: 1 - hop / 300, o: .9 });
+  const nod = talk * 3 + Math.sin(t * 1.3) * 1;
+  const tilt = Math.sin(t * 1.7) * (1 + talk * 2) + (t > E.bravo ? 3 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
+  $('#headw').style.transform = `translate(0px, ${-nod}px) rotate(${tilt}deg)`;
+  const mo = clamp((e - .06) * 1.25);
+  $('#mouthg').style.opacity = clamp((mo - .06) / .08);
+  $('#mo').setAttribute('rx', 20 + mo * 9); $('#mo').setAttribute('ry', 3 + mo * 12); $('#mo').setAttribute('cy', 346 + mo * 3);
+  $('#tg').setAttribute('cy', 349 + mo * 8); $('#tg').setAttribute('ry', 2 + mo * 4); $('#tg').style.opacity = mo > .25 ? 1 : 0;
+  const bp = ((t + .7) % 3.3) / .16, blink = bp < 1 ? Math.sin(Math.PI * bp) : 0;
+  for (const s of ['L', 'R']) { $('#lid' + s).setAttribute("ry", 27 * blink); $('#lash' + s).style.opacity = blink > .8 ? 1 : 0; }
+  popIn($('#bubble'), t, E.hello + .1, { rot: 8, from: .2 });
+  const bo = ease.power4In(range(t, at(0, 'b') + .5, at(0, 'b') + .8)); if (bo > 0) set($('#bubble'), { s: 1 - bo * .6, o: 1 - bo });
+
+  // ----- مؤشر فوق العمود الذي يُبنى + هالة
+  let mk = null; for (const [tp, x] of POINT) if (t >= tp + .2 && t < tp + 2.4) mk = [t - tp - .2, x];
+  if (mk) {
+    const [u, x] = mk, inn = sp(u, 'playful'), o = 1 - range(u, 1.8, 2.2);
+    set($('#marker'), { x: x - 40, y: 350 - 40 - Math.abs(Math.sin(u * 7)) * 18 - (1 - inn) * 60, s: inn, o });
+    set($('#halo'), { x: x - 85, y: 435, o: o * (.55 + .45 * Math.sin(u * 6) ** 2), s: lerp(1.15, 1, sp(u, 'ui')) });
+  } else { $('#marker').style.opacity = 0; $('#halo').style.opacity = 0; }
+
+  // ----- الترجمة
+  let idx = -1; for (let i = 0; i < P.length; i++) if (t >= P[i].a - .05 && t < (P[i + 1] ? P[i + 1].a - .08 : P[i].b + 1.5)) idx = i;
+  if (idx >= 0 && !P[idx].text) idx = -1;
+  if (idx !== subIdx) { subIdx = idx; subWords = idx >= 0 ? maskWords($('#subtxt'), SUBW[idx]) : []; }
+  $('#subs').style.opacity = idx >= 0 ? 1 : 0;
+  if (idx >= 0) {
+    const p = P[idx], nx = P[idx + 1], gap = nx ? nx.a - p.b : 9;
+    const out = nx ? Math.min(nx.a - .1, p.b + 1.1) : p.b + 1.1;
+    const span = Math.max(.3, p.b - p.a);
+    subWords.forEach((s, i) => { const a = p.a - .12 + (i / subWords.length) * span * .8; const pin = sp(t - a, 'type'), po = ease.power4In(range(t, out - .2, out));
+      s.style.transform = `translateY(${(1 - pin) * 150 - po * 150}%)`; });
+    const boxIn = sp(t - p.a + .05, 'ui');
+    const boxOut = (gap > .9 || !nx) ? range(t, out - .1, out + .05) : 0;
+    set($('#subs div'), { s: lerp(.94, 1, boxIn), o: 1 - boxOut });
+  }
+};
+const imgs = [...document.images].map(i => i.complete ? null : new Promise(r => i.onload = r)).filter(Boolean);
+window.__ready = Promise.all([document.fonts.ready, ...imgs]).then(() => Promise.all([...document.fonts].map(f => f.load()))).then(() => window.renderAt(0)).then(() => true);
+
+if (location.search.includes('preview')) {
+  const st = document.getElementById('stage');
+  const fit = () => { const k = Math.min(innerWidth / FILM.width, innerHeight / FILM.height); st.style.transform = `scale(${k})`; st.style.transformOrigin = '0 0'; };
+  fit(); addEventListener('resize', fit);
+  const a = new Audio('out/score.wav'); const t0 = performance.now(); a.play().catch(() => {});
+  (function loop() { window.renderAt(((performance.now() - t0) / 1000) % FILM.duration); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>
