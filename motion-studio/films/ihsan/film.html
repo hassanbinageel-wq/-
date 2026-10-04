@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>الإحسان — كتاب القصص</title>
+<style>
+  @font-face { font-family:'B'; font-weight:500; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-500-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:700; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:800; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-800-normal.woff2') format('woff2'); }
+  @font-face { font-family:'K'; font-weight:700; src:url('node_modules/@fontsource/marhey/files/marhey-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'N'; font-weight:700; src:url('node_modules/@fontsource/amiri/files/amiri-arabic-700-normal.woff2') format('woff2'); }
+
+  :root { --dg:#1F5C4A; --ink:#2B2A28; --gold:#D9A441; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#000; overflow:hidden; }
+  #stage { position:relative; width:1920px; height:1080px; overflow:hidden; background:radial-gradient(120% 90% at 40% 40%, #FCE9C8 0%, #F2D2A4 55%, #E2B985 100%); font-family:'B',sans-serif; color:var(--ink); }
+  .abs { position:absolute; }
+  .L { position:absolute; inset:0; }
+  .paper { filter: drop-shadow(0 8px 0 rgba(70,40,10,.14)) drop-shadow(0 18px 26px rgba(70,40,10,.18)); }
+  .mk { display:inline-block; overflow:hidden; padding:.16em .06em .3em; margin:-.16em 0 -.3em; vertical-align:bottom; }
+  .mi { display:inline-block; }
+
+  #world { position:absolute; inset:0; transform-origin:750px 520px; }
+  #book { position:absolute; left:90px; top:125px; width:1320px; height:790px; perspective:2600px; }
+  #pages { position:absolute; inset:0; overflow:visible; }
+  #flip, #cover { position:absolute; left:660px; top:0; width:660px; height:790px; transform-origin:0 50%; backface-visibility:visible; }
+  #flip { background:linear-gradient(90deg,#EBDDBF 0%,#FBF3E1 12%,#FBF3E1 100%); border-radius:0 16px 16px 0; }
+  #cover { background:#1F5C4A; border-radius:0 24px 24px 0; border:10px solid #174636; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; }
+  #cover .orn { width:420px; height:420px; border-radius:50%; border:6px dashed rgba(242,193,78,.7); display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  #cover b { font:800 120px 'B'; line-height:1.1; color:#F7D37A; }
+  #cover small { font:700 36px 'B'; opacity:.85; }
+  .bm { position:absolute; display:flex; align-items:center; gap:14px; height:92px; padding:0 30px 0 34px; border-radius:46px; color:#fff; font:800 48px 'B'; }
+  .bm i { width:52px; height:52px; border-radius:50%; background:#fff; font:800 34px/52px 'B'; font-style:normal; text-align:center; }
+
+  /* العنوان */
+  #title { left:0; top:0; }
+  #banner { position:relative; padding:20px 80px 32px; background:var(--dg); color:#fff; border-radius:26px; font:800 116px 'B'; line-height:1.15; white-space:nowrap; }
+  #banner:before, #banner:after { content:''; position:absolute; top:36px; width:66px; height:104px; background:#174636; z-index:-1; }
+  #banner:before { right:-38px; clip-path:polygon(0 0,100% 0,70% 50%,100% 100%,0 100%); }
+  #banner:after { left:-38px; clip-path:polygon(0 0,100% 0,100% 100%,0 100%,30% 50%); }
+
+  /* المقدّم */
+  #boy { position:absolute; left:1364px; top:0; width:633px; height:1777px; transform-origin:316px 1777px; }
+  #body { position:absolute; left:0; top:404px; }
+  #headw { position:absolute; left:0; top:0; width:633px; height:451px; transform-origin:301px 445px; }
+  #headw img, #headw svg { position:absolute; left:0; top:0; width:633px; height:451px; }
+  #shadow { position:absolute; left:1555px; top:1014px; width:250px; height:40px; border-radius:50%; background:rgba(90,50,20,.3); filter:blur(6px); }
+  #bubble { left:1150px; top:190px; }
+  #bubble div { background:#fff; border-radius:40px; padding:22px 40px 30px; font:800 56px 'B'; color:var(--dg); position:relative; white-space:nowrap; }
+  #bubble div:after { content:''; position:absolute; right:40px; bottom:-26px; border:16px solid transparent; border-top:22px solid #fff; border-left:24px solid #fff; }
+
+  /* الختام */
+  #scroll { left:150px; top:150px; width:1260px; padding:40px 50px 46px; background:#FFF9EA; border-radius:40px; border:6px solid var(--gold); text-align:center; }
+  #scroll small { display:block; font:700 42px 'B'; color:var(--gold); margin-bottom:6px; }
+  #scroll .h { font:700 70px 'N'; color:var(--dg); line-height:1.75; }
+  #scroll .chips { display:flex; justify-content:center; gap:22px; margin-top:22px; }
+  #scroll .chips span { background:var(--dg); color:#fff; font:800 40px 'B'; padding:8px 30px 16px; border-radius:40px; }
+  .conf { position:absolute; width:22px; height:30px; border-radius:5px; }
+
+  #subs { left:120px; width:1320px; top:968px; display:flex; justify-content:center; }
+  #subs div { background:rgba(31,92,74,.92); color:#fff; font:700 44px 'B'; padding:10px 34px 18px; border-radius:22px; white-space:nowrap; }
+  #subs .mk { margin-left:10px; }
+  #grain { opacity:.12; mix-blend-mode:multiply; pointer-events:none; }
+  #vig { background:radial-gradient(130% 100% at 50% 45%, rgba(0,0,0,0) 62%, rgba(80,40,10,.22) 100%); pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="world">
+    <div id="book" class="paper">
+      <svg id="pages" viewBox="0 0 1320 790" style="overflow:visible">
+        <defs>
+          <linearGradient id="spine" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#7A5A30" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+          <radialGradient id="gl"><stop offset="0" stop-color="#FFE7A0" stop-opacity=".95"/><stop offset=".5" stop-color="#FFD36B" stop-opacity=".35"/><stop offset="1" stop-color="#FFD36B" stop-opacity="0"/></radialGradient>
+        </defs>
+        <g id="leftHalf"><rect x="-14" y="-14" width="680" height="818" rx="24" fill="#1F5C4A"/><rect x="0" y="0" width="660" height="790" rx="14" fill="#FBF3E1"/></g>
+        <g id="rightHalf"><rect x="654" y="-14" width="680" height="818" rx="24" fill="#1F5C4A"/><rect x="660" y="0" width="660" height="790" rx="14" fill="#FBF3E1"/></g>
+        <rect x="610" y="0" width="100" height="790" fill="url(#spine)" id="spinesh"/>
+        <g id="scenes"></g>
+      </svg>
+      <div id="flip"></div>
+      <div id="cover"><div class="orn"><small>كتابُ قصصِ</small><b>الإحسان</b><small>✦ ✦ ✦</small></div></div>
+    </div>
+    <div class="bm paper" id="bm1" style="left:180px;top:360px;background:#3BA57A"><i style="color:#3BA57A">✓</i>الإسلام</div>
+    <div class="bm paper" id="bm2" style="left:180px;top:480px;background:#D9A441"><i style="color:#D9A441">✓</i>الإيمان</div>
+  </div>
+
+  <div id="presenter" class="L" style="pointer-events:none">
+    <div id="shadow"></div>
+    <div id="boy">
+      <img id="body" src="assets/man_body.png" alt="">
+      <div id="headw">
+        <img src="assets/man_head.png" alt="">
+        <svg viewBox="0 0 633 451">
+          <ellipse id="lidL" cx="198" cy="247" rx="31" ry="0" fill="#F8BF99"/><ellipse id="lidR" cx="318" cy="245" rx="35" ry="0" fill="#F8BF99"/>
+          <path id="lashL" d="M170 249 Q198 260 226 249" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+          <path id="lashR" d="M286 247 Q318 258 350 247" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+          <g id="mouthg" opacity="0">
+            <ellipse cx="263" cy="347" rx="52" ry="15" fill="#F8BF99"/>
+            <ellipse id="mo" cx="263" cy="347" rx="20" ry="4" fill="#5A2A1E" stroke="#222" stroke-width="4"/>
+            <ellipse id="tg" cx="263" cy="353" rx="10" ry="3" fill="#E87F86"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div id="bubble" class="abs paper"><div>السلام عليكم!</div></div>
+  </div>
+
+  <div id="scroll" class="abs paper"><small>📖 تعريفُ الإحسان</small>
+    <div class="h">«أَنْ تَعْبُدَ اللهَ كَأَنَّكَ تَرَاهُ،<br>فَإِنْ لَمْ تَكُنْ تَرَاهُ فَإِنَّهُ يَرَاكَ»</div>
+    <div class="chips"><span id="ch1">في عبادتِنا</span><span id="ch2">في كلامِنا</span><span id="ch3">في أعمالِنا</span></div></div>
+  <div id="title" class="abs paper"><div id="banner">الإحسان</div></div>
+  <div id="subs" class="abs"><div id="subtxt"></div></div>
+  <div id="conf" class="L" style="pointer-events:none"></div>
+  <div id="vig" class="L"></div>
+  <svg id="grain" class="L" viewBox="0 0 1920 1080"><filter id="pn"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .55 0"/></filter><rect width="1920" height="1080" filter="url(#pn)"/></svg>
+</div>
+
+<script src="lib/motion.js"></script>
+<script src="timing.js"></script>
+<script>
+const P = TIMING.phrases, ENV = TIMING.env;
+const FILM = { width: 1920, height: 1080, fps: 30, duration: TIMING.duration, cuts: [] };
+const { sp, set, clamp, lerp, ease, range, track } = M; const $ = M.$;
+const env = t => { const f = t * TIMING.fps, i = Math.floor(f); const a = ENV[i] || 0, b = ENV[i + 1] || 0; return lerp(a, b, f - i); };
+const at = (i, k = 'a') => P[i][k];
+
+function maskWords(el, text) { el.innerHTML = ''; return text.split(/\s+/).filter(Boolean).map(w => { const m = document.createElement('span'); m.className = 'mk'; const s = document.createElement('span'); s.className = 'mi'; s.textContent = w; m.appendChild(s); el.appendChild(m); return s; }); }
+function pop(el, t, t0, { preset = 'playful', from = .3, rot = -6, dy = 40 } = {}) { const s = sp(t - t0, preset); set(el, { s: lerp(from, 1, s), y: (1 - s) * dy, r: (1 - s) * rot, o: clamp((t - t0) / .08) }); if (t < t0) el.style.opacity = 0; return s; }
+// مجموعات SVG: تحويل بالخاصية حول مركز معلوم
+function popG(id, t, t0, cx, cy, { from = .3, rot = -6, preset = 'playful' } = {}) { const el = $('#' + id), s = sp(t - t0, preset), k = Math.max(0, lerp(from, 1, s));
+  el.setAttribute('transform', `translate(${cx} ${cy}) rotate(${(1 - s) * rot}) scale(${k}) translate(${-cx} ${-cy})`); el.style.opacity = t < t0 ? 0 : clamp((t - t0) / .08); }
+function riseG(id, t, t0) { const el = $('#' + id), s = sp(t - t0, 'type'); el.setAttribute('transform', `translate(0 ${(1 - s) * 34})`); el.style.opacity = t < t0 ? 0 : clamp((t - t0) / .18); }
+function wipeG(id, t, t0, dur, x0, x1) { const r = $('#' + id + 'r'), u = ease.inOut3(range(t, t0, t0 + dur)); r.setAttribute('x', x1 - (x1 - x0) * u); r.setAttribute('width', (x1 - x0) * u); }   // كشف من اليمين لليسار
+
+// ---------------------------------------------------------------- رسومات الشخصيات
+const SK = '#F6C9A0', LN = '#2B2A28';
+function kid(pose = 'stand', cap = '#fff') {
+  const arms = pose === 'pray'
+    ? `<path d="M-40 -170 Q-10 -150 22 -165" stroke="${LN}" stroke-width="26" stroke-linecap="round" fill="none"/><path d="M-40 -170 Q-10 -150 22 -165" stroke="#fff" stroke-width="18" stroke-linecap="round" fill="none"/><circle cx="24" cy="-166" r="11" fill="${SK}" stroke="${LN}" stroke-width="3"/>
+       <path d="M40 -175 Q10 -160 -18 -170" stroke="${LN}" stroke-width="26" stroke-linecap="round" fill="none"/><path d="M40 -175 Q10 -160 -18 -170" stroke="#fff" stroke-width="18" stroke-linecap="round" fill="none"/><circle cx="-20" cy="-170" r="11" fill="${SK}" stroke="${LN}" stroke-width="3"/>`
+    : pose === 'write'
+    ? `<g id="wArm"><path d="M-44 -175 Q-70 -120 -100 -95" stroke="${LN}" stroke-width="26" stroke-linecap="round" fill="none"/><path d="M-44 -175 Q-70 -120 -100 -95" stroke="#fff" stroke-width="18" stroke-linecap="round" fill="none"/><circle cx="-104" cy="-92" r="12" fill="${SK}" stroke="${LN}" stroke-width="3"/><rect x="-128" y="-118" width="8" height="40" rx="3" fill="#F2B632" stroke="${LN}" stroke-width="2" transform="rotate(35 -124 -98)"/></g>
+       <path d="M44 -175 Q62 -120 50 -98" stroke="${LN}" stroke-width="26" stroke-linecap="round" fill="none"/><path d="M44 -175 Q62 -120 50 -98" stroke="#fff" stroke-width="18" stroke-linecap="round" fill="none"/>`
+    : `<path d="M-46 -175 Q-62 -120 -58 -80" stroke="${LN}" stroke-width="26" stroke-linecap="round" fill="none"/><path d="M-46 -175 Q-62 -120 -58 -80" stroke="#fff" stroke-width="18" stroke-linecap="round" fill="none"/><circle cx="-58" cy="-76" r="11" fill="${SK}" stroke="${LN}" stroke-width="3"/>
+       <path d="M46 -175 Q62 -120 58 -80" stroke="${LN}" stroke-width="26" stroke-linecap="round" fill="none"/><path d="M46 -175 Q62 -120 58 -80" stroke="#fff" stroke-width="18" stroke-linecap="round" fill="none"/><circle cx="58" cy="-76" r="11" fill="${SK}" stroke="${LN}" stroke-width="3"/>`;
+  return `<ellipse cx="0" cy="4" rx="58" ry="10" fill="#000" opacity=".12"/>
+    <rect x="-34" y="-30" width="26" height="30" rx="8" fill="${LN}"/><rect x="8" y="-30" width="26" height="30" rx="8" fill="${LN}"/>
+    <path d="M-56 -26 L-46 -186 Q0 -200 46 -186 L56 -26Z" fill="#fff" stroke="${LN}" stroke-width="5" stroke-linejoin="round"/><path d="M0 -186 V-140" stroke="${LN}" stroke-width="3"/>
+    ${arms}
+    <circle cx="0" cy="-240" r="54" fill="${SK}" stroke="${LN}" stroke-width="5"/>
+    <path d="M-54 -248 Q-50 -300 0 -300 Q50 -300 54 -248 Q30 -262 0 -262 Q-30 -262 -54 -248Z" fill="${cap}" stroke="${LN}" stroke-width="5" stroke-linejoin="round"/>
+    <circle cx="-19" cy="-236" r="6" fill="${LN}" class="eye"/><circle cx="19" cy="-236" r="6" fill="${LN}" class="eye"/>
+    <path d="M-16 -212 Q0 -200 16 -212" stroke="${LN}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <circle cx="-34" cy="-218" r="8" fill="#F29C8A" opacity=".5"/><circle cx="34" cy="-218" r="8" fill="#F29C8A" opacity=".5"/>`;
+}
+function teacher() {
+  return `<ellipse cx="0" cy="4" rx="70" ry="11" fill="#000" opacity=".12"/>
+    <rect x="-40" y="-14" width="30" height="16" rx="7" fill="${LN}"/><rect x="10" y="-14" width="30" height="16" rx="7" fill="${LN}"/>
+    <path d="M-70 -10 L-58 -270 Q0 -290 58 -270 L70 -10Z" fill="#fff" stroke="${LN}" stroke-width="5" stroke-linejoin="round"/><path d="M0 -270 V-200" stroke="${LN}" stroke-width="3"/>
+    <path d="M-58 -262 Q-84 -180 -76 -120" stroke="${LN}" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M-58 -262 Q-84 -180 -76 -120" stroke="#fff" stroke-width="22" stroke-linecap="round" fill="none"/>
+    <path d="M58 -262 Q90 -230 120 -250" stroke="${LN}" stroke-width="30" stroke-linecap="round" fill="none"/><path d="M58 -262 Q90 -230 120 -250" stroke="#fff" stroke-width="22" stroke-linecap="round" fill="none"/><circle cx="124" cy="-252" r="13" fill="${SK}" stroke="${LN}" stroke-width="3"/>
+    <circle cx="0" cy="-330" r="50" fill="${SK}" stroke="${LN}" stroke-width="5"/>
+    <path d="M-38 -312 Q0 -262 38 -312 Q30 -280 0 -276 Q-30 -280 -38 -312Z" fill="#3A2A20"/>
+    <path d="M-62 -330 Q-62 -392 0 -392 Q62 -392 62 -330 L74 -250 L48 -262 L44 -330 Q0 -350 -44 -330 L-48 -262 L-74 -250Z" fill="#fff" stroke="${LN}" stroke-width="5" stroke-linejoin="round"/>
+    <rect x="-50" y="-378" width="100" height="14" rx="7" fill="${LN}"/>
+    <circle cx="-18" cy="-332" r="5" fill="${LN}"/><circle cx="18" cy="-332" r="5" fill="${LN}"/><path d="M-12 -310 Q0 -302 12 -310" stroke="#F6C9A0" stroke-width="4" fill="none"/>`;
+}
+const frame = (x, w, c) => `<rect x="${x + 30}" y="34" width="${w - 60}" height="722" rx="26" fill="none" stroke="${c}" stroke-width="5" stroke-dasharray="2 14" stroke-linecap="round"/>`;
+const sign = (txt, col, mark) => `<rect x="-6" y="0" width="12" height="190" rx="5" fill="#9C7A55"/><rect x="-130" y="-46" width="260" height="96" rx="20" fill="${col}" stroke="#fff" stroke-width="6"/><text x="0" y="16" text-anchor="middle" font-family="B" font-weight="800" font-size="46" fill="#fff">${txt} ${mark}</text>`;
+
+// ---------------------------------------------------------------- المشاهد (صفحات الكتاب)
+$('#scenes').innerHTML = `
+<g id="sc1">
+  <rect x="70" y="70" width="520" height="250" rx="14" fill="#2F5D50" stroke="#A8794F" stroke-width="12"/>
+  <text x="330" y="140" text-anchor="middle" font-family="K" font-weight="700" font-size="44" fill="#F4F1E6">الواجب ✎</text>
+  <path d="M130 200 H530 M130 250 H460" stroke="#F4F1E6" stroke-width="5" stroke-dasharray="14 10" stroke-linecap="round" opacity=".7"/>
+  <g id="door"><rect x="70" y="380" width="150" height="330" rx="8" fill="#C79A68" stroke="#8C6440" stroke-width="6"/><g id="doorleaf"><rect x="76" y="386" width="138" height="318" rx="6" fill="#B5865A"/><circle cx="196" cy="550" r="9" fill="#F2C14E"/></g></g>
+  <g transform="translate(560 420)"><circle r="40" fill="#fff" stroke="#8C6440" stroke-width="6"/><line id="clkh" x1="0" y1="0" x2="0" y2="-26" stroke="${LN}" stroke-width="5" stroke-linecap="round"/><line x1="0" y1="0" x2="16" y2="0" stroke="${LN}" stroke-width="5" stroke-linecap="round"/></g>
+  <g id="teach"><g transform="translate(420 740) scale(.95)">${teacher()}</g></g>
+  <g id="kid1" transform="translate(1010 690) scale(.95)">${kid('write')}</g>
+  <rect x="760" y="570" width="500" height="28" rx="8" fill="#A8794F"/><rect x="790" y="598" width="440" height="150" rx="6" fill="#C79A68"/><rect x="800" y="598" width="20" height="160" fill="#8C6440"/><rect x="1200" y="598" width="20" height="160" fill="#8C6440"/>
+  <g transform="translate(860 520) skewX(-18)"><rect x="0" y="0" width="200" height="56" rx="6" fill="#fff" stroke="#C9B38A" stroke-width="4"/><path id="nb1" pathLength="1" d="M180 18 H24" stroke="#3E7FB0" stroke-width="5" stroke-linecap="round"/><path id="nb2" pathLength="1" d="M180 38 H40" stroke="#3E7FB0" stroke-width="5" stroke-linecap="round"/></g>
+  <g id="bdg1"><rect x="760" y="80" width="220" height="86" rx="43" fill="#3E7FB0"/><text x="870" y="137" text-anchor="middle" font-family="B" font-weight="800" font-size="44" fill="#fff">تركيز 🎯</text></g>
+  <g id="bdg2"><rect x="1010" y="80" width="220" height="86" rx="43" fill="#3BA57A"/><text x="1120" y="137" text-anchor="middle" font-family="B" font-weight="800" font-size="44" fill="#fff">إتقان ✓</text></g>
+  <g id="sees"><ellipse cx="990" cy="150" rx="290" ry="120" fill="url(#gl)"/><rect x="730" y="80" width="520" height="136" rx="30" fill="#FFF6D5" stroke="#F2C14E" stroke-width="6"/>
+    <text x="990" y="136" text-anchor="middle" font-family="B" font-weight="800" font-size="46" fill="#1F5C4A">اللهُ يرانا</text><text x="990" y="192" text-anchor="middle" font-family="B" font-weight="700" font-size="38" fill="#6A5A3A">ويعلمُ ما نعمل</text></g>
+  <g id="good"><rect x="760" y="240" width="460" height="80" rx="40" fill="#D9A441"/><text x="990" y="294" text-anchor="middle" font-family="B" font-weight="800" font-size="38" fill="#fff">نحرصُ على الخيرِ دائمًا ⭐</text></g>
+  <g id="neat"><circle cx="1090" cy="500" r="30" fill="#3BA57A"/><path d="M1076 500 L1087 512 L1106 488" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+</g>
+<g id="sc3">
+  ${frame(660, 660, '#D9A441')}${frame(0, 660, '#D9A441')}
+  <text id="h30" x="990" y="150" text-anchor="middle" font-family="B" font-weight="800" font-size="50" fill="#D9A441">الإحسانُ هو:</text>
+  <clipPath id="w31"><rect id="w31r" x="660" y="200" width="0" height="360"/></clipPath>
+  <g clip-path="url(#w31)"><text x="990" y="330" text-anchor="middle" font-family="N" font-weight="700" font-size="84" fill="#1F5C4A">«أن تعبدَ اللهَ</text><text x="990" y="470" text-anchor="middle" font-family="N" font-weight="700" font-size="84" fill="#1F5C4A">كأنَّكَ تراه»</text></g>
+  <g id="g32"><ellipse cx="330" cy="400" rx="300" ry="230" fill="url(#gl)"/></g>
+  <clipPath id="w32"><rect id="w32r" x="0" y="200" width="0" height="360"/></clipPath>
+  <g clip-path="url(#w32)"><text x="330" y="330" text-anchor="middle" font-family="N" font-weight="700" font-size="80" fill="#1F5C4A">«فإن لم تكن تراه</text><text x="330" y="470" text-anchor="middle" font-family="N" font-weight="700" font-size="80" fill="#1F5C4A">فإنَّه يراك»</text></g>
+  <text x="990" y="660" text-anchor="middle" font-family="B" font-weight="700" font-size="30" fill="#B9A275">١</text><text x="330" y="660" text-anchor="middle" font-family="B" font-weight="700" font-size="30" fill="#B9A275">٢</text>
+</g>
+<g id="sc4">
+  <g id="b41"><circle cx="870" cy="250" r="110" fill="#C8553D"/><path d="M870 300 C820 268 806 240 820 220 C834 202 860 208 870 228 C880 208 906 202 920 220 C934 240 920 268 870 300Z" fill="#fff"/><text x="870" y="410" text-anchor="middle" font-family="B" font-weight="800" font-size="46" fill="#C8553D">إخلاص</text></g>
+  <g id="b42"><circle cx="1110" cy="250" r="110" fill="#3E7FB0"/><path d="M1060 270 Q1110 230 1160 270 M1070 240 Q1110 210 1150 240" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="1110" cy="205" r="12" fill="#fff"/><text x="1110" y="410" text-anchor="middle" font-family="B" font-weight="800" font-size="46" fill="#3E7FB0">خشوع</text></g>
+  <g id="b43"><ellipse cx="990" cy="560" rx="300" ry="110" fill="url(#gl)"/><rect x="760" y="500" width="460" height="120" rx="30" fill="#FFF6D5" stroke="#F2C14E" stroke-width="6"/><text x="990" y="580" text-anchor="middle" font-family="B" font-weight="800" font-size="48" fill="#1F5C4A">يرانا ويسمعُنا</text></g>
+  <g id="st1"><rect x="430" y="590" width="200" height="140" rx="10" fill="#3BA57A"/><text x="530" y="675" text-anchor="middle" font-family="B" font-weight="800" font-size="40" fill="#fff">الإسلام</text></g>
+  <g id="st2"><rect x="230" y="450" width="200" height="280" rx="10" fill="#D9A441"/><text x="330" y="535" text-anchor="middle" font-family="B" font-weight="800" font-size="40" fill="#fff">الإيمان</text></g>
+  <g id="st3"><rect x="30" y="310" width="200" height="420" rx="10" fill="#3E7FB0"/><text x="130" y="395" text-anchor="middle" font-family="B" font-weight="800" font-size="40" fill="#fff">الإحسان</text></g>
+  <g id="crown"><path d="M90 250 L100 200 L120 230 L130 190 L140 230 L160 200 L170 250Z" fill="#F2C14E" stroke="#B8862E" stroke-width="4" stroke-linejoin="round"/></g>
+  <g id="top"><rect x="210" y="90" width="420" height="80" rx="40" fill="#1F5C4A"/><text x="420" y="144" text-anchor="middle" font-family="B" font-weight="800" font-size="38" fill="#F7D37A">أعلى مراتبِ الدِّين ⭐</text></g>
+  <g id="kid4">${kid('stand')}</g>
+</g>
+<g id="sc5">
+  <g transform="translate(990 740)"><path d="M-150 0 L-130 -330 Q0 -400 130 -330 L150 0Z" fill="#3E7FB0"/><path d="M-110 -40 L-96 -300 Q0 -360 96 -300 L110 -40Z" fill="none" stroke="#F2C14E" stroke-width="6"/><path d="M-60 -250 Q0 -300 60 -250" stroke="#F2C14E" stroke-width="6" fill="none"/></g>
+  <g id="ripple"></g>
+  <g transform="translate(990 700) scale(.92)">${kid('pray')}</g>
+  <g id="calm"><rect x="760" y="80" width="460" height="86" rx="43" fill="#3E7FB0"/><text x="990" y="137" text-anchor="middle" font-family="B" font-weight="800" font-size="42" fill="#fff">بهدوءٍ وانتباه 🤍</text></g>
+  <g transform="translate(330 470)"><path d="M-170 260 V-80 Q-170 -250 0 -280 Q170 -250 170 -80 V260Z" fill="#E9DCC0" stroke="#C9B38A" stroke-width="8"/><path d="M-110 260 V-40 Q-110 -170 0 -195 Q110 -170 110 -40 V260Z" fill="#F7EBD0"/></g>
+  <g id="g53"><ellipse cx="330" cy="420" rx="260" ry="240" fill="url(#gl)"/></g>
+  <g id="t53"><text x="330" y="420" text-anchor="middle" font-family="N" font-weight="700" font-size="62" fill="#1F5C4A">نقفُ بين</text><text x="330" y="510" text-anchor="middle" font-family="N" font-weight="700" font-size="62" fill="#1F5C4A">يدَيِ الله</text></g>
+</g>
+<g id="sc6">
+  <rect x="660" y="0" width="660" height="790" rx="14" fill="#2C3A63" opacity=".22"/>
+  <g><rect x="840" y="110" width="230" height="230" rx="16" fill="#26355F" stroke="#A8794F" stroke-width="12"/><path d="M955 116 V334 M846 225 H1064" stroke="#A8794F" stroke-width="8"/><circle cx="1010" cy="170" r="30" fill="#FFE9A8"/><circle cx="1024" cy="160" r="26" fill="#26355F"/><circle cx="890" cy="160" r="4" fill="#fff"/><circle cx="920" cy="290" r="3" fill="#fff"/><circle cx="1030" cy="290" r="4" fill="#fff"/></g>
+  <g transform="translate(1110 720)">${kid('stand')}</g>
+  <path id="arrow6" d="M1010 520 Q760 420 520 380" stroke="#3BA57A" stroke-width="10" fill="none" stroke-dasharray="20 16" stroke-linecap="round" pathLength="1"/>
+  <g id="sgnT"><g transform="translate(400 330)">${sign('الصِّدق', '#3BA57A', '✓')}</g></g>
+  <g id="sgnF"><g transform="translate(200 520)">${sign('الخطأ', '#C8553D', '✗')}</g><g id="xF"><circle cx="330" cy="470" r="34" fill="#fff" stroke="#C8553D" stroke-width="7"/><path d="M316 456 L344 484 M344 456 L316 484" stroke="#C8553D" stroke-width="8" stroke-linecap="round"/></g></g>
+  <g id="b63"><ellipse cx="330" cy="140" rx="300" ry="100" fill="url(#gl)"/><rect x="60" y="80" width="540" height="110" rx="30" fill="#FFF6D5" stroke="#F2C14E" stroke-width="6"/><text x="330" y="152" text-anchor="middle" font-family="B" font-weight="800" font-size="44" fill="#1F5C4A">اللهُ يرانا أينما كنّا</text></g>
+</g>
+<g id="sc7">
+  ${frame(660, 660, '#3BA57A')}${frame(0, 660, '#3BA57A')}
+  <g id="q7"><circle cx="990" cy="360" r="170" fill="#D9A441"/><text x="990" y="440" text-anchor="middle" font-family="B" font-weight="800" font-size="230" fill="#fff">؟</text></g>
+  <text id="q7t" x="990" y="640" text-anchor="middle" font-family="B" font-weight="800" font-size="62" fill="#1F5C4A">ما الإحسان؟</text>
+  <clipPath id="w71"><rect id="w71r" x="0" y="190" width="0" height="200"/></clipPath>
+  <g clip-path="url(#w71)"><text x="330" y="270" text-anchor="middle" font-family="N" font-weight="700" font-size="60" fill="#1F5C4A">أن نعبدَ اللهَ</text><text x="330" y="360" text-anchor="middle" font-family="N" font-weight="700" font-size="60" fill="#1F5C4A">كأنَّنا نراه</text></g>
+  <clipPath id="w72"><rect id="w72r" x="0" y="420" width="0" height="200"/></clipPath>
+  <g clip-path="url(#w72)"><text x="330" y="500" text-anchor="middle" font-family="N" font-weight="700" font-size="60" fill="#1F5C4A">فإن كنّا لا نراه</text><text x="330" y="590" text-anchor="middle" font-family="N" font-weight="700" font-size="60" fill="#1F5C4A">فإنَّه يرانا ✓</text></g>
+</g>`;
+for (let i = 0; i < 3; i++) $('#ripple').insertAdjacentHTML('beforeend', `<ellipse cx="990" cy="720" rx="140" ry="34" fill="none" stroke="#3E7FB0" stroke-width="5" class="rp"/>`);
+
+// ---------------------------------------------------------------- أحداث
+const E = {
+  boyIn: .25, hello: at(0), titleIn: .15, titleUp: at(1) - .3, bm: [at(1) + .9, at(1) + 1.6], coverGlow: at(2) + 1.2, open: at(3) - .55,
+  bdg1: at(4) + .9, bdg2: at(4) + 1.7, neat: at(5), teachOut: at(6) + .2, sees: at(7) + .2, good: at(8) + .5,
+  flips: [at(9) - .45, at(12) - .45, at(15) - .45, at(18) - .45, at(21) - .45],
+  h30: at(9), w31: at(10), w32: at(11),
+  b41: at(12) + 1.3, b42: at(12) + 2.0, b43: at(13) + .4, st: [at(14) + .2, at(14) + .5, at(14) + .8], crown: at(14) + 1.6, top: at(14) + 1.9,
+  calm: at(16) + .1, t53: at(17) + .2,
+  arrow6: at(19) + .1, sgnT: at(19) + .4, sgnF: at(19) + 1.4, b63: at(20) + .2,
+  q7: at(22), w71: at(23), w72: at(24),
+  bravo: at(25), scroll: at(25) + .35, ch: [at(26) + .9, at(26) + 1.7, at(26) + 2.6],
+};
+const SCN = ['sc1', 'sc3', 'sc4', 'sc5', 'sc6', 'sc7'];
+const conf = $('#conf'), bits = [], R = M.rng(7), COL = ['#3BA57A', '#D9A441', '#3E7FB0', '#C8553D', '#F2B632'];
+for (let i = 0; i < 60; i++) { const d = document.createElement('div'); d.className = 'conf'; d.style.background = COL[i % 5]; conf.appendChild(d); bits.push({ d, x: R() * 1920, v: 170 + R() * 230, w: R() * 6, r0: R() * 360, delay: R() * .9 }); }
+const SUBW = P.map(p => p.text);
+let subIdx = -1, subWords = [];
+
+window.FILM = FILM;
+window.renderAt = async function (t) {
+  // ----- الكاميرا: دفعة خفيفة مع كل صفحة
+  const keys = [[0, 1.06], [E.open, 1.0], ...E.flips.map(f => [f, 1.0]), [E.bravo, 1.0]];
+  let push = 0; [E.open, ...E.flips].forEach(f => { if (t > f + .6) push = clamp((t - f - .6) / 9) * .03; });
+  const cs = track(t, [[0, 1.06], [E.open, 1.0]], 'base') + push;
+  set($('#world'), { s: cs, x: track(t, [[0, 110], [E.open - .2, 0]], 'base') });
+
+  // ----- العنوان
+  const tin = sp(t - E.titleIn, 'playful'), up = ease.inOut3(range(t, E.titleUp, E.titleUp + .8));
+  const tx = lerp(300, 700, up), ty = lerp(380, 22, up), ts = lerp(.2, 1, tin) * lerp(1, .5, up);
+  $('#title').style.transform = `translate(${tx}px, ${ty}px) scale(${ts})`; $('#title').style.transformOrigin = '0 0';
+  $('#title').style.opacity = clamp((t - E.titleIn) / .1) * (1 - range(t, E.scroll - .3, E.scroll));
+
+  // ----- الغلاف: الكتاب مغلق ← علامتا «الإسلام ✓ الإيمان ✓» ← الغلاف ينفتح
+  const oc = ease.inOut3(range(t, E.open, E.open + 1.1));
+  $('#cover').style.transform = `rotateY(${-180 * oc}deg)`;
+  const cg = t > E.coverGlow ? Math.exp(-(t - E.coverGlow) * 2) * Math.sin(Math.min(Math.PI, (t - E.coverGlow) * 6)) : 0;
+  $('#cover').style.filter = `brightness(${1 + cg * .25})`;
+  $('#cover .orn').style.opacity = oc < .5 ? 1 : 0;
+  $('#cover').style.background = oc < .5 ? '#1F5C4A' : '#174636';
+  $('#cover').style.opacity = oc >= 1 ? 0 : 1;
+  $('#leftHalf').style.opacity = clamp((oc - .45) / .3); $('#spinesh').style.opacity = clamp((oc - .45) / .3);
+  const pin = sp(t, [120, 14]); $('#book').style.transform = `translateY(${(1 - pin) * 900}px)`;
+  ['#bm1', '#bm2'].forEach((id, i) => { pop($(id), t, E.bm[i], { rot: -8 }); const o = 1 - ease.power4In(range(t, E.open - .3, E.open + .1)); if (t > E.bm[i]) $(id).style.opacity = o; });
+
+  // ----- الصفحات: تقليب صفحة بين المشاهد
+  let cur = 0, fl = -1;
+  E.flips.forEach((f, i) => { const u = range(t, f, f + .9); if (u >= .5) cur = i + 1; if (u > 0 && u < 1) fl = u; });
+  SCN.forEach((id, i) => { $('#' + id).style.display = i === cur && oc > .5 ? '' : 'none'; });
+  if (fl >= 0) { const a = ease.inOut2 ? ease.inOut2(fl) : ease.inOut3(fl); $('#flip').style.opacity = 1; $('#flip').style.transform = `rotateY(${-180 * a}deg)`; $('#flip').style.filter = `brightness(${1 - .25 * Math.sin(Math.PI * a)})`; }
+  else $('#flip').style.opacity = 0;
+
+  // ----- المشهد ١: الواجب والمعلّم ينظر، ثم يخرج
+  const wr = range(t, E.open + 1, at(8, 'b'));
+  $('#nb1').style.strokeDasharray = '1 1'; $('#nb1').style.strokeDashoffset = 1 - clamp(wr * 2);
+  $('#nb2').style.strokeDasharray = '1 1'; $('#nb2').style.strokeDashoffset = 1 - clamp(wr * 2 - 1);
+  const wa = $('#wArm'); if (wa) wa.setAttribute('transform', `translate(${Math.sin(t * 9) * 6} ${Math.abs(Math.sin(t * 4.5)) * -4})`);
+  popG('bdg1', t, E.bdg1, 870, 123); popG('bdg2', t, E.bdg2, 1120, 123);
+  const bOut = clamp((t - E.teachOut) / .3); if (t > E.teachOut) { $('#bdg1').style.opacity = 1 - bOut; $('#bdg2').style.opacity = 1 - bOut; }
+  popG('neat', t, E.neat, 1090, 500);
+  const tw = ease.inOut3(range(t, E.teachOut, E.teachOut + 1.4));
+  $('#teach').setAttribute('transform', `translate(${-240 * tw} ${-Math.abs(Math.sin(tw * Math.PI * 4)) * 10})`); $('#teach').style.opacity = 1 - range(t, E.teachOut + 1, E.teachOut + 1.5);
+  const dop = Math.sin(Math.PI * range(t, E.teachOut + .5, E.teachOut + 1.9));
+  $('#doorleaf').setAttribute('transform', `translate(76 0) scale(${1 - dop * .7} 1) translate(-76 0)`);
+  $('#clkh').setAttribute('transform', `rotate(${t * 40})`);
+  popG('sees', t, E.sees, 990, 150, { from: .5 }); popG('good', t, E.good, 990, 280, { rot: -3 });
+
+  // ----- المشهد ٢: نصّ الحديث على صفحتين (من اليمين)
+  riseG('h30', t, E.h30);
+  wipeG('w31', t, E.w31, 1.6, 680, 1300); wipeG('w32', t, E.w32, 1.6, 20, 640);
+  $('#g32').style.opacity = clamp((t - E.w32 - 1.4) / .6) * (.7 + .3 * Math.sin(t * 2));
+
+  // ----- المشهد ٣: إخلاص وخشوع، يرانا ويسمعنا، ودرج المراتب
+  popG('b41', t, E.b41, 870, 300); popG('b42', t, E.b42, 1110, 300); popG('b43', t, E.b43, 990, 560, { from: .5, rot: -3 });
+  [['st1', 530, 730], ['st2', 330, 730], ['st3', 130, 730]].forEach(([id, x, y], i) => { const s = sp(t - E.st[i], [150, 12]); $('#' + id).setAttribute('transform', `translate(${x} ${y}) scale(1 ${Math.max(0, s)}) translate(${-x} ${-y})`); $('#' + id).style.opacity = t < E.st[i] ? 0 : 1; });
+  popG('crown', t, E.crown, 130, 230, { rot: 20 }); popG('top', t, E.top, 420, 130, { rot: -3 });
+  const SP = [[630, 760], [530, 590], [330, 450], [130, 310]]; let kp = SP[0];
+  for (let j = 0; j < 3; j++) { const u = ease.inOut3(range(t, E.st[j] + .5, E.st[j] + 1.0)); if (u > 0) { const a = SP[j], b = SP[j + 1]; kp = [lerp(a[0], b[0], u), lerp(a[1], b[1], u) - Math.sin(Math.PI * u) * 90]; } }
+  $('#kid4').setAttribute('transform', `translate(${kp[0]} ${kp[1]}) scale(.42)`); $('#kid4').style.opacity = t < E.st[0] ? 0 : 1;
+
+  // ----- المشهد ٤: الصلاة بهدوء، بين يدي الله
+  document.querySelectorAll('.rp').forEach((r, i) => { const u = ((t - E.calm) * .45 + i / 3) % 1; r.setAttribute('transform', `translate(990 720) scale(${.6 + u * .9}) translate(-990 -720)`); r.style.opacity = t > E.calm ? (1 - u) * .7 : 0; });
+  popG('calm', t, E.calm, 990, 123, { rot: -3 });
+  riseG('t53', t, E.t53); $('#g53').style.opacity = clamp((t - E.t53) / .8) * (.75 + .25 * Math.sin(t * 2.2));
+
+  // ----- المشهد ٥: وحدنا… نختار الصدق
+  $('#arrow6').style.strokeDashoffset = 0; $('#arrow6').style.opacity = clamp((t - E.arrow6) / .2);
+  const ar = ease.out3(range(t, E.arrow6, E.arrow6 + .8)); $('#arrow6').style.strokeDasharray = `${ar} 1`;
+  popG('sgnT', t, at(18) + .6, 400, 520, { rot: -4 }); const tg = t > E.sgnT ? 1 + .08 * Math.exp(-(t - E.sgnT) * 3) * Math.sin((t - E.sgnT) * 14) : 1;
+  if (t > E.sgnT) $('#sgnT').setAttribute('transform', `translate(400 400) scale(${tg * (1 + .06 * clamp((t - E.sgnT) / .3))}) translate(-400 -400)`);
+  popG('sgnF', t, at(18) + .8, 200, 700, { rot: 4 });
+  const xf = ease.out3(range(t, E.sgnF, E.sgnF + .4)); $('#xF').style.opacity = xf; if (t > E.sgnF) $('#sgnF').style.opacity = 1 - .45 * xf;
+  popG('b63', t, E.b63, 330, 135, { from: .5, rot: -3 });
+
+  // ----- المشهد ٦: سؤال وجواب
+  popG('q7', t, E.q7, 990, 360, { rot: -10 }); riseG('q7t', t, E.q7 + .2);
+  wipeG('w71', t, E.w71, 1.5, 20, 640); wipeG('w72', t, E.w72, 1.8, 20, 640);
+
+  // ----- الختام
+  const hz = ease.inOut3(range(t, E.scroll - .3, E.scroll + .5));
+  $('#book').style.opacity = 1 - hz * .8;
+  pop($('#scroll'), t, E.scroll, { from: .4, rot: -3 });
+  E.ch.forEach((c, i) => pop($('#ch' + (i + 1)), t, c, { from: .3, rot: i % 2 ? 6 : -6, dy: 20 }));
+  const ct = t - E.bravo - .1;
+  bits.forEach(b => { const k = ct - b.delay; set(b.d, { x: b.x + Math.sin(k * 3 + b.w) * 40, y: -60 + k * b.v, r: b.r0 + k * 220, o: k > 0 ? 1 : 0 }); });
+
+  // ----- المقدّم
+  const e = env(t), talk = clamp(e * 1.4);
+  const inS = sp(t - E.boyIn, [160, 13]);
+  const hop = Math.max(0, Math.sin(Math.PI * clamp((t - E.boyIn) / .55))) * 60 + (t > E.bravo ? Math.max(0, Math.sin(Math.PI * clamp((t - E.bravo) / .5))) * 70 : 0);
+  let lean = 0; for (const f of E.flips) lean += -3 * Math.sin(Math.PI * clamp((t - f) / 2.2));
+  const bob = Math.sin(t * 2.1) * 4 + talk * 6;
+  set($('#boy'), { x: (1 - inS) * 700, y: (1030 - 1777) - hop * .5 - bob * .3, s: .43, r: lean });
+  set($('#shadow'), { x: (1 - inS) * 700, sx: 1 - hop / 300, o: .9 });
+  const nod = talk * 3 + Math.sin(t * 1.3) * 1;
+  const htl = Math.sin(t * 1.7) * (1 + talk * 2) + (t > E.bravo ? 3 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
+  $('#headw').style.transform = `translate(0px, ${-nod}px) rotate(${htl}deg)`;
+  const mo = clamp((e - .06) * 1.25);
+  $('#mouthg').style.opacity = clamp((mo - .06) / .08);
+  $('#mo').setAttribute('rx', 20 + mo * 9); $('#mo').setAttribute('ry', 3 + mo * 12); $('#mo').setAttribute('cy', 346 + mo * 3);
+  $('#tg').setAttribute('cy', 349 + mo * 8); $('#tg').setAttribute('ry', 2 + mo * 4); $('#tg').style.opacity = mo > .25 ? 1 : 0;
+  const bp = ((t + .7) % 3.3) / .16, blink = bp < 1 ? Math.sin(Math.PI * bp) : 0;
+  for (const s of ['L', 'R']) { $('#lid' + s).setAttribute("ry", 27 * blink); $('#lash' + s).style.opacity = blink > .8 ? 1 : 0; }
+  pop($('#bubble'), t, E.hello + .1, { rot: 8, from: .2 });
+  const bo = ease.power4In(range(t, at(0, 'b') + .5, at(0, 'b') + .8)); if (bo > 0) set($('#bubble'), { s: 1 - bo * .6, o: 1 - bo });
+
+  // ----- الترجمة
+  let idx = -1; for (let i = 0; i < P.length; i++) if (t >= P[i].a - .05 && t < (P[i + 1] ? P[i + 1].a - .08 : P[i].b + 1.5)) idx = i;
+  if (idx !== subIdx) { subIdx = idx; subWords = idx >= 0 ? maskWords($('#subtxt'), SUBW[idx]) : [];
+    const box = $('#subs div'); box.style.fontSize = '44px'; if (idx >= 0) { const w = box.scrollWidth; if (w > 1240) box.style.fontSize = (44 * 1240 / w).toFixed(1) + 'px'; } }
+  $('#subs').style.opacity = idx >= 0 ? 1 : 0;
+  if (idx >= 0) {
+    const p = P[idx], nx = P[idx + 1], gap = nx ? nx.a - p.b : 9;
+    const out = nx ? Math.min(nx.a - .1, p.b + 1.1) : p.b + 1.1;
+    const span = Math.max(.3, p.b - p.a);
+    subWords.forEach((s, i) => { const a = p.a - .12 + (i / subWords.length) * span * .8; const pn = sp(t - a, 'type'), po = ease.power4In(range(t, out - .2, out));
+      s.style.transform = `translateY(${(1 - pn) * 150 - po * 150}%)`; });
+    const boxIn = sp(t - p.a + .05, 'ui');
+    const boxOut = (gap > .9 || !nx) ? range(t, out - .1, out + .05) : 0;
+    set($('#subs div'), { s: lerp(.94, 1, boxIn), o: 1 - boxOut });
+  }
+};
+const imgs = [...document.images].map(i => i.complete ? null : new Promise(r => i.onload = r)).filter(Boolean);
+window.__ready = Promise.all([document.fonts.ready, ...imgs]).then(() => Promise.all([...document.fonts].map(f => f.load()))).then(() => window.renderAt(0)).then(() => true);
+
+if (location.search.includes('preview')) {
+  const st = document.getElementById('stage');
+  const fit = () => { const k = Math.min(innerWidth / FILM.width, innerHeight / FILM.height); st.style.transform = `scale(${k})`; st.style.transformOrigin = '0 0'; };
+  fit(); addEventListener('resize', fit);
+  const a = new Audio('out/score.wav'); const t0 = performance.now(); a.play().catch(() => {});
+  (function loop() { window.renderAt(((performance.now() - t0) / 1000) % FILM.duration); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>
