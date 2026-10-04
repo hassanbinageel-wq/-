@@ -1,0 +1,18 @@
+# التشغيل: docker compose up -d --build
+# إنشاء حساب المالك: docker compose exec store npm run owner:create
+services:
+  store:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /app/data
+    volumes:
+      - store-data:/app/data
+
+volumes:
+  store-data:

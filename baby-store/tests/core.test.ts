@@ -39,8 +39,8 @@ before(async () => {
   }
   m.appearance.ensureAppearance()
   const d = m.db.db()
-  const cat = Number(d.prepare("INSERT INTO categories(name,slug) VALUES('ملابس','clothes')").run().lastInsertRowid)
-  const cat2 = Number(d.prepare("INSERT INTO categories(name,slug) VALUES('هدايا','gifts')").run().lastInsertRowid)
+  const cat = Number(d.prepare("INSERT INTO categories(name,slug) VALUES('ملابس (اختبار)','t-clothes')").run().lastInsertRowid)
+  const cat2 = Number(d.prepare("INSERT INTO categories(name,slug) VALUES('هدايا (اختبار)','t-gifts')").run().lastInsertRowid)
   ids.cat = cat
   ids.cat2 = cat2
   ids.simple = m.products.saveProduct({ type: 'simple', name: 'جوارب', status: 'published', price: Y(1000), trackStock: true, stock: 5, categoryId: cat }, actor)

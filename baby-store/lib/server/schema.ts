@@ -528,4 +528,7 @@ export const MIGRATIONS: string[] = [
   );
   CREATE INDEX idx_order_events_order ON order_events(order_id);
   `,
+  // 2: علامة البيانات التجريبية لخيارات التغليف (تُحذف مع البيانات التجريبية)
+  `ALTER TABLE gift_wraps ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0;
+   UPDATE gift_wraps SET is_demo=1 WHERE name LIKE '%(تجريبي)%';`,
 ]

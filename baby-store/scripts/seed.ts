@@ -7,7 +7,6 @@ import { ensureAppearance, getPublishedAppearance } from '../lib/server/appearan
 import { saveImage } from '../lib/server/media'
 import { saveProduct } from '../lib/server/products'
 import { getVariants } from '../lib/server/catalog'
-import { DEFAULT_PAGES, DEFAULT_FAQS } from '../lib/server/default-content'
 import { demoSvg, bannerSvg, bannerSvgMobile, type Art } from './demo-art'
 import type { ProductOption } from '../lib/shared/types'
 
@@ -24,60 +23,30 @@ async function art(a: Art, color: string, accent: string, bg: string, purpose = 
 async function main() {
   ensureAppearance()
 
-  if (!(d.prepare('SELECT COUNT(*) n FROM pages').get() as { n: number }).n) {
-    const ins = d.prepare('INSERT INTO pages(slug,title,content,status,show_in_footer,system,sort) VALUES(?,?,?,?,?,1,?)')
-    for (const p of DEFAULT_PAGES) ins.run(p.slug, p.title, p.content, 'published', p.slug === 'contact' ? 0 : 1, p.sort)
-    console.log('✓ الصفحات')
-  }
-  if (!(d.prepare('SELECT COUNT(*) n FROM faqs').get() as { n: number }).n) {
-    const ins = d.prepare('INSERT INTO faqs(question,answer,category,sort) VALUES(?,?,?,?)')
-    DEFAULT_FAQS.forEach((f, i) => ins.run(f.question, f.answer, f.category, i))
-    console.log('✓ الأسئلة الشائعة')
-  }
-
+  // الصفحات والأسئلة الشائعة والأقسام وتصنيفات العمر والمناسبة تُنشأ تلقائياً مع قاعدة البيانات الجديدة (lib/server/bootstrap.ts)
   const cats: Record<string, number> = {}
-  if (!(d.prepare('SELECT COUNT(*) n FROM categories').get() as { n: number }).n) {
-    const list: [string, string, string, Art, string, string, string][] = [
-      ['ملابس المواليد', 'baby-clothes', 'بدلات وبيجامات وقطع يومية ناعمة', 'onesie', '#F6C9D3', '#FFFFFF', '#FBE6EA'],
-      ['أطقم المواليد', 'baby-sets', 'أطقم استقبال وخروج ومناسبات', 'set', '#BFDDF2', '#F6C9D3', '#E3F0F9'],
-      ['الإكسسوارات', 'accessories', 'قبعات وجوارب وقفازات ومرايل', 'hat', '#CDE8D6', '#F6C9D3', '#E5F3EA'],
-      ['الهدايا والتغليف', 'gifts', 'هدايا وعلب وتغليف للمناسبات', 'gift', '#F6C9D3', '#FFE7A6', '#FCEEF0'],
-      ['مستلزمات المواليد', 'essentials', 'بطانيات ورضاعات ومستلزمات يومية', 'blanket', '#FFE7A6', '#BFDDF2', '#FFF6DA'],
-    ]
-    let i = 0
-    for (const [name, slug, desc, a, c, acc, bg] of list) {
-      const img = withDemo ? await art(a, c, acc, bg, 'category') : null
-      cats[slug] = Number(
-        d.prepare('INSERT INTO categories(name,slug,description,image_id,sort) VALUES(?,?,?,?,?)').run(name, slug, desc, img, i++).lastInsertRowid,
-      )
-    }
-    console.log('✓ الأقسام')
-  } else {
-    for (const r of d.prepare('SELECT id, slug FROM categories').all() as { id: number; slug: string }[]) cats[r.slug] = r.id
-  }
-
+  for (const r of d.prepare('SELECT id, slug FROM categories').all() as { id: number; slug: string }[]) cats[r.slug] = r.id
   const tags: Record<string, number> = {}
-  if (!(d.prepare('SELECT COUNT(*) n FROM tag_groups').get() as { n: number }).n) {
-    const groups: [string, string, 'age' | 'occasion' | 'custom', [string, string][]][] = [
-      ['العمر', 'age', 'age', [['حديثو الولادة (0-3 أشهر)', 'age-0-3'], ['3-6 أشهر', 'age-3-6'], ['6-12 شهراً', 'age-6-12'], ['1-2 سنة', 'age-12-24']]],
-      ['المناسبة', 'occasion', 'occasion', [['استقبال المولود', 'occ-welcome'], ['هدية ولادة', 'occ-gift'], ['السبوع والعقيقة', 'occ-aqiqah'], ['العيد', 'occ-eid']]],
-      ['مناسب لـ', 'for', 'custom', [['للبنات', 'for-girls'], ['للأولاد', 'for-boys'], ['للجنسين', 'for-all']]],
-    ]
-    groups.forEach(([name, slug, kind, list], gi) => {
-      const gid = Number(d.prepare('INSERT INTO tag_groups(name,slug,kind,sort) VALUES(?,?,?,?)').run(name, slug, kind, gi).lastInsertRowid)
-      list.forEach(([tn, ts], ti) => {
-        tags[ts] = Number(d.prepare('INSERT INTO tags(group_id,name,slug,sort) VALUES(?,?,?,?)').run(gid, tn, ts, ti).lastInsertRowid)
-      })
-    })
-    console.log('✓ التصنيفات (العمر، المناسبة)')
-  } else {
-    for (const r of d.prepare('SELECT id, slug FROM tags').all() as { id: number; slug: string }[]) tags[r.slug] = r.id
-  }
+  for (const r of d.prepare('SELECT id, slug FROM tags').all() as { id: number; slug: string }[]) tags[r.slug] = r.id
+  console.log('✓ هيكل المتجر (الصفحات، الأسئلة، الأقسام، التصنيفات)')
 
   if (!withDemo) return
   if ((d.prepare('SELECT COUNT(*) n FROM products WHERE is_demo=1').get() as { n: number }).n) {
     console.log('البيانات التجريبية موجودة مسبقاً — لم تتم إضافتها مرة أخرى')
     return
+  }
+
+  // صور تجريبية للأقسام الأساسية التي ليس لها صورة
+  const catArt: Record<string, [Art, string, string, string]> = {
+    'baby-clothes': ['onesie', '#F6C9D3', '#FFFFFF', '#FBE6EA'],
+    'baby-sets': ['set', '#BFDDF2', '#F6C9D3', '#E3F0F9'],
+    accessories: ['hat', '#CDE8D6', '#F6C9D3', '#E5F3EA'],
+    gifts: ['gift', '#F6C9D3', '#FFE7A6', '#FCEEF0'],
+    essentials: ['blanket', '#FFE7A6', '#BFDDF2', '#FFF6DA'],
+  }
+  for (const [slug, [a, c, acc, bg]] of Object.entries(catArt)) {
+    const row = d.prepare('SELECT id, image_id FROM categories WHERE slug=?').get(slug) as { id: number; image_id: number | null } | undefined
+    if (row && !row.image_id) d.prepare('UPDATE categories SET image_id=? WHERE id=?').run(await art(a, c, acc, bg, 'category'), row.id)
   }
 
   // دليل مقاسات نموذجي
@@ -100,8 +69,8 @@ async function main() {
   if (!(d.prepare('SELECT COUNT(*) n FROM gift_wraps').get() as { n: number }).n) {
     const w1 = await art('gift', '#F6C9D3', '#FFFFFF', '#FCEEF0', 'wrap')
     const w2 = await art('gift', '#BFDDF2', '#FFE7A6', '#E3F0F9', 'wrap')
-    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort) VALUES(?,?,?,?,?)').run('تغليف ناعم (تجريبي)', 'ورق تغليف بلون هادئ مع شريطة', Y(1000), w1, 0)
-    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort) VALUES(?,?,?,?,?)').run('صندوق هدية (تجريبي)', 'صندوق مقوى مع بطاقة إهداء', Y(2500), w2, 1)
+    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort,is_demo) VALUES(?,?,?,?,?,1)').run('تغليف ناعم (تجريبي)', 'ورق تغليف بلون هادئ مع شريطة', Y(1000), w1, 0)
+    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort,is_demo) VALUES(?,?,?,?,?,1)').run('صندوق هدية (تجريبي)', 'صندوق مقوى مع بطاقة إهداء', Y(2500), w2, 1)
   }
 
   if (!(d.prepare('SELECT COUNT(*) n FROM shipping_zones').get() as { n: number }).n) {

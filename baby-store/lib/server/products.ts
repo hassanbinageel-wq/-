@@ -443,6 +443,7 @@ export function deleteDemoData(): { products: number } {
     }
     d.prepare('DELETE FROM shipping_zones WHERE is_demo=1').run()
     d.prepare('DELETE FROM coupons WHERE is_demo=1').run()
+    d.prepare('DELETE FROM gift_wraps WHERE is_demo=1').run()
     d.prepare('UPDATE products SET size_guide_id=NULL WHERE size_guide_id IN (SELECT id FROM size_guides WHERE is_demo=1)').run()
     d.prepare('DELETE FROM size_guides WHERE is_demo=1').run()
     d.prepare('UPDATE categories SET image_id=NULL WHERE image_id IN (SELECT id FROM media WHERE is_demo=1)').run()

@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { MIGRATIONS } from './schema'
+import { bootstrapContent } from './bootstrap'
 
 export type DB = Database.Database
 
@@ -28,6 +29,7 @@ export function openDatabase(file = dataPath('store.db')): DB {
   db.pragma('busy_timeout = 5000')
   db.pragma('synchronous = NORMAL')
   migrate(db)
+  bootstrapContent(db)
   return db
 }
 

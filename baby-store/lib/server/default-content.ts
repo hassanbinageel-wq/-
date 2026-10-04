@@ -129,3 +129,19 @@ export const DEFAULT_FAQS: { question: string; answer: string; category: string 
     answer: 'من الرابط الخاص الذي يظهر بعد إتمام الطلب، أو من صفحة «تتبع طلبك» برقم الطلب ورقم واتساب المستخدم في الطلب.',
   },
 ]
+
+/** الأقسام الأساسية للمتجر (تُنشأ مرة واحدة مع قاعدة البيانات الجديدة ويمكن تعديلها أو حذفها) */
+export const DEFAULT_CATEGORIES: { name: string; slug: string; description: string }[] = [
+  { name: 'ملابس المواليد', slug: 'baby-clothes', description: 'بدلات وبيجامات وقطع يومية ناعمة' },
+  { name: 'أطقم المواليد', slug: 'baby-sets', description: 'أطقم استقبال وخروج ومناسبات' },
+  { name: 'الإكسسوارات', slug: 'accessories', description: 'قبعات وجوارب وقفازات ومرايل' },
+  { name: 'الهدايا والتغليف', slug: 'gifts', description: 'هدايا وعلب وتغليف للمناسبات' },
+  { name: 'مستلزمات المواليد', slug: 'essentials', description: 'بطانيات ورضاعات ومستلزمات يومية' },
+]
+
+/** مجموعات التصنيف للتسوق حسب العمر والمناسبة */
+export const DEFAULT_TAG_GROUPS: { name: string; slug: string; kind: 'age' | 'occasion' | 'custom'; tags: [string, string][] }[] = [
+  { name: 'العمر', slug: 'age', kind: 'age', tags: [['حديثو الولادة (0-3 أشهر)', 'age-0-3'], ['3-6 أشهر', 'age-3-6'], ['6-12 شهراً', 'age-6-12'], ['1-2 سنة', 'age-12-24']] },
+  { name: 'المناسبة', slug: 'occasion', kind: 'occasion', tags: [['استقبال المولود', 'occ-welcome'], ['هدية ولادة', 'occ-gift'], ['السبوع والعقيقة', 'occ-aqiqah'], ['العيد', 'occ-eid']] },
+  { name: 'مناسب لـ', slug: 'for', kind: 'custom', tags: [['للبنات', 'for-girls'], ['للأولاد', 'for-boys'], ['للجنسين', 'for-all']] },
+]
