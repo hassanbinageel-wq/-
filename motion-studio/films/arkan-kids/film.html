@@ -33,7 +33,7 @@
   .pillar .cap, .pillar .base { position:absolute; left:0; right:0; height:36px; border-radius:10px; background:var(--c); filter:brightness(.86); }
   .pillar .cap { top:0; } .pillar .base { bottom:0; }
   .pillar .name { position:absolute; left:-30px; right:-30px; top:150px; text-align:center; color:#fff; font:800 40px 'B'; text-shadow:0 3px 0 rgba(0,0,0,.18); }
-  #p1 { left:200px; --c:var(--g); } #p2 { left:450px; --c:var(--gold); } #p3 { left:700px; --c:var(--blue); }
+  #p1 { left:700px; --c:var(--g); } #p2 { left:450px; --c:var(--gold); } #p3 { left:200px; --c:var(--blue); }   /* RTL: الإسلام يمين، الإيمان وسط، الإحسان يسار */
   #baseplate { left:150px; top:860px; width:750px; height:44px; border-radius:12px; background:#B98E5A; transform-origin:50% 50%; }
   #roof { left:120px; top:228px; width:810px; height:262px; transform-origin:50% 100%; }
   #roofword { left:120px; top:340px; width:810px; text-align:center; font:800 72px 'B'; color:#fff; }
@@ -195,7 +195,7 @@ const E = {
   rem: at(19), k1: at(21), k2: at(22), k3: at(23),
   bravo: at(24), scroll: at(24) + .35,
 };
-const POINT = [[E.p1 - .3, 275], [E.p2 - .3, 525], [E.p3 - .3, 775]];   // لحظات الإشارة وموضع العمود
+const POINT = [[E.p1 - .3, 775], [E.p2 - .3, 525], [E.p3 - .3, 275]];   // لحظات الإشارة وموضع العمود
 
 // ---------------------------------------------------------------- إعداد
 for (let i = 0; i < 12; i++) $('#sunrays').insertAdjacentHTML('beforeend', `<rect x="-7" y="-96" width="14" height="30" rx="7" transform="rotate(${i * 30})"/>`);
