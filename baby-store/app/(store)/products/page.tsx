@@ -16,7 +16,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function ProductsPage({ searchParams }: Props) {
   const sp = await searchParams
-  const f = parseListParams(sp)
+  const f = await parseListParams(sp)
   const q = typeof sp.q === 'string' ? sp.q : ''
   const title = q ? `نتائج البحث عن «${q}»` : f.type === 'bundle' ? 'باقات الهدايا' : f.sale ? 'العروض' : 'جميع المنتجات'
   return <Listing title={title} filters={f} searchParams={sp} scopeQuery={{}} crumbs={[{ label: title }]} showCategories />

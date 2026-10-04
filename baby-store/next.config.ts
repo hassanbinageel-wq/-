@@ -24,7 +24,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ['better-sqlite3', 'sharp', 'tar'],
+  serverExternalPackages: ['sharp', 'postgres', '@electric-sql/pglite'],
+  // على Netlify تُستخدم قاعدة PostgreSQL خارجية (DATABASE_URL)، فلا داعي لتضمين PGlite في الدوال
+  ...(process.env.NETLIFY ? { outputFileTracingExcludes: { '*': ['node_modules/@electric-sql/pglite/**'] } } : {}),
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },

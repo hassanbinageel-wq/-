@@ -8,14 +8,14 @@ import { SectionTitle } from '@/components/store/Sections'
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const p = getPage(decodeURIComponent((await params).slug))
+  const p = await getPage(decodeURIComponent((await params).slug))
   if (!p) return { title: 'الصفحة غير موجودة' }
   return { title: p.seo_title || p.title, description: p.seo_description || plainText(p.content), alternates: { canonical: `/pages/${encodeURIComponent(p.slug)}` } }
 }
 
 export default async function CmsPage({ params }: Props) {
   const ctx = await getStoreContext()
-  const p = getPage(decodeURIComponent((await params).slug), ctx.isAdmin)
+  const p = await getPage(decodeURIComponent((await params).slug), ctx.isAdmin)
   if (!p) notFound()
   return (
     <div className="container" style={{ paddingTop: '1.6rem', paddingBottom: '3rem' }}>

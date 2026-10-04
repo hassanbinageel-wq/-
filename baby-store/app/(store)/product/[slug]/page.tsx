@@ -15,7 +15,7 @@ type Props = { params: Promise<{ slug: string }> }
 
 async function load(slug: string) {
   const ctx = await getStoreContext()
-  const p = getProductDetailBySlug(decodeURIComponent(slug), { includeUnpublished: ctx.isAdmin })
+  const p = await getProductDetailBySlug(decodeURIComponent(slug), { includeUnpublished: ctx.isAdmin })
   return { p, ctx }
 }
 
@@ -41,12 +41,12 @@ function days(min: number | null, max: number | null) {
 export default async function ProductPage({ params }: Props) {
   const { p, ctx } = await load((await params).slug)
   if (!p) notFound()
-  const store = getSetting('store')
+  const store = await getSetting('store')
   const url = `${ctx.origin}/product/${encodeURIComponent(p.slug)}`
-  const complementary = relatedCards(p.id, 'complementary', 8)
-  const related = relatedCards(p.id, 'related', 8).filter((c) => !complementary.some((x) => x.id === c.id))
+  const complementary = await relatedCards(p.id, 'complementary', 8)
+  const related = (await relatedCards(p.id, 'related', 8)).filter((c) => !complementary.some((x) => x.id === c.id))
   const prep = days(p.prepDaysMin, p.prepDaysMax)
-  const gifts = getSetting('gifts')
+  const gifts = await getSetting('gifts')
 
   const jsonLd = {
     '@context': 'https://schema.org',

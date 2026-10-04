@@ -8,14 +8,14 @@ import { AdminShell } from '@/components/admin/Shell'
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const user = await requirePage()
-  sweep()
+  await sweep()
   const counts = {
-    pending: (db().prepare("SELECT COUNT(*) n FROM orders WHERE status='pending'").get() as { n: number }).n,
-    review: (db().prepare("SELECT COUNT(*) n FROM orders WHERE payment_status='under_review' AND status<>'cancelled'").get() as { n: number }).n,
+    pending: (await db().prepare("SELECT COUNT(*) n FROM orders WHERE status='pending'").get() as { n: number }).n,
+    review: (await db().prepare("SELECT COUNT(*) n FROM orders WHERE payment_status='under_review' AND status<>'cancelled'").get() as { n: number }).n,
   }
   return (
-    <AdminProvider user={{ id: user.id, name: user.name, permissions: user.permissions }} currency={getSetting('store').currency}>
-      <AdminShell storeName={getPublishedAppearance().brand.name} counts={counts}>
+    <AdminProvider user={{ id: user.id, name: user.name, permissions: user.permissions }} currency={(await getSetting('store')).currency}>
+      <AdminShell storeName={(await getPublishedAppearance()).brand.name} counts={counts}>
         {children}
       </AdminShell>
     </AdminProvider>

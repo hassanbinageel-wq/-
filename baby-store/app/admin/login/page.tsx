@@ -4,5 +4,5 @@ import { LoginForm } from '@/components/admin/LoginForm'
 
 export default async function LoginPage() {
   if (await currentUser()) redirect('/admin')
-  return <LoginForm noUsers={!hasAnyUser()} />
+  return <LoginForm noUsers={!await hasAnyUser()} />
 }

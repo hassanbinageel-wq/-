@@ -19,24 +19,24 @@ const schema = z.object({
 })
 
 export const POST = publicRoute(async ({ req, ip }) => {
-  if (!rateLimit(`quote:${ip}`, 240, 60).ok) throw new ApiError(429, 'طلبات كثيرة، حاول بعد قليل')
+  if (!(await rateLimit(`quote:${ip}`, 240, 60)).ok) throw new ApiError(429, 'طلبات كثيرة، حاول بعد قليل')
   const body = await readJson(req, schema)
-  const q = computeQuote({
-    lines: body.lines.map((l) => ({ ...l, variantId: l.variantId ?? null, personalization: l.personalization ?? null })),
-    couponCode: body.couponCode,
-    fulfillment: body.fulfillment ?? null,
-    country: body.country,
-    city: body.city,
-    isGift: body.isGift,
-    giftWrapId: body.giftWrapId ?? null,
-  })
+  const q = await computeQuote({
+      lines: body.lines.map((l) => ({ ...l, variantId: l.variantId ?? null, personalization: l.personalization ?? null })),
+      couponCode: body.couponCode,
+      fulfillment: body.fulfillment ?? null,
+      country: body.country,
+      city: body.city,
+      isGift: body.isGift,
+      giftWrapId: body.giftWrapId ?? null,
+    })
   let suggestions: ProductCard[] = []
   if (body.suggestions) {
     // منتجات مكملة للسلة (لا تُضاف تلقائياً)
     const inCart = new Set(body.lines.map((l) => l.productId))
     const seen = new Set<number>()
     for (const l of body.lines) {
-      for (const c of relatedCards(l.productId, 'complementary', 6)) {
+      for (const c of await relatedCards(l.productId, 'complementary', 6)) {
         if (!inCart.has(c.id) && !seen.has(c.id) && c.available) {
           seen.add(c.id)
           suggestions.push(c)

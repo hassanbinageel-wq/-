@@ -7,7 +7,7 @@ import { EmptyIllustration, Star } from './Deco'
 
 type SP = Record<string, string | string[] | undefined>
 
-export function Listing({
+export async function Listing({
   title,
   description,
   filters,
@@ -24,8 +24,8 @@ export function Listing({
   crumbs: { label: string; href?: string }[]
   showCategories?: boolean
 }) {
-  const r = listProducts(filters)
-  const cats = showCategories ? visibleCategories().map((c) => ({ name: c.name, slug: c.slug, count: c.count })) : []
+  const r = await listProducts(filters)
+  const cats = showCategories ? (await visibleCategories()).map((c) => ({ name: c.name, slug: c.slug, count: c.count })) : []
   const qp = new URLSearchParams(scopeQuery)
   for (const [k, v] of Object.entries(searchParams)) {
     if (k === 'page' || v === undefined) continue

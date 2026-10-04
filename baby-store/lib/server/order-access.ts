@@ -4,10 +4,10 @@ import { hmac } from './db'
 // لعرض بيانات العميل كاملة في رسالة واتساب لصاحب الطلب فقط.
 export const OWNER_COOKIE = 'gh_orders'
 
-export function readOwned(value: string | undefined | null): number[] {
+export async function readOwned(value: string | undefined | null): Promise<number[]> {
   if (!value) return []
   const [data, sig] = value.split('.')
-  if (!data || !sig || hmac('orders:' + data) !== sig) return []
+  if (!data || !sig || await hmac('orders:' + data) !== sig) return []
   try {
     const ids = JSON.parse(Buffer.from(data, 'base64url').toString('utf8'))
     return Array.isArray(ids) ? ids.filter((n) => Number.isInteger(n)) : []
@@ -16,8 +16,8 @@ export function readOwned(value: string | undefined | null): number[] {
   }
 }
 
-export function addOwned(value: string | undefined | null, id: number): string {
-  const ids = [id, ...readOwned(value).filter((x) => x !== id)].slice(0, 20)
+export async function addOwned(value: string | undefined | null, id: number): Promise<string> {
+  const ids = [id, ...(await readOwned(value)).filter((x) => x !== id)].slice(0, 20)
   const data = Buffer.from(JSON.stringify(ids)).toString('base64url')
-  return `${data}.${hmac('orders:' + data)}`
+  return `${data}.${await hmac('orders:' + data)}`
 }

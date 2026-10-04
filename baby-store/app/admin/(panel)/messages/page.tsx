@@ -7,5 +7,5 @@ export const metadata = { title: 'رسائل واتساب' }
 
 export default async function MessagesPage() {
   await requirePage('owner')
-  return <MessagesEditor initial={getSetting('messages')} variables={TEMPLATE_VARIABLES} />
+  return <MessagesEditor initial={await getSetting('messages')} variables={TEMPLATE_VARIABLES} />
 }

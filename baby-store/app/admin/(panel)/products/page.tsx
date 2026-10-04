@@ -13,8 +13,8 @@ export const metadata = { title: 'المنتجات' }
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requirePage('products')
   const sp = await searchParams
-  const r = listAdminProducts({ q: sp.q, status: sp.status, category: Number(sp.category) || undefined, type: sp.type, stock: sp.stock, page: Number(sp.page) || 1 })
-  const cats = db().prepare('SELECT id, name FROM categories ORDER BY sort').all() as { id: number; name: string }[]
+  const r = await listAdminProducts({ q: sp.q, status: sp.status, category: Number(sp.category) || undefined, type: sp.type, stock: sp.stock, page: Number(sp.page) || 1 })
+  const cats = await db().prepare('SELECT id, name FROM categories ORDER BY sort').all() as { id: number; name: string }[]
   return (
     <>
       <PageHead title="المنتجات والباقات" subtitle={<span className="num">{r.total} منتج</span>}>

@@ -6,23 +6,23 @@ import { db } from '@/lib/server/db'
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }
 
-function getTag(slug: string) {
-  return db()
-    .prepare('SELECT t.id, t.name, t.slug, t.description, g.name AS group_name FROM tags t JOIN tag_groups g ON g.id=t.group_id WHERE t.slug=? AND t.visible=1')
-    .get(decodeURIComponent(slug)) as { id: number; name: string; slug: string; description: string | null; group_name: string } | undefined
+async function getTag(slug: string) {
+  return await db()
+      .prepare('SELECT t.id, t.name, t.slug, t.description, g.name AS group_name FROM tags t JOIN tag_groups g ON g.id=t.group_id WHERE t.slug=? AND t.visible=1')
+      .get(decodeURIComponent(slug)) as { id: number; name: string; slug: string; description: string | null; group_name: string } | undefined
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const t = getTag((await params).slug)
+  const t = await getTag((await params).slug)
   if (!t) return { title: 'غير موجود' }
   return { title: `${t.group_name}: ${t.name}`, description: t.description || undefined, alternates: { canonical: `/collection/${encodeURIComponent(t.slug)}` } }
 }
 
 export default async function CollectionPage({ params, searchParams }: Props) {
-  const t = getTag((await params).slug)
+  const t = await getTag((await params).slug)
   if (!t) notFound()
   const sp = await searchParams
-  const f = { ...parseListParams(sp), tagIds: [t.id] }
+  const f = { ...await parseListParams(sp), tagIds: [t.id] }
   return (
     <Listing
       title={t.name}

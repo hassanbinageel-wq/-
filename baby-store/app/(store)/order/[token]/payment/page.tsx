@@ -17,13 +17,13 @@ export const metadata: Metadata = { title: 'تعليمات التحويل', robo
 
 export default async function PaymentPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const o = getOrderByToken(token)
+  const o = await getOrderByToken(token)
   if (!o) notFound()
-  const store = getSetting('store')
+  const store = await getSetting('store')
   const cur = { ...store.currency, symbol: o.currency_symbol }
-  const owner = readOwned((await cookies()).get(OWNER_COOKIE)?.value).includes(o.id)
-  const link = orderWhatsappLink(o, getOrderItems(o.id), { masked: !owner })
-  const items = publicItems(o)
+  const owner = (await readOwned((await cookies()).get(OWNER_COOKIE)?.value)).includes(o.id)
+  const link = await orderWhatsappLink(o, await getOrderItems(o.id), { masked: !owner })
+  const items = await publicItems(o)
   const deadline = o.stock_state === 'reserved' ? toDate(o.reservation_expires_at) : null
   const awaiting = ['awaiting_transfer', 'needs_review', 'partially_paid'].includes(o.payment_status) && o.status !== 'cancelled'
   const firstName = o.customer_name.split(' ')[0]
@@ -75,12 +75,12 @@ export default async function PaymentPage({ params }: { params: Promise<{ token:
             token={o.token}
             totalText={formatMoney(o.total, cur)}
             totalRaw={totalRaw}
-            methods={activeMethods()}
+            methods={await activeMethods()}
             selectedId={o.transfer_method_id}
             initialMessage={link.text}
             initialUrl={link.url}
             canSelect={awaiting}
-            storeNumber={storeWhatsapp()}
+            storeNumber={await storeWhatsapp()}
           />
         </>
       )}

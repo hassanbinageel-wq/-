@@ -7,8 +7,8 @@ import { siteUrl } from '@/lib/server/settings'
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const a = getPublishedAppearance()
-  const fav = getMedia(a.brand.faviconId)
+  const a = await getPublishedAppearance()
+  const fav = await getMedia(a.brand.faviconId)
   const base = siteUrl()
   return {
     metadataBase: new URL(base),
@@ -27,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export async function generateViewport(): Promise<Viewport> {
-  const a = getPublishedAppearance()
+  const a = await getPublishedAppearance()
   return { width: 'device-width', initialScale: 1, themeColor: /^#[0-9a-f]{3,8}$/i.test(a.theme.colors.bg) ? a.theme.colors.bg : '#ffffff' }
 }
 

@@ -15,8 +15,8 @@ export const metadata = { title: 'الطلبات' }
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requirePage(['orders', 'payments'])
   const sp = await searchParams
-  const r = listOrders({ q: sp.q, status: sp.status, payment: sp.payment, from: sp.from, to: sp.to, flag: sp.flag, page: Number(sp.page) || 1 })
-  const store = getSetting('store')
+  const r = await listOrders({ q: sp.q, status: sp.status, payment: sp.payment, from: sp.from, to: sp.to, flag: sp.flag, page: Number(sp.page) || 1 })
+  const store = await getSetting('store')
   const qs = new URLSearchParams(Object.entries(sp).filter(([k]) => k !== 'page')).toString()
   return (
     <>

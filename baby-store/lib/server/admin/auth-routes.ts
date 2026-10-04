@@ -19,12 +19,12 @@ export const PUBLIC_ROUTES: Route[] = [
     perm: null,
     handler: async ({ req, ip }) => {
       const { username, password } = await readJson(req, z.object({ username: z.string().min(1).max(60), password: z.string().min(1).max(200) }))
-      const r = attemptLogin(username, password, ip, req.headers.get('user-agent') || '')
+      const r = await attemptLogin(username, password, ip, req.headers.get('user-agent') || '')
       if (!r.ok) {
-        audit(null, 'login_failed', 'user', null, { username: username.slice(0, 60) }, ip)
+        await audit(null, 'login_failed', 'user', null, { username: username.slice(0, 60) }, ip)
         throw new ApiError(401, r.error)
       }
-      audit(r.user, 'login', 'user', r.user.id, null, ip)
+      await audit(r.user, 'login', 'user', r.user.id, null, ip)
       const res = json({ ok: true })
       sessionCookie(res, r.token)
       return res
@@ -35,8 +35,8 @@ export const PUBLIC_ROUTES: Route[] = [
     path: 'auth/setup',
     perm: null,
     handler: async ({ req, ip }) => {
-      if (!rateLimit(`setup:${ip}`, 5, 900).ok) throw new ApiError(429, 'محاولات كثيرة')
-      if (hasAnyUser()) throw new ApiError(403, 'تم إنشاء حساب المالك مسبقاً')
+      if (!(await rateLimit(`setup:${ip}`, 5, 900)).ok) throw new ApiError(429, 'محاولات كثيرة')
+      if (await hasAnyUser()) throw new ApiError(403, 'تم إنشاء حساب المالك مسبقاً')
       const expected = process.env.SETUP_TOKEN || ''
       const body = await readJson(
         req,
@@ -50,12 +50,12 @@ export const PUBLIC_ROUTES: Route[] = [
       const pw = passwordProblem(body.password)
       if (pw) throw new ApiError(400, pw)
       const id = Number(
-        db()
+        (await db()
           .prepare("INSERT INTO admin_users(username,name,password_hash,permissions) VALUES(?,?,?,'[\"owner\"]')")
-          .run(body.username, body.name, hashPassword(body.password)).lastInsertRowid,
+          .run(body.username, body.name, hashPassword(body.password))).lastInsertRowid,
       )
-      audit({ id, name: body.name }, 'owner_created', 'user', id, null, ip)
-      const r = attemptLogin(body.username, body.password, ip, req.headers.get('user-agent') || '')
+      await audit({ id, name: body.name }, 'owner_created', 'user', id, null, ip)
+      const r = await attemptLogin(body.username, body.password, ip, req.headers.get('user-agent') || '')
       const res = json({ ok: true })
       if (r.ok) sessionCookie(res, r.token)
       return res

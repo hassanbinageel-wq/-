@@ -12,13 +12,13 @@ export const metadata = { title: 'التقارير' }
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requirePage('owner')
-  const r = resolveRange(await searchParams)
-  const store = getSetting('store')
+  const r = await resolveRange(await searchParams)
+  const store = await getSetting('store')
   const m = (c: number) => formatMoney(c, store.currency)
-  const s = moneyStats(r)
-  const series = dailySeries(r)
-  const top = topProducts(r, 15)
-  const br = statusBreakdown(r)
+  const s = await moneyStats(r)
+  const series = await dailySeries(r)
+  const top = await topProducts(r, 15)
+  const br = await statusBreakdown(r)
   return (
     <>
       <PageHead title="التقارير" subtitle={r.label}>

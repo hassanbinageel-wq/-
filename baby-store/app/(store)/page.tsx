@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Gift, Truck, Wallet, Sparkles, Heart, Baby } from 'lucide-react'
 import { getStoreContext, visibleCategories } from '@/lib/server/storefront'
 import { listProducts, cardsByIds } from '@/lib/server/catalog'
-import { imageRefById } from '@/lib/server/media'
+import { getMediaMap, imageRef, imageRefById } from '@/lib/server/media'
 import { db } from '@/lib/server/db'
 import { isScheduledActive } from '@/lib/shared/theme'
 import { Markdown } from '@/lib/shared/markdown'
@@ -24,12 +24,12 @@ const FEATURE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   baby: Baby,
 }
 
-function renderSection(s: HomeSection, decorations: boolean) {
+async function renderSection(s: HomeSection, decorations: boolean) {
   switch (s.type) {
     case 'hero': {
-      const slides: HeroSlide[] = s.banners
-        .filter((b) => b.enabled && isScheduledActive(b.startsAt, b.endsAt))
-        .map((b) => ({
+      const active = s.banners.filter((b) => b.enabled && isScheduledActive(b.startsAt, b.endsAt))
+      const media = await getMediaMap(active.flatMap((b) => [b.imageDesktopId, b.imageMobileId]))
+      const slides: HeroSlide[] = active.map((b) => ({
           id: b.id,
           title: b.title,
           text: b.text,
@@ -37,21 +37,22 @@ function renderSection(s: HomeSection, decorations: boolean) {
           link: b.link,
           align: b.align,
           tone: b.tone,
-          desktop: imageRefById(b.imageDesktopId, b.title, 1600),
-          mobile: imageRefById(b.imageMobileId, b.title, 640),
+          desktop: imageRef(media.get(b.imageDesktopId!), b.title, null, 1600),
+          mobile: imageRef(media.get(b.imageMobileId!), b.title, null, 640),
         }))
       return <Hero key={s.id} slides={slides} decorations={decorations} />
     }
     case 'categories': {
-      const cats = visibleCategories().slice(0, s.limit || 10)
+      const cats = (await visibleCategories()).slice(0, s.limit || 10)
       if (!cats.length) return null
+      const media = await getMediaMap(cats.map((c) => c.image_id))
       return (
         <section key={s.id} className="section">
           <div className="container">
             <SectionTitle title={s.title || 'الأقسام'} subtitle={s.subtitle} more={s.buttonLink || undefined} moreLabel={s.buttonText || undefined} />
             <div className="cat-grid">
               {cats.map((c, i) => {
-                const img = imageRefById(c.image_id, c.name, 640)
+                const img = imageRef(media.get(c.image_id!), c.name, null, 640)
                 return (
                   <Link key={c.id} href={`/category/${encodeURIComponent(c.slug)}`} className="cat-card reveal" style={{ ['--d' as string]: `${i * 60}ms` }}>
                     <div className="cat-card__img">{img && <img src={img.url} srcSet={img.srcset} sizes="(min-width:1024px) 20vw, 50vw" alt="" loading="lazy" />}</div>
@@ -68,12 +69,12 @@ function renderSection(s: HomeSection, decorations: boolean) {
     }
     case 'tag_group': {
       if (!s.tagGroupId) return null
-      const tags = db()
-        .prepare(
-          `SELECT t.id, t.name, t.slug, t.description, (SELECT COUNT(*) FROM product_tags pt JOIN products p ON p.id=pt.product_id WHERE pt.tag_id=t.id AND p.status='published') AS count
-           FROM tags t WHERE t.group_id=? AND t.visible=1 ORDER BY t.sort, t.id`,
-        )
-        .all(s.tagGroupId) as { id: number; name: string; slug: string; description: string | null; count: number }[]
+      const tags = await db()
+           .prepare(
+             `SELECT t.id, t.name, t.slug, t.description, (SELECT COUNT(*) FROM product_tags pt JOIN products p ON p.id=pt.product_id WHERE pt.tag_id=t.id AND p.status='published') AS count
+        FROM tags t WHERE t.group_id=? AND t.visible=1 ORDER BY t.sort, t.id`,
+           )
+           .all(s.tagGroupId) as { id: number; name: string; slug: string; description: string | null; count: number }[]
       const list = tags.filter((t) => t.count > 0)
       if (!list.length) return null
       return (
@@ -101,26 +102,26 @@ function renderSection(s: HomeSection, decorations: boolean) {
       )
     }
     case 'new': {
-      const items = listProducts({ sort: 'newest', perPage: s.limit || 8 }).items
+      const items = (await listProducts({ sort: 'newest', perPage: s.limit || 8 })).items
       return <ProductSection key={s.id} title={s.title || 'وصل حديثاً'} subtitle={s.subtitle} items={items} more={s.buttonLink || '/products?sort=newest'} moreLabel={s.buttonText || undefined} layout={s.layout} />
     }
     case 'featured': {
-      const items = cardsByIds(s.productIds).slice(0, s.limit || 12)
+      const items = (await cardsByIds(s.productIds)).slice(0, s.limit || 12)
       return <ProductSection key={s.id} title={s.title || 'منتجات مميزة'} subtitle={s.subtitle} items={items} more={s.buttonLink || undefined} moreLabel={s.buttonText || undefined} layout={s.layout} soft />
     }
     case 'offers': {
-      const items = listProducts({ sale: true, perPage: s.limit || 8 }).items
+      const items = (await listProducts({ sale: true, perPage: s.limit || 8 })).items
       return <ProductSection key={s.id} title={s.title || 'العروض'} subtitle={s.subtitle} items={items} more={s.buttonLink || '/products?sale=1'} moreLabel={s.buttonText || undefined} layout={s.layout} />
     }
     case 'bundles': {
-      const items = listProducts({ type: 'bundle', perPage: s.limit || 8 }).items
+      const items = (await listProducts({ type: 'bundle', perPage: s.limit || 8 })).items
       return <ProductSection key={s.id} title={s.title || 'باقات الهدايا'} subtitle={s.subtitle} items={items} more={s.buttonLink || '/products?type=bundle'} moreLabel={s.buttonText || undefined} layout={s.layout} soft />
     }
     case 'promo': {
       const b = s.banners.find((x) => x.enabled && isScheduledActive(x.startsAt, x.endsAt))
       if (!b) return null
-      const img = imageRefById(b.imageDesktopId, b.title, 1600)
-      const mob = imageRefById(b.imageMobileId, b.title, 640)
+      const img = await imageRefById(b.imageDesktopId, b.title, 1600)
+      const mob = await imageRefById(b.imageMobileId, b.title, 640)
       return (
         <section key={s.id} className="section">
           <div className="container">

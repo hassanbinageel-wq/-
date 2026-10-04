@@ -1,15 +1,14 @@
-import fs from 'node:fs'
 import { z } from 'zod'
 import { json, readJson } from '../api'
 import { ApiError } from '../errors'
-import { db, dataPath } from '../db'
+import { db, tx } from '../db'
 import { audit, revokeUserSessions, revokeToken, SESSION_COOKIE } from '../auth'
 import { getSetting, setSetting } from '../settings'
 import { hashPassword, passwordProblem, verifyPassword } from '../security'
 import { saveDraft, publishDraft, discardDraft, restoreVersionToDraft, getDraftAppearance, listVersions } from '../appearance'
 import { deleteDemoData, uniqueSlug } from '../products'
 import { invalidateCatalog } from '../catalog'
-import { createBackup, listBackups, backupPath, restoreBackup } from '../backup'
+import { createBackup, listBackups, getBackup, deleteBackup, restoreBackup } from '../backup'
 import { PERMISSIONS, HOME_SECTION_TYPES } from '../../shared/constants'
 import type { Appearance } from '../../shared/types'
 import { num, type Route } from './router'
@@ -160,10 +159,10 @@ function crud(table: string, schema: z.ZodTypeAny, toRow: (b: never) => Record<s
         const row = toRow((await readJson(req, schema)) as never)
         const keys = Object.keys(row)
         const id = Number(
-          db().prepare(`INSERT INTO ${table}(${keys.join(',')}, sort) VALUES(${keys.map((k) => '@' + k).join(',')}, (SELECT COALESCE(MAX(sort),0)+1 FROM ${table}))`).run(row).lastInsertRowid,
+          (await db().prepare(`INSERT INTO ${table}(${keys.join(',')}, sort) VALUES(${keys.map((k) => '@' + k).join(',')}, (SELECT COALESCE(MAX(sort),0)+1 FROM ${table}))`).run(row)).lastInsertRowid,
         )
         extra?.after?.()
-        audit(user, `${table}_create`, table, id, null, ip)
+        await audit(user, `${table}_create`, table, id, null, ip)
         return json({ ok: true, id })
       },
     },
@@ -174,9 +173,9 @@ function crud(table: string, schema: z.ZodTypeAny, toRow: (b: never) => Record<s
       handler: async ({ req, user, params, ip }) => {
         const row = toRow((await readJson(req, schema)) as never)
         const sets = Object.keys(row).map((k) => `${k}=@${k}`).join(', ')
-        db().prepare(`UPDATE ${table} SET ${sets} WHERE id=@id`).run({ ...row, id: num(params.id) })
+        await db().prepare(`UPDATE ${table} SET ${sets} WHERE id=@id`).run({ ...row, id: num(params.id) })
         extra?.after?.()
-        audit(user, `${table}_update`, table, params.id, null, ip)
+        await audit(user, `${table}_update`, table, params.id, null, ip)
         return json({ ok: true })
       },
     },
@@ -184,12 +183,12 @@ function crud(table: string, schema: z.ZodTypeAny, toRow: (b: never) => Record<s
       method: 'DELETE',
       path: `${table.replace(/_/g, '-')}/:id`,
       perm,
-      handler: ({ user, params, ip }) => {
+      handler: async ({ user, params, ip }) => {
         const id = num(params.id)
         extra?.beforeDelete?.(id)
-        db().prepare(`DELETE FROM ${table} WHERE id=?`).run(id)
+        await db().prepare(`DELETE FROM ${table} WHERE id=?`).run(id)
         extra?.after?.()
-        audit(user, `${table}_delete`, table, id, null, ip)
+        await audit(user, `${table}_delete`, table, id, null, ip)
         return json({ ok: true })
       },
     },
@@ -200,7 +199,9 @@ function crud(table: string, schema: z.ZodTypeAny, toRow: (b: never) => Record<s
       handler: async ({ req }) => {
         const { ids } = await readJson(req, z.object({ ids: z.array(z.number().int()).max(500) }))
         const st = db().prepare(`UPDATE ${table} SET sort=? WHERE id=?`)
-        db().transaction(() => ids.forEach((id, i) => st.run(i, id)))()
+        await tx(async () => {
+    for (const [i, id] of ids.entries()) await st.run(i, id)
+  })
         return json({ ok: true })
       },
     },
@@ -253,10 +254,10 @@ export const SETTINGS_ROUTES: Route[] = [
     method: 'POST',
     path: 'auth/logout',
     perm: null,
-    handler: ({ req, user, ip }) => {
+    handler: async ({ req, user, ip }) => {
       const t = req.cookies.get(SESSION_COOKIE)?.value
-      if (t) revokeToken(t)
-      audit(user, 'logout', 'user', user.id, null, ip)
+      if (t) await revokeToken(t)
+      await audit(user, 'logout', 'user', user.id, null, ip)
       const res = json({ ok: true })
       res.cookies.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 })
       return res
@@ -268,13 +269,13 @@ export const SETTINGS_ROUTES: Route[] = [
     perm: null,
     handler: async ({ req, user, ip }) => {
       const b = await readJson(req, z.object({ current: s(200), next: s(200) }))
-      const row = db().prepare('SELECT password_hash FROM admin_users WHERE id=?').get(user.id) as { password_hash: string }
+      const row = await db().prepare('SELECT password_hash FROM admin_users WHERE id=?').get(user.id) as { password_hash: string }
       if (!verifyPassword(b.current, row.password_hash)) throw new ApiError(400, 'كلمة المرور الحالية غير صحيحة')
       const p = passwordProblem(b.next)
       if (p) throw new ApiError(400, p)
-      db().prepare("UPDATE admin_users SET password_hash=?, updated_at=datetime('now') WHERE id=?").run(hashPassword(b.next), user.id)
-      revokeUserSessions(user.id, req.cookies.get(SESSION_COOKIE)?.value)
-      audit(user, 'password_change', 'user', user.id, null, ip)
+      await db().prepare("UPDATE admin_users SET password_hash=?, updated_at=datetime('now') WHERE id=?").run(hashPassword(b.next), user.id)
+      await revokeUserSessions(user.id, req.cookies.get(SESSION_COOKIE)?.value)
+      await audit(user, 'password_change', 'user', user.id, null, ip)
       return json({ ok: true })
     },
   },
@@ -283,14 +284,14 @@ export const SETTINGS_ROUTES: Route[] = [
     method: 'GET',
     path: 'notifications',
     perm: null,
-    handler: ({ user }) => {
+    handler: async ({ user }) => {
       const perms = user.permissions.includes('owner') ? ['orders', 'payments', 'products', 'owner'] : user.permissions
-      const seen = (db().prepare('SELECT notif_seen_id FROM admin_users WHERE id=?').get(user.id) as { notif_seen_id: number }).notif_seen_id
+      const seen = (await db().prepare('SELECT notif_seen_id FROM admin_users WHERE id=?').get(user.id) as { notif_seen_id: number }).notif_seen_id
       const ph = perms.map(() => '?').join(',')
-      const items = db().prepare(`SELECT * FROM notifications WHERE permission IN (${ph}) ORDER BY id DESC LIMIT 20`).all(...perms) as {
+      const items = await db().prepare(`SELECT * FROM notifications WHERE permission IN (${ph}) ORDER BY id DESC LIMIT 20`).all(...perms) as {
         id: number; type: string; title: string; body: string; link: string; created_at: string
       }[]
-      const unread = (db().prepare(`SELECT COUNT(*) n FROM notifications WHERE permission IN (${ph}) AND id>?`).get(...perms, seen) as { n: number }).n
+      const unread = (await db().prepare(`SELECT COUNT(*) n FROM notifications WHERE permission IN (${ph}) AND id>?`).get(...perms, seen) as { n: number }).n
       return json({ items, unread, seen, latestId: items[0]?.id || 0 })
     },
   },
@@ -300,7 +301,7 @@ export const SETTINGS_ROUTES: Route[] = [
     perm: null,
     handler: async ({ req, user }) => {
       const { id } = await readJson(req, z.object({ id: z.number().int().min(0) }))
-      db().prepare('UPDATE admin_users SET notif_seen_id=MAX(notif_seen_id, ?) WHERE id=?').run(id, user.id)
+      await db().prepare('UPDATE admin_users SET notif_seen_id=GREATEST(notif_seen_id, ?) WHERE id=?').run(id, user.id)
       return json({ ok: true })
     },
   },
@@ -314,9 +315,9 @@ export const SETTINGS_ROUTES: Route[] = [
       const schema = SETTING_SCHEMAS[key]
       if (!schema) throw new ApiError(404, 'إعداد غير معروف')
       const value = await readJson(req, schema as z.ZodTypeAny)
-      setSetting(key, value as never)
-      if (['inventory', 'personalization', 'checkout'].includes(key)) invalidateCatalog()
-      audit(user, 'settings_update', 'settings', key, key === 'store' ? { whatsapp: (value as { whatsappNumber: string }).whatsappNumber } : null, ip)
+      await setSetting(key, value as never)
+      if (['inventory', 'personalization', 'checkout'].includes(key)) await invalidateCatalog()
+      await audit(user, 'settings_update', 'settings', key, key === 'store' ? { whatsapp: (value as { whatsappNumber: string }).whatsappNumber } : null, ip)
       return json({ ok: true })
     },
   },
@@ -339,8 +340,8 @@ export const SETTINGS_ROUTES: Route[] = [
       category_ids: JSON.stringify(b.categoryIds), product_ids: JSON.stringify(b.productIds), combine_with_sale: b.combineWithSale ? 1 : 0, active: b.active ? 1 : 0, is_demo: 0,
     }
   }, 'owner', {
-    beforeDelete: (id) => {
-      if (db().prepare('SELECT 1 FROM orders WHERE coupon_id=? LIMIT 1').get(id)) throw new ApiError(400, 'الكوبون مستخدم في طلبات سابقة. عطّله بدلاً من حذفه')
+    beforeDelete: async (id) => {
+      if (await db().prepare('SELECT 1 FROM orders WHERE coupon_id=? LIMIT 1').get(id)) throw new ApiError(400, 'الكوبون مستخدم في طلبات سابقة. عطّله بدلاً من حذفه')
     },
   }),
   ...crud('faqs', faqSchema, (b: z.infer<typeof faqSchema>) => ({ question: b.question, answer: b.answer, category: b.category || null, published: b.published ? 1 : 0 }), 'owner'),
@@ -351,12 +352,12 @@ export const SETTINGS_ROUTES: Route[] = [
     perm: 'owner',
     handler: async ({ req, user, ip }) => {
       const b = await readJson(req, pageSchema)
-      const slug = uniqueSlug(b.slug || b.title, null, 'pages')
+      const slug = await uniqueSlug(b.slug || b.title, null, 'pages')
       const id = Number(
-        db().prepare('INSERT INTO pages(slug,title,content,status,show_in_footer,seo_title,seo_description,sort) VALUES(?,?,?,?,?,?,?,(SELECT COALESCE(MAX(sort),0)+1 FROM pages))')
-          .run(slug, b.title, b.content, b.status, b.showInFooter ? 1 : 0, b.seoTitle || null, b.seoDescription || null).lastInsertRowid,
+        (await db().prepare('INSERT INTO pages(slug,title,content,status,show_in_footer,seo_title,seo_description,sort) VALUES(?,?,?,?,?,?,?,(SELECT COALESCE(MAX(sort),0)+1 FROM pages))')
+          .run(slug, b.title, b.content, b.status, b.showInFooter ? 1 : 0, b.seoTitle || null, b.seoDescription || null)).lastInsertRowid,
       )
-      audit(user, 'page_create', 'page', id, { slug }, ip)
+      await audit(user, 'page_create', 'page', id, { slug }, ip)
       return json({ ok: true, id, slug })
     },
   },
@@ -367,12 +368,12 @@ export const SETTINGS_ROUTES: Route[] = [
     handler: async ({ req, user, params, ip }) => {
       const b = await readJson(req, pageSchema)
       const id = num(params.id)
-      const cur = db().prepare('SELECT slug, system FROM pages WHERE id=?').get(id) as { slug: string; system: number } | undefined
+      const cur = await db().prepare('SELECT slug, system FROM pages WHERE id=?').get(id) as { slug: string; system: number } | undefined
       if (!cur) throw new ApiError(404, 'الصفحة غير موجودة')
-      const slug = cur.system ? cur.slug : uniqueSlug(b.slug || b.title, id, 'pages')
-      db().prepare("UPDATE pages SET slug=?, title=?, content=?, status=?, show_in_footer=?, seo_title=?, seo_description=?, updated_at=datetime('now') WHERE id=?")
+      const slug = cur.system ? cur.slug : await uniqueSlug(b.slug || b.title, id, 'pages')
+      await db().prepare("UPDATE pages SET slug=?, title=?, content=?, status=?, show_in_footer=?, seo_title=?, seo_description=?, updated_at=datetime('now') WHERE id=?")
         .run(slug, b.title, b.content, b.status, b.showInFooter ? 1 : 0, b.seoTitle || null, b.seoDescription || null, id)
-      audit(user, 'page_update', 'page', id, { slug }, ip)
+      await audit(user, 'page_update', 'page', id, { slug }, ip)
       return json({ ok: true, slug })
     },
   },
@@ -380,12 +381,12 @@ export const SETTINGS_ROUTES: Route[] = [
     method: 'DELETE',
     path: 'pages/:id',
     perm: 'owner',
-    handler: ({ params, user, ip }) => {
-      const p = db().prepare('SELECT system FROM pages WHERE id=?').get(num(params.id)) as { system: number } | undefined
+    handler: async ({ params, user, ip }) => {
+      const p = await db().prepare('SELECT system FROM pages WHERE id=?').get(num(params.id)) as { system: number } | undefined
       if (!p) throw new ApiError(404, 'غير موجودة')
       if (p.system) throw new ApiError(400, 'صفحة أساسية لا يمكن حذفها؛ يمكنك تحويلها لمسودة لإخفائها')
-      db().prepare('DELETE FROM pages WHERE id=?').run(num(params.id))
-      audit(user, 'page_delete', 'page', params.id, null, ip)
+      await db().prepare('DELETE FROM pages WHERE id=?').run(num(params.id))
+      await audit(user, 'page_delete', 'page', params.id, null, ip)
       return json({ ok: true })
     },
   },
@@ -394,9 +395,9 @@ export const SETTINGS_ROUTES: Route[] = [
     method: 'GET',
     path: 'appearance',
     perm: 'owner',
-    handler: () => {
-      const d = getDraftAppearance()
-      return json({ ...d, versions: listVersions() })
+    handler: async () => {
+      const d = await getDraftAppearance()
+      return json({ ...d, versions: await listVersions() })
     },
   },
   {
@@ -405,7 +406,7 @@ export const SETTINGS_ROUTES: Route[] = [
     perm: 'owner',
     handler: async ({ req, user }) => {
       const b = await readJson(req, appearanceSchema)
-      saveDraft(b as unknown as Appearance, { id: user.id, name: user.name })
+      await saveDraft(b as unknown as Appearance, { id: user.id, name: user.name })
       return json({ ok: true })
     },
   },
@@ -415,9 +416,9 @@ export const SETTINGS_ROUTES: Route[] = [
     perm: 'owner',
     handler: async ({ req, user, ip }) => {
       const { note } = await readJson(req, z.object({ note: s(200).optional() }))
-      if (!publishDraft({ id: user.id, name: user.name }, note)) throw new ApiError(400, 'لا توجد مسودة لنشرها. احفظ التعديلات أولاً')
-      invalidateCatalog()
-      audit(user, 'appearance_publish', 'appearance', null, { note }, ip)
+      if (!await publishDraft({ id: user.id, name: user.name }, note)) throw new ApiError(400, 'لا توجد مسودة لنشرها. احفظ التعديلات أولاً')
+      await invalidateCatalog()
+      await audit(user, 'appearance_publish', 'appearance', null, { note }, ip)
       return json({ ok: true })
     },
   },
@@ -425,9 +426,9 @@ export const SETTINGS_ROUTES: Route[] = [
     method: 'POST',
     path: 'appearance/discard',
     perm: 'owner',
-    handler: ({ user, ip }) => {
-      discardDraft()
-      audit(user, 'appearance_discard', 'appearance', null, null, ip)
+    handler: async ({ user, ip }) => {
+      await discardDraft()
+      await audit(user, 'appearance_discard', 'appearance', null, null, ip)
       return json({ ok: true })
     },
   },
@@ -435,9 +436,9 @@ export const SETTINGS_ROUTES: Route[] = [
     method: 'POST',
     path: 'appearance/restore/:id',
     perm: 'owner',
-    handler: ({ user, params, ip }) => {
-      if (!restoreVersionToDraft(num(params.id), { id: user.id, name: user.name })) throw new ApiError(404, 'النسخة غير موجودة')
-      audit(user, 'appearance_restore', 'appearance', params.id, null, ip)
+    handler: async ({ user, params, ip }) => {
+      if (!await restoreVersionToDraft(num(params.id), { id: user.id, name: user.name })) throw new ApiError(404, 'النسخة غير موجودة')
+      await audit(user, 'appearance_restore', 'appearance', params.id, null, ip)
       return json({ ok: true })
     },
   },
@@ -454,9 +455,9 @@ export const SETTINGS_ROUTES: Route[] = [
       const p = passwordProblem(b.password)
       if (p) throw new ApiError(400, p)
       const id = Number(
-        db().prepare('INSERT INTO admin_users(username,name,password_hash,permissions) VALUES(?,?,?,?)').run(b.username, b.name, hashPassword(b.password), JSON.stringify(b.permissions)).lastInsertRowid,
+        (await db().prepare('INSERT INTO admin_users(username,name,password_hash,permissions) VALUES(?,?,?,?)').run(b.username, b.name, hashPassword(b.password), JSON.stringify(b.permissions))).lastInsertRowid,
       )
-      audit(user, 'user_create', 'user', id, { username: b.username, permissions: b.permissions }, ip)
+      await audit(user, 'user_create', 'user', id, { username: b.username, permissions: b.permissions }, ip)
       return json({ ok: true, id })
     },
   },
@@ -468,11 +469,11 @@ export const SETTINGS_ROUTES: Route[] = [
       const b = await readJson(req, z.object({ name: s(80).min(2), permissions: z.array(z.enum(PERMISSIONS)).min(1), active: z.boolean() }))
       const id = num(params.id)
       if (id === user.id && (!b.active || !b.permissions.includes('owner'))) throw new ApiError(400, 'لا يمكنك إزالة صلاحية المالك أو تعطيل حسابك بنفسك')
-      const owners = (db().prepare("SELECT COUNT(*) n FROM admin_users WHERE active=1 AND permissions LIKE '%owner%' AND id<>?").get(id) as { n: number }).n
+      const owners = (await db().prepare("SELECT COUNT(*) n FROM admin_users WHERE active=1 AND permissions LIKE '%owner%' AND id<>?").get(id) as { n: number }).n
       if (owners === 0 && (!b.active || !b.permissions.includes('owner'))) throw new ApiError(400, 'يجب أن يبقى حساب مالك واحد مفعل على الأقل')
-      db().prepare("UPDATE admin_users SET name=?, permissions=?, active=?, updated_at=datetime('now') WHERE id=?").run(b.name, JSON.stringify(b.permissions), b.active ? 1 : 0, id)
-      if (!b.active) revokeUserSessions(id)
-      audit(user, 'user_update', 'user', id, b, ip)
+      await db().prepare("UPDATE admin_users SET name=?, permissions=?, active=?, updated_at=datetime('now') WHERE id=?").run(b.name, JSON.stringify(b.permissions), b.active ? 1 : 0, id)
+      if (!b.active) await revokeUserSessions(id)
+      await audit(user, 'user_update', 'user', id, b, ip)
       return json({ ok: true })
     },
   },
@@ -485,9 +486,9 @@ export const SETTINGS_ROUTES: Route[] = [
       const p = passwordProblem(password)
       if (p) throw new ApiError(400, p)
       const id = num(params.id)
-      db().prepare("UPDATE admin_users SET password_hash=?, failed_logins=0, locked_until=NULL, updated_at=datetime('now') WHERE id=?").run(hashPassword(password), id)
-      revokeUserSessions(id)
-      audit(user, 'user_password_reset', 'user', id, null, ip)
+      await db().prepare("UPDATE admin_users SET password_hash=?, failed_logins=0, locked_until=NULL, updated_at=datetime('now') WHERE id=?").run(hashPassword(password), id)
+      await revokeUserSessions(id)
+      await audit(user, 'user_password_reset', 'user', id, null, ip)
       return json({ ok: true })
     },
   },
@@ -495,9 +496,9 @@ export const SETTINGS_ROUTES: Route[] = [
     method: 'DELETE',
     path: 'users/:id/sessions',
     perm: 'owner',
-    handler: ({ params, user, ip }) => {
-      revokeUserSessions(num(params.id))
-      audit(user, 'user_sessions_revoke', 'user', params.id, null, ip)
+    handler: async ({ params, user, ip }) => {
+      await revokeUserSessions(num(params.id))
+      await audit(user, 'user_sessions_revoke', 'user', params.id, null, ip)
       return json({ ok: true })
     },
   },
@@ -508,30 +509,30 @@ export const SETTINGS_ROUTES: Route[] = [
     perm: 'owner',
     handler: async ({ user, ip }) => {
       const name = await createBackup('manual')
-      audit(user, 'backup_create', 'backup', name, null, ip)
-      return json({ ok: true, name, list: listBackups() })
+      await audit(user, 'backup_create', 'backup', name, null, ip)
+      return json({ ok: true, name, list: await listBackups() })
     },
   },
   {
     method: 'GET',
     path: 'backups/:name',
     perm: 'owner',
-    handler: ({ params, user, ip }) => {
-      const p = backupPath(params.name)
-      if (!p) throw new ApiError(404, 'غير موجودة')
-      audit(user, 'backup_download', 'backup', params.name, null, ip)
-      return new Response(fs.readFileSync(p), { headers: { 'Content-Type': 'application/gzip', 'Content-Disposition': `attachment; filename="${params.name}"`, 'Cache-Control': 'no-store' } })
+    handler: async ({ params, user, ip }) => {
+      const data = await getBackup(params.name)
+      if (!data) throw new ApiError(404, 'غير موجودة')
+      await audit(user, 'backup_download', 'backup', params.name, null, ip)
+      return new Response(new Uint8Array(data), {
+        headers: { 'Content-Type': 'application/gzip', 'Content-Disposition': `attachment; filename="${params.name}"`, 'Cache-Control': 'no-store' },
+      })
     },
   },
   {
     method: 'DELETE',
     path: 'backups/:name',
     perm: 'owner',
-    handler: ({ params, user, ip }) => {
-      const p = backupPath(params.name)
-      if (!p) throw new ApiError(404, 'غير موجودة')
-      fs.rmSync(p)
-      audit(user, 'backup_delete', 'backup', params.name, null, ip)
+    handler: async ({ params, user, ip }) => {
+      if (!(await deleteBackup(params.name))) throw new ApiError(404, 'غير موجودة')
+      await audit(user, 'backup_delete', 'backup', params.name, null, ip)
       return json({ ok: true })
     },
   },
@@ -542,30 +543,25 @@ export const SETTINGS_ROUTES: Route[] = [
     handler: async ({ req, user, ip }) => {
       const form = await req.formData()
       const password = String(form.get('password') || '')
-      const row = db().prepare('SELECT password_hash FROM admin_users WHERE id=?').get(user.id) as { password_hash: string }
-      if (!verifyPassword(password, row.password_hash)) throw new ApiError(403, 'كلمة المرور غير صحيحة')
+      const row = await db().prepare('SELECT password_hash FROM admin_users WHERE id=?').get<{ password_hash: string }>(user.id)
+      if (!row || !verifyPassword(password, row.password_hash)) throw new ApiError(403, 'كلمة المرور غير صحيحة')
       const confirm = String(form.get('confirm') || '')
       if (confirm !== 'استعادة') throw new ApiError(400, 'اكتب كلمة «استعادة» للتأكيد')
-      let archive: string | null = null
       const name = String(form.get('name') || '')
-      if (name) archive = backupPath(name)
+      let data: Buffer | null = name ? await getBackup(name) : null
       const f = form.get('file')
-      if (!archive && f && typeof f !== 'string') {
+      if (!data && f && typeof f !== 'string') {
         const file = f as File
-        if (file.size > 2 * 1024 * 1024 * 1024) throw new ApiError(413, 'الملف كبير جداً')
-        archive = dataPath('tmp', `upload-${Date.now()}.tar.gz`)
-        fs.writeFileSync(archive, Buffer.from(await file.arrayBuffer()))
+        if (file.size > 5.5 * 1024 * 1024) throw new ApiError(413, 'الملف كبير جداً (الحد 5 ميجابايت)')
+        data = Buffer.from(await file.arrayBuffer())
       }
-      if (!archive) throw new ApiError(400, 'اختر نسخة احتياطية')
+      if (!data) throw new ApiError(400, 'اختر نسخة احتياطية')
       try {
-        const r = await restoreBackup(archive)
-        // تسجيل الإجراء في القاعدة المستعادة
-        audit(user, 'backup_restore', 'backup', name || 'upload', r, ip)
+        const r = await restoreBackup(data)
+        await audit(user, 'backup_restore', 'backup', name || 'upload', r, ip)
         return json({ ok: true, safety: r.safety })
       } catch (e) {
         throw new ApiError(400, (e as Error).message)
-      } finally {
-        if (!name && archive) fs.rmSync(archive, { force: true })
       }
     },
   },
@@ -577,8 +573,8 @@ export const SETTINGS_ROUTES: Route[] = [
     handler: async ({ req, user, ip }) => {
       const { confirm } = await readJson(req, z.object({ confirm: z.literal('حذف') }))
       void confirm
-      const r = deleteDemoData()
-      audit(user, 'demo_delete', 'product', null, r, ip)
+      const r = await deleteDemoData()
+      await audit(user, 'demo_delete', 'product', null, r, ip)
       return json({ ok: true, ...r })
     },
   },

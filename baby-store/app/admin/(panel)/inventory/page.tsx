@@ -18,22 +18,22 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
   await requirePage('products')
   const sp = await searchParams
   const tab = sp.tab === 'log' ? 'log' : 'stock'
-  const store = getSetting('store')
-  const low = getSetting('inventory').lowStockThreshold
+  const store = await getSetting('store')
+  const low = (await getSetting('inventory')).lowStockThreshold
   const d = db()
   let content: React.ReactNode
   if (tab === 'stock') {
     const q = normalizeArabic(sp.q || '')
-    const rows = (d
+    const rows = (await d
       .prepare(
         `SELECT * FROM (
-          SELECT p.id AS product_id, NULL AS variant_id, p.name, p.sku, NULL AS label, p.stock, COALESCE(p.low_stock_threshold, ?) AS threshold, p.status, p.search_text
-          FROM products p WHERE p.type='simple' AND p.track_stock=1 AND p.status<>'archived'
-          UNION ALL
-          SELECT p.id, v.id, p.name, v.sku, TRIM(COALESCE(v.option1,'') || ' ' || COALESCE(v.option2,'') || ' ' || COALESCE(v.option3,'')), v.stock, COALESCE(p.low_stock_threshold, ?), p.status, p.search_text || ' ' || lower(v.sku)
-          FROM variants v JOIN products p ON p.id=v.product_id WHERE p.type='variable' AND p.track_stock=1 AND p.status<>'archived' AND v.active=1
-        ) WHERE (? = '' OR search_text LIKE ? OR sku LIKE ?) ${sp.filter === 'low' ? 'AND stock <= threshold' : sp.filter === 'out' ? 'AND stock <= 0' : ''}
-        ORDER BY stock ASC, name LIMIT 300`,
+      SELECT p.id AS product_id, NULL AS variant_id, p.name, p.sku, NULL AS label, p.stock, COALESCE(p.low_stock_threshold, ?) AS threshold, p.status, p.search_text
+      FROM products p WHERE p.type='simple' AND p.track_stock=1 AND p.status<>'archived'
+      UNION ALL
+      SELECT p.id, v.id, p.name, v.sku, TRIM(COALESCE(v.option1,'') || ' ' || COALESCE(v.option2,'') || ' ' || COALESCE(v.option3,'')), v.stock, COALESCE(p.low_stock_threshold, ?), p.status, p.search_text || ' ' || lower(v.sku)
+      FROM variants v JOIN products p ON p.id=v.product_id WHERE p.type='variable' AND p.track_stock=1 AND p.status<>'archived' AND v.active=1
+    ) WHERE (? = '' OR search_text ILIKE ? OR sku ILIKE ?) ${sp.filter === 'low' ? 'AND stock <= threshold' : sp.filter === 'out' ? 'AND stock <= 0' : ''}
+    ORDER BY stock ASC, name LIMIT 300`,
       )
       .all(low, low, q, `%${q}%`, `%${(sp.q || '').toUpperCase()}%`)) as StockRow[]
     content = (
@@ -96,12 +96,12 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
       args.push(Number(sp.product))
     }
     if (sp.q) {
-      where.push('(product_name LIKE ? OR sku LIKE ?)')
+      where.push('(product_name ILIKE ? OR sku ILIKE ?)')
       args.push(`%${sp.q}%`, `%${sp.q.toUpperCase()}%`)
     }
     const w = where.length ? `WHERE ${where.join(' AND ')}` : ''
-    const total = (d.prepare(`SELECT COUNT(*) n FROM stock_movements ${w}`).get(...args) as { n: number }).n
-    const rows = d.prepare(`SELECT * FROM stock_movements ${w} ORDER BY id DESC LIMIT 50 OFFSET ?`).all(...args, (page - 1) * 50) as {
+    const total = (await d.prepare(`SELECT COUNT(*) n FROM stock_movements ${w}`).get(...args) as { n: number }).n
+    const rows = await d.prepare(`SELECT * FROM stock_movements ${w} ORDER BY id DESC LIMIT 50 OFFSET ?`).all(...args, (page - 1) * 50) as {
       id: number; product_id: number; product_name: string; sku: string; change: number; stock_after: number; reason: string; order_id: number | null; user_name: string | null; note: string | null; created_at: string
     }[]
     content = (

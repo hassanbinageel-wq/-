@@ -1,5 +1,6 @@
 import { db, parseJson, sqlToDate } from './db'
-import { getMedia, imageRef, type MediaRow } from './media'
+import { bumpCacheVersion, ensureFresh, onInvalidate } from './cache'
+import { getMedia, getMediaMap, imageRef, type MediaRow } from './media'
 import { getSetting } from './settings'
 import { normalizeArabic } from '../shared/arabic'
 import type {
@@ -103,29 +104,29 @@ export function variantAvailable(p: ProductRow, v: VariantRow): number {
 
 // ===== تحميل البيانات =====
 
-export function getProductRow(id: number): ProductRow | undefined {
-  return db().prepare('SELECT * FROM products WHERE id=?').get(id) as ProductRow | undefined
+export async function getProductRow(id: number): Promise<ProductRow | undefined> {
+  return await db().prepare('SELECT * FROM products WHERE id=?').get(id) as ProductRow | undefined
 }
 
-export function getVariants(productId: number): VariantRow[] {
-  return db().prepare('SELECT * FROM variants WHERE product_id=? ORDER BY sort, id').all(productId) as VariantRow[]
+export async function getVariants(productId: number): Promise<VariantRow[]> {
+  return await db().prepare('SELECT * FROM variants WHERE product_id=? ORDER BY sort, id').all(productId) as VariantRow[]
 }
 
-export function getBundleItems(bundleId: number): BundleItemRow[] {
-  return db().prepare('SELECT * FROM bundle_items WHERE bundle_id=? ORDER BY sort, id').all(bundleId) as BundleItemRow[]
+export async function getBundleItems(bundleId: number): Promise<BundleItemRow[]> {
+  return await db().prepare('SELECT * FROM bundle_items WHERE bundle_id=? ORDER BY sort, id').all(bundleId) as BundleItemRow[]
 }
 
 type ImgRow = { product_id: number; media_id: number; alt: string | null; option_value: string | null }
 
-function productImages(productIds: number[]): Map<number, ImageRef[]> {
+async function productImages(productIds: number[]): Promise<Map<number, ImageRef[]>> {
   const map = new Map<number, ImageRef[]>()
   if (!productIds.length) return map
-  const rows = db()
-    .prepare(
-      `SELECT pi.product_id, pi.media_id, pi.alt, pi.option_value, m.* FROM product_images pi JOIN media m ON m.id=pi.media_id
+  const rows = await db()
+      .prepare(
+        `SELECT pi.product_id, pi.media_id, pi.alt, pi.option_value, m.* FROM product_images pi JOIN media m ON m.id=pi.media_id
        WHERE pi.product_id IN (${productIds.map(() => '?').join(',')}) ORDER BY pi.product_id, pi.sort, pi.id`,
-    )
-    .all(...productIds) as (ImgRow & MediaRow)[]
+      )
+      .all(...productIds) as (ImgRow & MediaRow)[]
   for (const r of rows) {
     const ref = imageRef({ ...r, id: r.media_id }, r.alt || '', r.option_value, 640)
     if (!ref) continue
@@ -153,45 +154,50 @@ export type IndexedProduct = {
 type IndexCache = { builtAt: number; items: IndexedProduct[]; byId: Map<number, IndexedProduct> }
 const g = globalThis as unknown as { __catalogIndex?: IndexCache }
 
-export function invalidateCatalog() {
+/** يُستدعى بعد أي تعديل على المنتجات أو الأقسام أو المخزون */
+export async function invalidateCatalog() {
   g.__catalogIndex = undefined
+  await bumpCacheVersion()
 }
+onInvalidate(() => {
+  g.__catalogIndex = undefined
+})
 
 function optionIndexOf(options: ProductOption[], kind: 'size' | 'color'): number {
   return options.findIndex((o) => o.kind === kind)
 }
 
-export function buildIndex(): IndexCache {
+export async function buildIndex(): Promise<IndexCache> {
   const d = db()
   const now = new Date()
-  const rows = d.prepare("SELECT * FROM products WHERE status='published'").all() as ProductRow[]
+  const rows = await d.prepare("SELECT * FROM products WHERE status='published'").all() as ProductRow[]
   const ids = rows.map((r) => r.id)
-  const imgs = productImages(ids)
-  const variants = d.prepare("SELECT v.* FROM variants v JOIN products p ON p.id=v.product_id WHERE p.status='published' ORDER BY v.sort, v.id").all() as VariantRow[]
+  const imgs = await productImages(ids)
+  const variants = await d.prepare("SELECT v.* FROM variants v JOIN products p ON p.id=v.product_id WHERE p.status='published' ORDER BY v.sort, v.id").all() as VariantRow[]
   const varMap = new Map<number, VariantRow[]>()
   for (const v of variants) {
     if (!varMap.has(v.product_id)) varMap.set(v.product_id, [])
     varMap.get(v.product_id)!.push(v)
   }
-  const tagRows = d.prepare('SELECT product_id, tag_id FROM product_tags').all() as { product_id: number; tag_id: number }[]
+  const tagRows = await d.prepare('SELECT product_id, tag_id FROM product_tags').all() as { product_id: number; tag_id: number }[]
   const tagMap = new Map<number, number[]>()
   for (const t of tagRows) {
     if (!tagMap.has(t.product_id)) tagMap.set(t.product_id, [])
     tagMap.get(t.product_id)!.push(t.tag_id)
   }
   const cats = new Map<number, { name: string; visible: number }>(
-    (d.prepare('SELECT id, name, visible FROM categories').all() as { id: number; name: string; visible: number }[]).map((c) => [c.id, c]),
+    (await d.prepare('SELECT id, name, visible FROM categories').all() as { id: number; name: string; visible: number }[]).map((c) => [c.id, c]),
   )
-  const lowGlobal = getSetting('inventory').lowStockThreshold
-  const showLow = getSetting('inventory').showLowStockToCustomers
+  const lowGlobal = (await getSetting('inventory')).lowStockThreshold
+  const showLow = (await getSetting('inventory')).showLowStockToCustomers
   const allRowsById = new Map(rows.map((r) => [r.id, r]))
 
   const items: IndexedProduct[] = []
   const byId = new Map<number, IndexedProduct>()
 
   // التوفر للمكونات قد يحتاج منتجات غير منشورة (مكونات الباقات)
-  const componentRow = (id: number) => allRowsById.get(id) || getProductRow(id)
-  const componentVariants = (id: number) => varMap.get(id) || getVariants(id)
+  const componentRow = async (id: number) => allRowsById.get(id) || await getProductRow(id)
+  const componentVariants = async (id: number) => varMap.get(id) || await getVariants(id)
 
   for (const r of rows) {
     const options = parseJson<ProductOption[]>(r.options, [])
@@ -219,7 +225,7 @@ export function buildIndex(): IndexCache {
       }
     } else if (r.type === 'bundle') {
       ;({ price, compareAt } = productPrice(r, now))
-      available = r.manual_availability === 'in_stock' ? bundleAvailability(r.id, componentRow, componentVariants) : 0
+      available = r.manual_availability === 'in_stock' ? await bundleAvailability(r.id, componentRow, componentVariants) : 0
     } else {
       ;({ price, compareAt } = productPrice(r, now))
       available = simpleAvailable(r)
@@ -266,27 +272,31 @@ export function buildIndex(): IndexCache {
   return cache
 }
 
-export function catalogIndex(): IndexCache {
+let building: Promise<IndexCache> | null = null
+export async function catalogIndex(): Promise<IndexCache> {
+  await ensureFresh()
   const c = g.__catalogIndex
   if (c && Date.now() - c.builtAt < 60_000) return c
-  return buildIndex()
+  // طلبات متزامنة تنتظر نفس عملية البناء
+  if (!building) building = buildIndex().finally(() => (building = null))
+  return building
 }
 
 /** أقصى عدد باقات يمكن تكوينه من مخزون المكونات (أفضل حالة عند وجود خيارات) */
-export function bundleAvailability(
+export async function bundleAvailability(
   bundleId: number,
-  rowOf: (id: number) => ProductRow | undefined = getProductRow,
-  variantsOf: (id: number) => VariantRow[] = getVariants,
-): number {
-  const items = getBundleItems(bundleId)
+  rowOf: (id: number) => Promise<ProductRow | undefined> = getProductRow,
+  variantsOf: (id: number) => Promise<VariantRow[]> = getVariants,
+): Promise<number> {
+  const items = await getBundleItems(bundleId)
   if (!items.length) return 0
   let min = UNLIMITED
   for (const it of items) {
-    const p = rowOf(it.product_id)
+    const p = await rowOf(it.product_id)
     if (!p || p.status === 'archived') return 0
     let avail: number
     if (p.type === 'variable') {
-      const vs = variantsOf(p.id)
+      const vs = await variantsOf(p.id)
       if (it.variant_id) {
         const v = vs.find((x) => x.id === it.variant_id)
         avail = v ? variantAvailable(p, v) : 0
@@ -303,15 +313,15 @@ export function bundleAvailability(
 
 // ===== تفاصيل المنتج =====
 
-export function getProductDetailBySlug(slug: string, opts: { includeUnpublished?: boolean } = {}): ProductDetail | null {
-  const row = db().prepare('SELECT * FROM products WHERE slug=?').get(slug) as ProductRow | undefined
+export async function getProductDetailBySlug(slug: string, opts: { includeUnpublished?: boolean } = {}): Promise<ProductDetail | null> {
+  const row = await db().prepare('SELECT * FROM products WHERE slug=?').get(slug) as ProductRow | undefined
   if (!row) return null
   if (row.status !== 'published' && !opts.includeUnpublished) return null
   return buildDetail(row)
 }
 
-export function getProductDetailById(id: number, opts: { includeUnpublished?: boolean } = {}): ProductDetail | null {
-  const row = getProductRow(id)
+export async function getProductDetailById(id: number, opts: { includeUnpublished?: boolean } = {}): Promise<ProductDetail | null> {
+  const row = await getProductRow(id)
   if (!row) return null
   if (row.status !== 'published' && !opts.includeUnpublished) return null
   return buildDetail(row)
@@ -347,31 +357,34 @@ export function parsePersonalization(s: string | null): Personalization | null {
   }
 }
 
-export function buildDetail(row: ProductRow): ProductDetail {
+export async function buildDetail(row: ProductRow): Promise<ProductDetail> {
   const d = db()
   const now = new Date()
-  const idx = catalogIndex().byId.get(row.id)
-  const images = productImages([row.id]).get(row.id) || []
-  const fullImages = images.map((im) => {
-    const m = getMedia(im.id)
-    return imageRef(m, im.alt, im.optionValue, 1080) || im
-  })
+  const idx = (await catalogIndex()).byId.get(row.id)
+  const images = (await productImages([row.id])).get(row.id) || []
+  const mediaMap = await getMediaMap(images.map((im) => im.id))
+  const fullImages = images.map((im) => imageRef(mediaMap.get(im.id), im.alt, im.optionValue, 1080) || im)
   const options = parseJson<ProductOption[]>(row.options, [])
-  const vs = row.type === 'variable' ? getVariants(row.id) : []
+  const vs = row.type === 'variable' ? await getVariants(row.id) : []
   const variants = variantsPublic(row, vs, now)
   const { price, compareAt } = row.type === 'variable' && idx ? { price: idx.card.price, compareAt: idx.card.compareAt } : productPrice(row, now)
 
   let components: BundleComponentPublic[] = []
   let bundleValue: number | null = null
   if (row.type === 'bundle') {
-    const items = getBundleItems(row.id)
-    const compImgs = productImages(items.map((i) => i.product_id))
+    const items = await getBundleItems(row.id)
+    const compImgs = await productImages(items.map((i) => i.product_id))
     let value = 0
+    const compRows = new Map<number, { p: ProductRow; vs: VariantRow[] }>()
+    for (const it of items) {
+      const p = await getProductRow(it.product_id)
+      if (p) compRows.set(it.product_id, { p, vs: p.type === 'variable' ? await getVariants(p.id) : [] })
+    }
     components = items
       .map((it) => {
-        const p = getProductRow(it.product_id)
-        if (!p) return null
-        const pvs = p.type === 'variable' ? getVariants(p.id) : []
+        const c = compRows.get(it.product_id)
+        if (!c) return null
+        const { p, vs: pvs } = c
         const vp = variantsPublic(p, pvs, now)
         const fixed = it.variant_id ? vp.find((v) => v.id === it.variant_id) : null
         const unit = fixed ? fixed.price : p.type === 'variable' && vp.length ? Math.min(...vp.filter((v) => v.active).map((v) => v.price)) : productPrice(p, now).price
@@ -397,23 +410,23 @@ export function buildDetail(row: ProductRow): ProductDetail {
   }
 
   const sg = row.size_guide_id
-    ? (d.prepare('SELECT * FROM size_guides WHERE id=?').get(row.size_guide_id) as
+    ? (await d.prepare('SELECT * FROM size_guides WHERE id=?').get(row.size_guide_id) as
         | { id: number; name: string; intro: string | null; columns: string; rows: string; notes: string | null; image_id: number | null }
         | undefined)
     : undefined
   const cat = row.category_id
-    ? (d.prepare('SELECT id, name, slug FROM categories WHERE id=?').get(row.category_id) as { id: number; name: string; slug: string } | undefined)
+    ? (await d.prepare('SELECT id, name, slug FROM categories WHERE id=?').get(row.category_id) as { id: number; name: string; slug: string } | undefined)
     : undefined
-  const tags = d
-    .prepare(
-      `SELECT t.id, t.name, t.slug, g.name AS "group" FROM product_tags pt JOIN tags t ON t.id=pt.tag_id JOIN tag_groups g ON g.id=t.group_id
+  const tags = await d
+      .prepare(
+        `SELECT t.id, t.name, t.slug, g.name AS "group" FROM product_tags pt JOIN tags t ON t.id=pt.tag_id JOIN tag_groups g ON g.id=t.group_id
        WHERE pt.product_id=? AND t.visible=1 ORDER BY g.sort, t.sort`,
-    )
-    .all(row.id) as { id: number; name: string; slug: string; group: string }[]
+      )
+      .all(row.id) as { id: number; name: string; slug: string; group: string }[]
 
-  const simpleAvail = row.type === 'simple' ? simpleAvailable(row) : row.type === 'bundle' ? (row.manual_availability === 'in_stock' ? bundleAvailability(row.id) : 0) : 0
-  const maxQtyLine = getSetting('checkout').maxQtyPerLine
-  const personalizationOn = getSetting('personalization').enabled
+  const simpleAvail = row.type === 'simple' ? simpleAvailable(row) : row.type === 'bundle' ? (row.manual_availability === 'in_stock' ? await bundleAvailability(row.id) : 0) : 0
+  const maxQtyLine = (await getSetting('checkout')).maxQtyPerLine
+  const personalizationOn = (await getSetting('personalization')).enabled
 
   const card: ProductCard = idx
     ? { ...idx.card, images: fullImages }
@@ -432,7 +445,7 @@ export function buildDetail(row: ProductRow): ProductDetail {
     variants,
     simpleAvailable: simpleAvail,
     maxPerOrder: Math.min(row.max_per_order || maxQtyLine, maxQtyLine),
-    lowThreshold: getSetting('inventory').showLowStockToCustomers ? row.low_stock_threshold ?? getSetting('inventory').lowStockThreshold : null,
+    lowThreshold: (await getSetting('inventory')).showLowStockToCustomers ? row.low_stock_threshold ?? (await getSetting('inventory')).lowStockThreshold : null,
     material: row.material || '',
     careInstructions: row.care_instructions || '',
     sizeGuide: sg
@@ -443,7 +456,7 @@ export function buildDetail(row: ProductRow): ProductDetail {
           columns: parseJson<string[]>(sg.columns, []),
           rows: parseJson<string[][]>(sg.rows, []),
           notes: sg.notes || '',
-          image: imageRef(getMedia(sg.image_id), sg.name),
+          image: imageRef(await getMedia(sg.image_id), sg.name),
         }
       : null,
     setContents: parseJson<string[]>(row.set_contents, []).filter(Boolean),
@@ -462,11 +475,11 @@ export function buildDetail(row: ProductRow): ProductDetail {
   }
 }
 
-export function relatedCards(productId: number, kind: 'related' | 'complementary', limit = 8): ProductCard[] {
-  const idx = catalogIndex()
-  const rows = db()
-    .prepare('SELECT related_id FROM product_relations WHERE product_id=? AND kind=? ORDER BY sort')
-    .all(productId, kind) as { related_id: number }[]
+export async function relatedCards(productId: number, kind: 'related' | 'complementary', limit = 8): Promise<ProductCard[]> {
+  const idx = await catalogIndex()
+  const rows = await db()
+      .prepare('SELECT related_id FROM product_relations WHERE product_id=? AND kind=? ORDER BY sort')
+      .all(productId, kind) as { related_id: number }[]
   let cards = rows.map((r) => idx.byId.get(r.related_id)?.card).filter(Boolean) as ProductCard[]
   if (!cards.length && kind === 'related') {
     // اقتراح تلقائي من نفس القسم إذا لم تحدد منتجات مرتبطة
@@ -522,20 +535,20 @@ export function searchMatches(item: IndexedProduct, q: string): number {
   return score
 }
 
-function tagMeta() {
+async function tagMeta() {
   const d = db()
-  const groups = d.prepare('SELECT * FROM tag_groups ORDER BY sort, id').all() as {
+  const groups = await d.prepare('SELECT * FROM tag_groups ORDER BY sort, id').all() as {
     id: number; name: string; slug: string; kind: string; show_in_filters: number
   }[]
-  const tags = d.prepare('SELECT id, group_id, name, slug, visible FROM tags ORDER BY sort, id').all() as {
+  const tags = await d.prepare('SELECT id, group_id, name, slug, visible FROM tags ORDER BY sort, id').all() as {
     id: number; group_id: number; name: string; slug: string; visible: number
   }[]
   return { groups, tags }
 }
 
-export function listProducts(f: ListFilters): { items: ProductCard[]; total: number; facets: Facets; page: number; pages: number } {
-  const idx = catalogIndex()
-  const { groups, tags } = tagMeta()
+export async function listProducts(f: ListFilters): Promise<{ items: ProductCard[]; total: number; facets: Facets; page: number; pages: number }> {
+  const idx = await catalogIndex()
+  const { groups, tags } = await tagMeta()
   const tagBySlug = new Map(tags.map((t) => [t.slug, t]))
 
   // نطاق الصفحة (قسم / تصنيف / بحث / نوع)
@@ -623,7 +636,7 @@ export function listProducts(f: ListFilters): { items: ProductCard[]; total: num
 
   let hidden: string[] = []
   if (f.categoryId) {
-    const c = db().prepare('SELECT hidden_filters FROM categories WHERE id=?').get(f.categoryId) as { hidden_filters: string } | undefined
+    const c = await db().prepare('SELECT hidden_filters FROM categories WHERE id=?').get(f.categoryId) as { hidden_filters: string } | undefined
     hidden = parseJson<string[]>(c?.hidden_filters, [])
   }
 
@@ -655,15 +668,15 @@ export function listProducts(f: ListFilters): { items: ProductCard[]; total: num
   }
 }
 
-export function cardsByIds(ids: number[]): ProductCard[] {
-  const idx = catalogIndex()
+export async function cardsByIds(ids: number[]): Promise<ProductCard[]> {
+  const idx = await catalogIndex()
   return ids.map((id) => idx.byId.get(id)?.card).filter(Boolean) as ProductCard[]
 }
 
-export function suggest(q: string) {
+export async function suggest(q: string) {
   const nq = normalizeArabic(q)
   if (!nq) return { products: [], categories: [], tags: [] }
-  const idx = catalogIndex()
+  const idx = await catalogIndex()
   const products = idx.items
     .map((i) => ({ i, s: searchMatches(i, q) }))
     .filter((x) => x.s > 0)
@@ -671,27 +684,27 @@ export function suggest(q: string) {
     .slice(0, 6)
     .map(({ i }) => ({ id: i.row.id, name: i.row.name, slug: i.row.slug, sku: i.row.sku, price: i.card.price, compareAt: i.card.compareAt, image: i.card.images[0]?.url || null, available: i.card.available }))
   const tokens = nq.split(' ')
-  const categories = (db().prepare('SELECT id, name, slug FROM categories WHERE visible=1').all() as { id: number; name: string; slug: string }[])
+  const categories = (await db().prepare('SELECT id, name, slug FROM categories WHERE visible=1').all() as { id: number; name: string; slug: string }[])
     .filter((c) => tokens.every((t) => normalizeArabic(c.name).includes(t)))
     .slice(0, 4)
-  const tags = (db().prepare('SELECT id, name, slug FROM tags WHERE visible=1').all() as { id: number; name: string; slug: string }[])
+  const tags = (await db().prepare('SELECT id, name, slug FROM tags WHERE visible=1').all() as { id: number; name: string; slug: string }[])
     .filter((c) => tokens.every((t) => normalizeArabic(c.name).includes(t)))
     .slice(0, 4)
   return { products, categories, tags }
 }
 
 /** إعادة بناء نص البحث للمنتج (الاسم، الرقم، أرقام الخيارات، القسم، الوسوم) */
-export function refreshSearchText(productId: number) {
+export async function refreshSearchText(productId: number) {
   const d = db()
-  const p = getProductRow(productId)
+  const p = await getProductRow(productId)
   if (!p) return
-  const vs = d.prepare('SELECT sku, option1, option2, option3 FROM variants WHERE product_id=?').all(productId) as {
+  const vs = await d.prepare('SELECT sku, option1, option2, option3 FROM variants WHERE product_id=?').all(productId) as {
     sku: string; option1: string | null; option2: string | null; option3: string | null
   }[]
-  const cat = p.category_id ? (d.prepare('SELECT name FROM categories WHERE id=?').get(p.category_id) as { name: string } | undefined) : undefined
-  const tags = d.prepare('SELECT t.name FROM product_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.product_id=?').all(productId) as { name: string }[]
+  const cat = p.category_id ? (await d.prepare('SELECT name FROM categories WHERE id=?').get(p.category_id) as { name: string } | undefined) : undefined
+  const tags = await d.prepare('SELECT t.name FROM product_tags pt JOIN tags t ON t.id=pt.tag_id WHERE pt.product_id=?').all(productId) as { name: string }[]
   const text = normalizeArabic(
     [p.name, p.sku, p.short_description || '', cat?.name || '', ...tags.map((t) => t.name), ...vs.flatMap((v) => [v.sku, v.option1 || '', v.option2 || '', v.option3 || ''])].join(' '),
   )
-  d.prepare('UPDATE products SET search_text=? WHERE id=?').run(text, productId)
+  await d.prepare('UPDATE products SET search_text=? WHERE id=?').run(text, productId)
 }

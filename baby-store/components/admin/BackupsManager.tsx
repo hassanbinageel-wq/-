@@ -6,7 +6,15 @@ import { api, useAction, PageHead, Field, Switch, NumInput, Modal, confirmAction
 import { formatDateTime } from '@/lib/shared/dates'
 import type { BackupSettings } from '@/lib/shared/types'
 
-export function BackupsManager({ list, settings }: { list: { name: string; size: number; createdAt: string }[]; settings: BackupSettings }) {
+export function BackupsManager({
+  list,
+  settings,
+  usage,
+}: {
+  list: { name: string; size: number; createdAt: string }[]
+  settings: BackupSettings
+  usage: { total: number; images: number; backups: number }
+}) {
   const { run, busy } = useAction()
   const [s, setS] = useState(settings)
   const [restore, setRestore] = useState<{ name?: string } | null>(null)
@@ -16,13 +24,25 @@ export function BackupsManager({ list, settings }: { list: { name: string; size:
   const mb = (n: number) => `${(n / 1024 / 1024).toFixed(2)} MB`
   return (
     <>
-      <PageHead title="النسخ الاحتياطي والاستعادة" subtitle="النسخة تشمل قاعدة البيانات وكل الصور والسندات المرفوعة">
+      <PageHead title="النسخ الاحتياطي والاستعادة" subtitle="النسخة تشمل كل بيانات المتجر: المنتجات والطلبات والعملاء والإعدادات">
         <button type="button" className="a-btn" disabled={busy} onClick={() => run(() => api('POST', 'backups'), 'تم إنشاء نسخة احتياطية')}>
           <DatabaseBackup size={16} /> إنشاء نسخة الآن
         </button>
       </PageHead>
       <div className="a-notice a-notice--warn" style={{ marginBottom: 12 }}>
-        النسخ محفوظة على نفس خادم المتجر. نزّلها دورياً واحفظها في مكان آخر (حاسوبك أو تخزين سحابي) للحماية من فقدان الخادم. ملفات النسخ تحتوي بيانات العملاء — احفظها بأمان.
+        النسخ محفوظة داخل قاعدة بيانات المتجر نفسها، وتحمي من الحذف أو التعديل بالخطأ. نزّل نسخة دورياً (أسبوعياً مثلاً) واحفظها على حاسوبك أو هاتفك للحماية من فقدان الحساب. الصور محفوظة في قاعدة البيانات ولا تُضمَّن في الملف. ملفات النسخ تحتوي بيانات العملاء — احفظها بأمان.
+      </div>
+      <div className="a-card" style={{ marginBottom: 12 }}>
+        <div className="a-row" style={{ justifyContent: 'space-between' }}>
+          <strong>مساحة قاعدة البيانات</strong>
+          <span className="num small">{mb(usage.total)} / 500 MB</span>
+        </div>
+        <div className="usage-bar" role="img" aria-label={`المستخدم ${Math.round((usage.total / (500 * 1024 * 1024)) * 100)}٪`}>
+          <span style={{ width: `${Math.min(100, (usage.total / (500 * 1024 * 1024)) * 100)}%` }} data-warn={usage.total > 400 * 1024 * 1024 ? '1' : undefined} />
+        </div>
+        <p className="small muted" style={{ margin: 0 }}>
+          منها الصور <span className="num">{mb(usage.images)}</span> والنسخ الاحتياطية <span className="num">{mb(usage.backups)}</span>. حد الخطة المجانية 500 ميجابايت؛ عند الاقتراب منه احذف النسخ القديمة أو الصور غير المستخدمة.
+        </p>
       </div>
       <div className="a-grid a-grid--side">
         <div className="a-table-wrap">
@@ -84,7 +104,7 @@ export function BackupsManager({ list, settings }: { list: { name: string; size:
       {restore && (
         <Modal title="تأكيد الاستعادة" onClose={() => setRestore(null)}>
           <div className="a-form">
-            <div className="a-notice a-notice--danger">ستُستبدل كل بيانات المتجر الحالية (المنتجات والطلبات والصور) بمحتوى النسخة. تُنشأ نسخة أمان تلقائية من البيانات الحالية قبل الاستعادة.</div>
+            <div className="a-notice a-notice--danger">ستُستبدل كل بيانات المتجر الحالية (المنتجات والطلبات والعملاء والإعدادات) بمحتوى النسخة، وتبقى الصور المحفوظة كما هي. تُنشأ نسخة أمان تلقائية من البيانات الحالية قبل الاستعادة، وستحتاج لتسجيل الدخول مجدداً بعدها.</div>
             <Field label="كلمة مرورك">
               <input className="a-input" dir="ltr" type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
             </Field>
@@ -103,6 +123,7 @@ export function BackupsManager({ list, settings }: { list: { name: string; size:
                   if (restore.name) fd.append('name', restore.name)
                   else if (file) fd.append('file', file)
                   await api('POST', 'backups/restore', fd)
+                  window.location.href = '/admin/login'
                   setRestore(null)
                   setPw('')
                   setConfirm('')

@@ -11,12 +11,12 @@ import { SkyDecor, WhatsAppIcon, LogoMark } from '@/components/store/Deco'
 import { waLink } from '@/lib/shared/phone'
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  sweep()
+  await sweep()
   const ctx = await getStoreContext()
   const { a } = ctx
-  const maintenance = getSetting('maintenance')
-  const css = themeCss(a)
-  const wa = storeWhatsapp()
+  const maintenance = await getSetting('maintenance')
+  const css = await themeCss(a)
+  const wa = await storeWhatsapp()
 
   if (maintenance.enabled && !ctx.isAdmin) {
     return (
@@ -39,7 +39,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     )
   }
 
-  const cats = visibleCategories().map((c) => ({ name: c.name, slug: c.slug }))
+  const cats = (await visibleCategories()).map((c) => ({ name: c.name, slug: c.slug }))
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
@@ -49,14 +49,14 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         </a>
         <Header
           name={a.brand.name}
-          logoUrl={logoUrl(a)}
+          logoUrl={await logoUrl(a)}
           menu={a.header.menu}
           categories={cats}
           announcement={announcementFor(a)}
           whatsappUrl={waLink(wa, `مرحباً ${a.brand.name}،`)}
         />
         <main id="main">{children}</main>
-        <Footer a={a} store={getSetting('store')} whatsapp={wa} />
+        <Footer a={a} store={await getSetting('store')} whatsapp={wa} />
         <CartDrawer />
         <QuickView />
         {ctx.preview && (

@@ -6,10 +6,10 @@ export const metadata = { title: 'كوبونات الخصم' }
 
 export default async function CouponsPage() {
   await requirePage('owner')
-  const rows = db()
-    .prepare("SELECT c.*, (SELECT COUNT(*) FROM orders o WHERE o.coupon_id=c.id AND o.status<>'cancelled') AS used FROM coupons c ORDER BY c.id DESC")
-    .all() as Record<string, unknown>[]
-  const cats = db().prepare('SELECT id, name FROM categories ORDER BY sort').all() as { id: number; name: string }[]
+  const rows = await db()
+      .prepare("SELECT c.*, (SELECT COUNT(*) FROM orders o WHERE o.coupon_id=c.id AND o.status<>'cancelled') AS used FROM coupons c ORDER BY c.id DESC")
+      .all() as Record<string, unknown>[]
+  const cats = await db().prepare('SELECT id, name FROM categories ORDER BY sort').all() as { id: number; name: string }[]
   return (
     <Coupons
       categories={cats}

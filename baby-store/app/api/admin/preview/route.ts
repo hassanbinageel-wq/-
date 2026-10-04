@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     dm.disable()
     redirect('/admin/appearance')
   }
-  const user = userFromToken(req.cookies.get(SESSION_COOKIE)?.value)
+  const user = await userFromToken(req.cookies.get(SESSION_COOKIE)?.value)
   if (!can(user, 'owner')) return new Response('غير مصرح', { status: 403 })
   dm.enable()
   const to = req.nextUrl.searchParams.get('to') || '/'

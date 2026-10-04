@@ -14,5 +14,5 @@ export default async function NewProduct({ searchParams }: { searchParams: Promi
     options: type === 'variable' ? [{ name: 'المقاس', kind: 'size', values: [] }] : [], variants: [], images: [], tagIds: [], setContents: [],
     relatedIds: [], complementaryIds: [], bundleItems: [], giftWrapEligible: true, personalization: null, salePrice: null,
   }
-  return <ProductEditor initial={initial} refs={editorRefs(null)} isNew />
+  return <ProductEditor initial={initial} refs={await editorRefs(null)} isNew />
 }

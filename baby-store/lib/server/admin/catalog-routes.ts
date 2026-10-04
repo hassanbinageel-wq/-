@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { json, readJson, readFile } from '../api'
 import { ApiError } from '../errors'
-import { db } from '../db'
+import { db, tx } from '../db'
 import { audit } from '../auth'
 import { saveProduct, duplicateProduct, bulkUpdateProducts, productToInput, uniqueSlug, type ProductInput } from '../products'
 import { adjustStock, setStock, StockError } from '../inventory'
@@ -99,9 +99,11 @@ const categorySchema = z.object({
   seoDescription: optText(300),
 })
 
-function reorder(table: string, ids: number[]) {
+async function reorder(table: string, ids: number[]) {
   const st = db().prepare(`UPDATE ${table} SET sort=? WHERE id=?`)
-  db().transaction(() => ids.forEach((id, i) => st.run(i, id)))()
+  await tx(async () => {
+    for (const [i, id] of ids.entries()) await st.run(i, id)
+  })
 }
 
 export const CATALOG_ROUTES: Route[] = [
@@ -112,8 +114,8 @@ export const CATALOG_ROUTES: Route[] = [
     perm: 'products',
     handler: async ({ req, user, ip }) => {
       const b = (await readJson(req, productSchema)) as ProductInput
-      const id = saveProduct(b, actor(user))
-      audit(user, 'product_create', 'product', id, { name: b.name }, ip)
+      const id = await saveProduct(b, actor(user))
+      await audit(user, 'product_create', 'product', id, { name: b.name }, ip)
       return json({ ok: true, id })
     },
   },
@@ -123,8 +125,8 @@ export const CATALOG_ROUTES: Route[] = [
     perm: 'products',
     handler: async ({ req, user, params, ip }) => {
       const b = (await readJson(req, productSchema)) as ProductInput
-      const id = saveProduct({ ...b, id: num(params.id) }, actor(user))
-      audit(user, 'product_update', 'product', id, { name: b.name, status: b.status }, ip)
+      const id = await saveProduct({ ...b, id: num(params.id) }, actor(user))
+      await audit(user, 'product_update', 'product', id, { name: b.name, status: b.status }, ip)
       return json({ ok: true, id })
     },
   },
@@ -132,8 +134,8 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'GET',
     path: 'products/:id',
     perm: 'products',
-    handler: ({ params }) => {
-      const p = productToInput(num(params.id))
+    handler: async ({ params }) => {
+      const p = await productToInput(num(params.id))
       if (!p) throw new ApiError(404, 'المنتج غير موجود')
       return json({ product: p })
     },
@@ -142,9 +144,9 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'POST',
     path: 'products/:id/duplicate',
     perm: 'products',
-    handler: ({ user, params, ip }) => {
-      const id = duplicateProduct(num(params.id), actor(user))
-      audit(user, 'product_duplicate', 'product', id, { from: params.id }, ip)
+    handler: async ({ user, params, ip }) => {
+      const id = await duplicateProduct(num(params.id), actor(user))
+      await audit(user, 'product_duplicate', 'product', id, { from: params.id }, ip)
       return json({ ok: true, id })
     },
   },
@@ -152,15 +154,15 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'DELETE',
     path: 'products/:id',
     perm: 'products',
-    handler: ({ user, params, ip }) => {
+    handler: async ({ user, params, ip }) => {
       const id = num(params.id)
-      const p = getProductRow(id)
+      const p = await getProductRow(id)
       if (!p) throw new ApiError(404, 'المنتج غير موجود')
-      if (db().prepare('SELECT 1 FROM bundle_items WHERE product_id=? LIMIT 1').get(id)) throw new ApiError(400, 'المنتج مكون في باقة. أزله من الباقة أولاً أو أرشفه بدلاً من الحذف')
-      if (db().prepare('SELECT 1 FROM order_items WHERE product_id=? LIMIT 1').get(id)) throw new ApiError(400, 'للمنتج طلبات سابقة. استخدم الأرشفة بدلاً من الحذف للحفاظ على السجل')
-      db().prepare('DELETE FROM products WHERE id=?').run(id)
-      invalidateCatalog()
-      audit(user, 'product_delete', 'product', id, { name: p.name, sku: p.sku }, ip)
+      if (await db().prepare('SELECT 1 FROM bundle_items WHERE product_id=? LIMIT 1').get(id)) throw new ApiError(400, 'المنتج مكون في باقة. أزله من الباقة أولاً أو أرشفه بدلاً من الحذف')
+      if (await db().prepare('SELECT 1 FROM order_items WHERE product_id=? LIMIT 1').get(id)) throw new ApiError(400, 'للمنتج طلبات سابقة. استخدم الأرشفة بدلاً من الحذف للحفاظ على السجل')
+      await db().prepare('DELETE FROM products WHERE id=?').run(id)
+      await invalidateCatalog()
+      await audit(user, 'product_delete', 'product', id, { name: p.name, sku: p.sku }, ip)
       return json({ ok: true })
     },
   },
@@ -182,7 +184,7 @@ export const CATALOG_ROUTES: Route[] = [
         }),
       )
       if (b.priceMode === 'percent' && b.priceValue != null && (b.priceValue < -90 || b.priceValue > 500)) throw new ApiError(400, 'نسبة التعديل غير منطقية')
-      bulkUpdateProducts(b.ids, {
+      await bulkUpdateProducts(b.ids, {
         status: b.status,
         categoryId: b.categoryId,
         priceMode: b.priceMode,
@@ -190,7 +192,7 @@ export const CATALOG_ROUTES: Route[] = [
         clearSale: b.clearSale,
         salePercent: b.salePercent,
       })
-      audit(user, 'products_bulk', 'product', null, b, ip)
+      await audit(user, 'products_bulk', 'product', null, b, ip)
       return json({ ok: true })
     },
   },
@@ -198,24 +200,27 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'GET',
     path: 'products-search',
     perm: ['products', 'owner', 'orders'],
-    handler: ({ query }) => {
+    handler: async ({ query }) => {
       const q = normalizeArabic(query.get('q') || '')
       const type = query.get('type')
-      const rows = db()
+      const rows = await db()
         .prepare(
-          `SELECT id, name, sku, type, status FROM products WHERE (search_text LIKE ? OR sku LIKE ?) ${type === 'component' ? "AND type<>'bundle'" : ''} AND status<>'archived' ORDER BY id DESC LIMIT 20`,
+          `SELECT id, name, sku, type, status FROM products WHERE (search_text ILIKE ? OR sku ILIKE ?) ${type === 'component' ? "AND type<>'bundle'" : ''} AND status<>'archived' ORDER BY id DESC LIMIT 20`,
         )
         .all(`%${q}%`, `%${(query.get('q') || '').toUpperCase()}%`) as { id: number; name: string; sku: string; type: string; status: string }[]
-      return json({
-        items: rows.map((r) => {
-          const img = db().prepare('SELECT media_id FROM product_images WHERE product_id=? ORDER BY sort LIMIT 1').get(r.id) as { media_id: number } | undefined
-          return {
-            ...r,
-            image: img ? mediaUrl(getMedia(img.media_id), 320) : null,
-            variants: r.type === 'variable' ? getVariants(r.id).map((v) => ({ id: v.id, sku: v.sku, label: [v.option1, v.option2, v.option3].filter(Boolean).join(' / '), active: !!v.active })) : [],
-          }
-        }),
-      })
+      const items = []
+      for (const r of rows) {
+        const img = await db().prepare('SELECT media_id FROM product_images WHERE product_id=? ORDER BY sort LIMIT 1').get<{ media_id: number }>(r.id)
+        items.push({
+          ...r,
+          image: img ? mediaUrl(await getMedia(img.media_id), 320) : null,
+          variants:
+            r.type === 'variable'
+              ? (await getVariants(r.id)).map((v) => ({ id: v.id, sku: v.sku, label: [v.option1, v.option2, v.option3].filter(Boolean).join(' / '), active: !!v.active }))
+              : [],
+        })
+      }
+      return json({ items })
     },
   },
   // ===== الوسائط =====
@@ -229,15 +234,15 @@ export const CATALOG_ROUTES: Route[] = [
       try {
         if (kind === 'favicon') {
           const id = await saveFavicon(buf, user.id)
-          return json({ ok: true, id, url: `${mediaUrl(getMedia(id))}` })
+          return json({ ok: true, id, url: `${mediaUrl(await getMedia(id))}` })
         }
         if (kind === 'font') {
-          const id = saveFont(buf, name, user.id)
-          return json({ ok: true, id, url: mediaUrl(getMedia(id)) })
+          const id = await saveFont(buf, name, user.id)
+          return json({ ok: true, id, url: mediaUrl(await getMedia(id)) })
         }
         const purpose = String(form.get('purpose') || 'product').slice(0, 30)
         const id = await saveImage(buf, { purpose, originalName: name, userId: user.id, widths: purpose === 'banner' ? [640, 1080, 1600, 2000] : undefined })
-        const m = getMedia(id)
+        const m = await getMedia(id)
         return json({ ok: true, id, url: mediaUrl(m, 640), width: m?.width, height: m?.height })
       } catch (e) {
         if (e instanceof UploadError) throw new ApiError(400, e.message)
@@ -255,14 +260,14 @@ export const CATALOG_ROUTES: Route[] = [
         req,
         z.object({ productId: z.number().int(), variantId: z.number().int().nullable(), mode: z.enum(['add', 'set']), value: z.number().int().min(-100000).max(1000000), note: z.string().max(200).optional() }),
       )
-      const p = getProductRow(b.productId)
+      const p = await getProductRow(b.productId)
       if (!p) throw new ApiError(404, 'المنتج غير موجود')
       try {
         const after =
           b.mode === 'set'
-            ? setStock({ productId: b.productId, variantId: b.variantId, value: b.value, reason: 'manual', actor: actor(user), note: b.note })
-            : adjustStock({ productId: b.productId, variantId: b.variantId, change: b.value, reason: 'manual', actor: actor(user), note: b.note })
-        audit(user, 'stock_adjust', 'product', b.productId, b, ip)
+            ? await setStock({ productId: b.productId, variantId: b.variantId, value: b.value, reason: 'manual', actor: actor(user), note: b.note })
+            : await adjustStock({ productId: b.productId, variantId: b.variantId, change: b.value, reason: 'manual', actor: actor(user), note: b.note })
+        await audit(user, 'stock_adjust', 'product', b.productId, b, ip)
         return json({ ok: true, stock: after })
       } catch (e) {
         if (e instanceof StockError) throw new ApiError(400, `لا يمكن أن يصبح المخزون سالباً (المتاح ${e.shortages[0]?.available})`)
@@ -275,9 +280,9 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'GET',
     path: 'products/export',
     perm: 'products',
-    handler: ({ user, ip }) => {
-      audit(user, 'products_export', 'product', null, null, ip)
-      return new Response(productsCsv(), {
+    handler: async ({ user, ip }) => {
+      await audit(user, 'products_export', 'product', null, null, ip)
+      return new Response(await productsCsv(), {
         headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="products-${new Date().toISOString().slice(0, 10)}.csv"` },
       })
     },
@@ -295,7 +300,7 @@ export const CATALOG_ROUTES: Route[] = [
     handler: async ({ req }) => {
       const { buf } = await readFile(req)
       if (buf.length > 5 * 1024 * 1024) throw new ApiError(400, 'الملف كبير جداً')
-      return json(previewImport(buf.toString('utf8')))
+      return json(await previewImport(buf.toString('utf8')))
     },
   },
   {
@@ -305,8 +310,8 @@ export const CATALOG_ROUTES: Route[] = [
     handler: async ({ req, user, ip }) => {
       const { buf } = await readFile(req)
       try {
-        const r = commitImport(buf.toString('utf8'), actor(user))
-        audit(user, 'products_import', 'product', null, r, ip)
+        const r = await commitImport(buf.toString('utf8'), actor(user))
+        await audit(user, 'products_import', 'product', null, r, ip)
         return json({ ok: true, ...r })
       } catch (e) {
         if (e instanceof ApiError) throw e
@@ -321,16 +326,16 @@ export const CATALOG_ROUTES: Route[] = [
     perm: 'products',
     handler: async ({ req, user, ip }) => {
       const b = await readJson(req, categorySchema)
-      const slug = uniqueSlug(b.slug || b.name, null, 'categories')
-      const sort = (db().prepare('SELECT COALESCE(MAX(sort),0)+1 s FROM categories').get() as { s: number }).s
+      const slug = await uniqueSlug(b.slug || b.name, null, 'categories')
+      const sort = (await db().prepare('SELECT COALESCE(MAX(sort),0)+1 s FROM categories').get() as { s: number }).s
       const id = Number(
-        db()
+        (await db()
           .prepare('INSERT INTO categories(name,slug,description,image_id,visible,hidden_filters,seo_title,seo_description,sort) VALUES(?,?,?,?,?,?,?,?,?)')
-          .run(b.name, slug, b.description || null, b.imageId || null, b.visible ? 1 : 0, JSON.stringify(b.hiddenFilters), b.seoTitle || null, b.seoDescription || null, sort)
+          .run(b.name, slug, b.description || null, b.imageId || null, b.visible ? 1 : 0, JSON.stringify(b.hiddenFilters), b.seoTitle || null, b.seoDescription || null, sort))
           .lastInsertRowid,
       )
-      invalidateCatalog()
-      audit(user, 'category_create', 'category', id, { name: b.name }, ip)
+      await invalidateCatalog()
+      await audit(user, 'category_create', 'category', id, { name: b.name }, ip)
       return json({ ok: true, id })
     },
   },
@@ -341,13 +346,13 @@ export const CATALOG_ROUTES: Route[] = [
     handler: async ({ req, user, params, ip }) => {
       const b = await readJson(req, categorySchema)
       const id = num(params.id)
-      const slug = uniqueSlug(b.slug || b.name, id, 'categories')
-      db()
+      const slug = await uniqueSlug(b.slug || b.name, id, 'categories')
+      await db()
         .prepare("UPDATE categories SET name=?, slug=?, description=?, image_id=?, visible=?, hidden_filters=?, seo_title=?, seo_description=?, updated_at=datetime('now') WHERE id=?")
         .run(b.name, slug, b.description || null, b.imageId || null, b.visible ? 1 : 0, JSON.stringify(b.hiddenFilters), b.seoTitle || null, b.seoDescription || null, id)
-      for (const p of db().prepare('SELECT id FROM products WHERE category_id=?').all(id) as { id: number }[]) refreshSearchText(p.id)
-      invalidateCatalog()
-      audit(user, 'category_update', 'category', id, { name: b.name }, ip)
+      for (const p of await db().prepare('SELECT id FROM products WHERE category_id=?').all(id) as { id: number }[]) await refreshSearchText(p.id)
+      await invalidateCatalog()
+      await audit(user, 'category_update', 'category', id, { name: b.name }, ip)
       return json({ ok: true })
     },
   },
@@ -355,13 +360,13 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'DELETE',
     path: 'categories/:id',
     perm: 'products',
-    handler: ({ user, params, ip }) => {
+    handler: async ({ user, params, ip }) => {
       const id = num(params.id)
-      const n = (db().prepare('SELECT COUNT(*) n FROM products WHERE category_id=?').get(id) as { n: number }).n
+      const n = (await db().prepare('SELECT COUNT(*) n FROM products WHERE category_id=?').get(id) as { n: number }).n
       if (n > 0) throw new ApiError(400, `القسم يحتوي ${n} منتج. انقل المنتجات لقسم آخر أو أخفِ القسم بدلاً من حذفه`)
-      db().prepare('DELETE FROM categories WHERE id=?').run(id)
-      invalidateCatalog()
-      audit(user, 'category_delete', 'category', id, null, ip)
+      await db().prepare('DELETE FROM categories WHERE id=?').run(id)
+      await invalidateCatalog()
+      await audit(user, 'category_delete', 'category', id, null, ip)
       return json({ ok: true })
     },
   },
@@ -371,7 +376,7 @@ export const CATALOG_ROUTES: Route[] = [
     perm: 'products',
     handler: async ({ req }) => {
       const { ids } = await readJson(req, z.object({ ids: z.array(z.number().int()).max(500) }))
-      reorder('categories', ids)
+      await reorder('categories', ids)
       return json({ ok: true })
     },
   },
@@ -383,10 +388,10 @@ export const CATALOG_ROUTES: Route[] = [
     handler: async ({ req, user, ip }) => {
       const b = await readJson(req, z.object({ name: z.string().min(1).max(60), kind: z.enum(['age', 'occasion', 'custom']), showInFilters: z.boolean() }))
       const id = Number(
-        db().prepare('INSERT INTO tag_groups(name,slug,kind,show_in_filters,sort) VALUES(?,?,?,?,(SELECT COALESCE(MAX(sort),0)+1 FROM tag_groups))').run(b.name, uniqueSlug(b.name, null, 'tag_groups'), b.kind, b.showInFilters ? 1 : 0)
+        (await db().prepare('INSERT INTO tag_groups(name,slug,kind,show_in_filters,sort) VALUES(?,?,?,?,(SELECT COALESCE(MAX(sort),0)+1 FROM tag_groups))').run(b.name, await uniqueSlug(b.name, null, 'tag_groups'), b.kind, b.showInFilters ? 1 : 0))
           .lastInsertRowid,
       )
-      audit(user, 'tag_group_create', 'tag_group', id, b, ip)
+      await audit(user, 'tag_group_create', 'tag_group', id, b, ip)
       return json({ ok: true, id })
     },
   },
@@ -396,8 +401,8 @@ export const CATALOG_ROUTES: Route[] = [
     perm: 'products',
     handler: async ({ req, params }) => {
       const b = await readJson(req, z.object({ name: z.string().min(1).max(60), kind: z.enum(['age', 'occasion', 'custom']), showInFilters: z.boolean() }))
-      db().prepare('UPDATE tag_groups SET name=?, kind=?, show_in_filters=? WHERE id=?').run(b.name, b.kind, b.showInFilters ? 1 : 0, num(params.id))
-      invalidateCatalog()
+      await db().prepare('UPDATE tag_groups SET name=?, kind=?, show_in_filters=? WHERE id=?').run(b.name, b.kind, b.showInFilters ? 1 : 0, num(params.id))
+      await invalidateCatalog()
       return json({ ok: true })
     },
   },
@@ -405,10 +410,10 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'DELETE',
     path: 'tag-groups/:id',
     perm: 'products',
-    handler: ({ params, user, ip }) => {
-      db().prepare('DELETE FROM tag_groups WHERE id=?').run(num(params.id))
-      invalidateCatalog()
-      audit(user, 'tag_group_delete', 'tag_group', params.id, null, ip)
+    handler: async ({ params, user, ip }) => {
+      await db().prepare('DELETE FROM tag_groups WHERE id=?').run(num(params.id))
+      await invalidateCatalog()
+      await audit(user, 'tag_group_delete', 'tag_group', params.id, null, ip)
       return json({ ok: true })
     },
   },
@@ -419,11 +424,11 @@ export const CATALOG_ROUTES: Route[] = [
     handler: async ({ req }) => {
       const b = await readJson(req, z.object({ groupId: z.number().int(), name: z.string().min(1).max(60), description: optText(300), imageId: z.number().int().nullable().optional(), visible: z.boolean() }))
       const id = Number(
-        db()
+        (await db()
           .prepare('INSERT INTO tags(group_id,name,slug,description,image_id,visible,sort) VALUES(?,?,?,?,?,?,(SELECT COALESCE(MAX(sort),0)+1 FROM tags))')
-          .run(b.groupId, b.name, uniqueSlug(b.name, null, 'tags'), b.description || null, b.imageId || null, b.visible ? 1 : 0).lastInsertRowid,
+          .run(b.groupId, b.name, await uniqueSlug(b.name, null, 'tags'), b.description || null, b.imageId || null, b.visible ? 1 : 0)).lastInsertRowid,
       )
-      invalidateCatalog()
+      await invalidateCatalog()
       return json({ ok: true, id })
     },
   },
@@ -434,9 +439,9 @@ export const CATALOG_ROUTES: Route[] = [
     handler: async ({ req, params }) => {
       const b = await readJson(req, z.object({ groupId: z.number().int(), name: z.string().min(1).max(60), description: optText(300), imageId: z.number().int().nullable().optional(), visible: z.boolean() }))
       const id = num(params.id)
-      db().prepare('UPDATE tags SET group_id=?, name=?, description=?, image_id=?, visible=? WHERE id=?').run(b.groupId, b.name, b.description || null, b.imageId || null, b.visible ? 1 : 0, id)
-      for (const p of db().prepare('SELECT product_id FROM product_tags WHERE tag_id=?').all(id) as { product_id: number }[]) refreshSearchText(p.product_id)
-      invalidateCatalog()
+      await db().prepare('UPDATE tags SET group_id=?, name=?, description=?, image_id=?, visible=? WHERE id=?').run(b.groupId, b.name, b.description || null, b.imageId || null, b.visible ? 1 : 0, id)
+      for (const p of await db().prepare('SELECT product_id FROM product_tags WHERE tag_id=?').all(id) as { product_id: number }[]) await refreshSearchText(p.product_id)
+      await invalidateCatalog()
       return json({ ok: true })
     },
   },
@@ -444,9 +449,9 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'DELETE',
     path: 'tags/:id',
     perm: 'products',
-    handler: ({ params }) => {
-      db().prepare('DELETE FROM tags WHERE id=?').run(num(params.id))
-      invalidateCatalog()
+    handler: async ({ params }) => {
+      await db().prepare('DELETE FROM tags WHERE id=?').run(num(params.id))
+      await invalidateCatalog()
       return json({ ok: true })
     },
   },
@@ -456,7 +461,7 @@ export const CATALOG_ROUTES: Route[] = [
     perm: 'products',
     handler: async ({ req }) => {
       const { ids } = await readJson(req, z.object({ ids: z.array(z.number().int()).max(500) }))
-      reorder('tags', ids)
+      await reorder('tags', ids)
       return json({ ok: true })
     },
   },
@@ -468,7 +473,7 @@ export const CATALOG_ROUTES: Route[] = [
     handler: async ({ req }) => {
       const b = await readJson(req, sizeGuideSchema)
       const id = Number(
-        db().prepare('INSERT INTO size_guides(name,intro,columns,rows,notes,image_id) VALUES(?,?,?,?,?,?)').run(b.name, b.intro || null, JSON.stringify(b.columns), JSON.stringify(b.rows), b.notes || null, b.imageId || null)
+        (await db().prepare('INSERT INTO size_guides(name,intro,columns,rows,notes,image_id) VALUES(?,?,?,?,?,?)').run(b.name, b.intro || null, JSON.stringify(b.columns), JSON.stringify(b.rows), b.notes || null, b.imageId || null))
           .lastInsertRowid,
       )
       return json({ ok: true, id })
@@ -480,7 +485,7 @@ export const CATALOG_ROUTES: Route[] = [
     perm: 'products',
     handler: async ({ req, params }) => {
       const b = await readJson(req, sizeGuideSchema)
-      db()
+      await db()
         .prepare("UPDATE size_guides SET name=?, intro=?, columns=?, rows=?, notes=?, image_id=?, is_demo=0, updated_at=datetime('now') WHERE id=?")
         .run(b.name, b.intro || null, JSON.stringify(b.columns), JSON.stringify(b.rows), b.notes || null, b.imageId || null, num(params.id))
       return json({ ok: true })
@@ -490,9 +495,9 @@ export const CATALOG_ROUTES: Route[] = [
     method: 'DELETE',
     path: 'size-guides/:id',
     perm: 'products',
-    handler: ({ params }) => {
-      db().prepare('UPDATE products SET size_guide_id=NULL WHERE size_guide_id=?').run(num(params.id))
-      db().prepare('DELETE FROM size_guides WHERE id=?').run(num(params.id))
+    handler: async ({ params }) => {
+      await db().prepare('UPDATE products SET size_guide_id=NULL WHERE size_guide_id=?').run(num(params.id))
+      await db().prepare('DELETE FROM size_guides WHERE id=?').run(num(params.id))
       return json({ ok: true })
     },
   },

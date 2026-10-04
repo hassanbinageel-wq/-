@@ -24,13 +24,13 @@ export const getStoreContext = cache(async (): Promise<StoreContext> => {
   const user = await currentUser()
   const isAdmin = !!user
   const preview = dm.isEnabled && can(user, 'owner')
-  const a = preview ? getDraftAppearance().data : getPublishedAppearance()
+  const a = preview ? (await getDraftAppearance()).data : await getPublishedAppearance()
   const h = await headers()
   const host = h.get('x-forwarded-host') || h.get('host') || 'localhost:3000'
   const proto = h.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https')
   const origin = siteUrl(`${proto}://${host}`)
-  const store = getSetting('store')
-  const shipping = getSetting('shipping')
+  const store = await getSetting('store')
+  const shipping = await getSetting('shipping')
   return {
     a,
     preview,
@@ -40,7 +40,7 @@ export const getStoreContext = cache(async (): Promise<StoreContext> => {
       storeName: a.brand.name,
       currency: store.currency,
       labels: a.labels,
-      whatsapp: storeWhatsapp(),
+      whatsapp: await storeWhatsapp(),
       productCard: a.productCard,
       decorations: a.theme.decorations,
       siteUrl: origin,
@@ -49,14 +49,14 @@ export const getStoreContext = cache(async (): Promise<StoreContext> => {
   }
 })
 
-export function visibleCategories() {
-  return db()
-    .prepare(
-      `SELECT c.id, c.name, c.slug, c.description, c.image_id,
+export async function visibleCategories() {
+  return await db()
+      .prepare(
+        `SELECT c.id, c.name, c.slug, c.description, c.image_id,
         (SELECT COUNT(*) FROM products p WHERE p.category_id=c.id AND p.status='published') AS count
        FROM categories c WHERE c.visible=1 ORDER BY c.sort, c.id`,
-    )
-    .all() as { id: number; name: string; slug: string; description: string | null; image_id: number | null; count: number }[]
+      )
+      .all() as { id: number; name: string; slug: string; description: string | null; image_id: number | null; count: number }[]
 }
 
 export function announcementFor(a: Appearance) {
@@ -65,18 +65,18 @@ export function announcementFor(a: Appearance) {
   return { items: an.items.filter((i) => i.label), bg: an.bg, fg: an.fg }
 }
 
-export function logoUrl(a: Appearance): string | null {
-  return imageRefById(a.brand.logoId, a.brand.name, 320)?.url || null
+export async function logoUrl(a: Appearance): Promise<string | null> {
+  return (await imageRefById(a.brand.logoId, a.brand.name, 320))?.url || null
 }
 
 /** مهمة دورية خفيفة عند الطلبات: تحرير الحجوزات المنتهية (مرة كل دقيقة على الأكثر) */
 const g = globalThis as unknown as { __lastSweep?: number }
-export function sweep() {
+export async function sweep() {
   const now = Date.now()
   if (g.__lastSweep && now - g.__lastSweep < 60_000) return
   g.__lastSweep = now
   try {
-    releaseExpiredReservations()
+    await releaseExpiredReservations()
   } catch (e) {
     console.error('[sweep]', e)
   }

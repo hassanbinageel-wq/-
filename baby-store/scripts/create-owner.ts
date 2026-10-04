@@ -36,13 +36,13 @@ async function main() {
   const problem = passwordProblem(password)
   if (problem) throw new Error(problem)
   const d = db()
-  const existing = d.prepare('SELECT id FROM admin_users WHERE username=?').get(username) as { id: number } | undefined
+  const existing = await d.prepare('SELECT id FROM admin_users WHERE username=?').get(username) as { id: number } | undefined
   if (existing) {
-    d.prepare("UPDATE admin_users SET password_hash=?, permissions='[\"owner\"]', active=1, failed_logins=0, locked_until=NULL, updated_at=datetime('now') WHERE id=?").run(hashPassword(password), existing.id)
-    d.prepare('DELETE FROM sessions WHERE user_id=?').run(existing.id)
+    await d.prepare("UPDATE admin_users SET password_hash=?, permissions='[\"owner\"]', active=1, failed_logins=0, locked_until=NULL, updated_at=datetime('now') WHERE id=?").run(hashPassword(password), existing.id)
+    await d.prepare('DELETE FROM sessions WHERE user_id=?').run(existing.id)
     console.log(`✓ تم تحديث كلمة مرور الحساب ${username} ومنحه صلاحية المالك`)
   } else {
-    d.prepare("INSERT INTO admin_users(username,name,password_hash,permissions) VALUES(?,?,?,'[\"owner\"]')").run(username, name, hashPassword(password))
+    await d.prepare("INSERT INTO admin_users(username,name,password_hash,permissions) VALUES(?,?,?,'[\"owner\"]')").run(username, name, hashPassword(password))
     console.log(`✓ تم إنشاء حساب المالك ${username}. ادخل من /admin/login`)
   }
 }

@@ -4,13 +4,13 @@ import { siteUrl } from '@/lib/server/settings'
 
 export const dynamic = 'force-dynamic'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl()
   const d = db()
-  const products = d.prepare("SELECT slug, updated_at FROM products WHERE status='published' AND is_demo=0").all() as { slug: string; updated_at: string }[]
-  const cats = d.prepare('SELECT slug, updated_at FROM categories WHERE visible=1').all() as { slug: string; updated_at: string }[]
-  const tags = d.prepare('SELECT slug FROM tags WHERE visible=1').all() as { slug: string }[]
-  const pages = d.prepare("SELECT slug, updated_at FROM pages WHERE status='published'").all() as { slug: string; updated_at: string }[]
+  const products = await d.prepare("SELECT slug, updated_at FROM products WHERE status='published' AND is_demo=0").all() as { slug: string; updated_at: string }[]
+  const cats = await d.prepare('SELECT slug, updated_at FROM categories WHERE visible=1').all() as { slug: string; updated_at: string }[]
+  const tags = await d.prepare('SELECT slug FROM tags WHERE visible=1').all() as { slug: string }[]
+  const pages = await d.prepare("SELECT slug, updated_at FROM pages WHERE status='published'").all() as { slug: string; updated_at: string }[]
   const iso = (s: string) => new Date(s.replace(' ', 'T') + 'Z')
   return [
     { url: `${base}/`, changeFrequency: 'daily', priority: 1 },

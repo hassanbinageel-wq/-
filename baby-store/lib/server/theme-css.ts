@@ -35,12 +35,12 @@ function familyOf(key: string, a: Appearance): string {
 }
 
 /** CSS للهوية: الخطوط والألوان (تُضمن داخل <style> في رأس الصفحة) */
-export function themeCss(a: Appearance): string {
+export async function themeCss(a: Appearance): Promise<string> {
   const parts: string[] = []
   const used = new Set([a.theme.fontBody, a.theme.fontHeading, 'tajawal'])
   for (const k of used) if (BUNDLED[k]) parts.push(bundledFace(k))
   if (used.has('custom')) {
-    const m = getMedia(a.theme.customFontId)
+    const m = await getMedia(a.theme.customFontId)
     const name = safeName(a.theme.customFontName)
     const fmt = m ? ({ woff2: 'woff2', woff: 'woff', otf: 'opentype', ttf: 'truetype' } as Record<string, string>)[m.ext] : null
     const src = [`local('${name}')`, m && m.kind === 'public' ? `url(/media/${m.path}.${m.ext}) format('${fmt}')` : null].filter(Boolean).join(', ')

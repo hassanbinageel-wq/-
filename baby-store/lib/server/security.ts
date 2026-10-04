@@ -39,24 +39,24 @@ export function sha256(s: string): string {
 }
 
 // ===== تحديد معدل الطلبات (نافذة زمنية ثابتة محفوظة في قاعدة البيانات) =====
-export function rateLimit(key: string, limit: number, windowSec: number): { ok: boolean; retryAfter: number } {
-  const d = db()
+export async function rateLimit(key: string, limit: number, windowSec: number): Promise<{ ok: boolean; retryAfter: number }> {
   const now = Math.floor(Date.now() / 1000)
-  const row = d.prepare('SELECT count, reset_at FROM rate_limits WHERE key=?').get(key) as { count: number; reset_at: number } | undefined
-  if (!row || row.reset_at <= now) {
-    d.prepare('INSERT INTO rate_limits(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=1, reset_at=excluded.reset_at').run(
-      key,
-      now + windowSec,
+  // عملية واحدة ذرية: تبدأ نافذة جديدة إن انتهت السابقة، وإلا تزيد العداد
+  const row = await db()
+    .prepare(
+      `INSERT INTO rate_limits(key,count,reset_at) VALUES(?,1,?)
+       ON CONFLICT(key) DO UPDATE SET
+         count = CASE WHEN rate_limits.reset_at <= ? THEN 1 ELSE rate_limits.count + 1 END,
+         reset_at = CASE WHEN rate_limits.reset_at <= ? THEN excluded.reset_at ELSE rate_limits.reset_at END
+       RETURNING count, reset_at`,
     )
-    return { ok: true, retryAfter: 0 }
-  }
-  if (row.count >= limit) return { ok: false, retryAfter: row.reset_at - now }
-  d.prepare('UPDATE rate_limits SET count=count+1 WHERE key=?').run(key)
+    .get<{ count: number; reset_at: number }>(key, now + windowSec, now, now)
+  if (row!.count > limit) return { ok: false, retryAfter: Math.max(1, row!.reset_at - now) }
   return { ok: true, retryAfter: 0 }
 }
 
-export function cleanupRateLimits() {
-  db().prepare('DELETE FROM rate_limits WHERE reset_at < ?').run(Math.floor(Date.now() / 1000))
+export async function cleanupRateLimits() {
+  await db().prepare('DELETE FROM rate_limits WHERE reset_at < ?').run(Math.floor(Date.now() / 1000))
 }
 
 // ===== عنوان IP =====
@@ -70,8 +70,8 @@ export function clientIp(headers: Headers): string {
   return headers.get('x-real-ip') || 'local'
 }
 
-export function ipHash(ip: string): string {
-  return hmac('ip:' + ip).slice(0, 24)
+export async function ipHash(ip: string): Promise<string> {
+  return (await hmac('ip:' + ip)).slice(0, 24)
 }
 
 /** حماية CSRF لطلبات التعديل: يجب أن يكون المصدر هو نفس الموقع */

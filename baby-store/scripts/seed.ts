@@ -21,17 +21,17 @@ async function art(a: Art, color: string, accent: string, bg: string, purpose = 
 }
 
 async function main() {
-  ensureAppearance()
+  await ensureAppearance()
 
   // الصفحات والأسئلة الشائعة والأقسام وتصنيفات العمر والمناسبة تُنشأ تلقائياً مع قاعدة البيانات الجديدة (lib/server/bootstrap.ts)
   const cats: Record<string, number> = {}
-  for (const r of d.prepare('SELECT id, slug FROM categories').all() as { id: number; slug: string }[]) cats[r.slug] = r.id
+  for (const r of await d.prepare('SELECT id, slug FROM categories').all() as { id: number; slug: string }[]) cats[r.slug] = r.id
   const tags: Record<string, number> = {}
-  for (const r of d.prepare('SELECT id, slug FROM tags').all() as { id: number; slug: string }[]) tags[r.slug] = r.id
+  for (const r of await d.prepare('SELECT id, slug FROM tags').all() as { id: number; slug: string }[]) tags[r.slug] = r.id
   console.log('✓ هيكل المتجر (الصفحات، الأسئلة، الأقسام، التصنيفات)')
 
   if (!withDemo) return
-  if ((d.prepare('SELECT COUNT(*) n FROM products WHERE is_demo=1').get() as { n: number }).n) {
+  if ((await d.prepare('SELECT COUNT(*) n FROM products WHERE is_demo=1').get() as { n: number }).n) {
     console.log('البيانات التجريبية موجودة مسبقاً — لم تتم إضافتها مرة أخرى')
     return
   }
@@ -45,13 +45,13 @@ async function main() {
     essentials: ['blanket', '#FFE7A6', '#BFDDF2', '#FFF6DA'],
   }
   for (const [slug, [a, c, acc, bg]] of Object.entries(catArt)) {
-    const row = d.prepare('SELECT id, image_id FROM categories WHERE slug=?').get(slug) as { id: number; image_id: number | null } | undefined
-    if (row && !row.image_id) d.prepare('UPDATE categories SET image_id=? WHERE id=?').run(await art(a, c, acc, bg, 'category'), row.id)
+    const row = await d.prepare('SELECT id, image_id FROM categories WHERE slug=?').get(slug) as { id: number; image_id: number | null } | undefined
+    if (row && !row.image_id) await d.prepare('UPDATE categories SET image_id=? WHERE id=?').run(await art(a, c, acc, bg, 'category'), row.id)
   }
 
   // دليل مقاسات نموذجي
   const sizeGuide = Number(
-    d
+    (await d
       .prepare('INSERT INTO size_guides(name,intro,columns,rows,notes,is_demo) VALUES(?,?,?,?,?,1)')
       .run(
         'دليل مقاسات ملابس المواليد (نموذج)',
@@ -63,26 +63,26 @@ async function main() {
           ['6-12 شهراً', '6 - 12 شهراً', '68 - 80', '8 - 10'],
         ]),
         'جدول نموذجي للتوضيح فقط — استبدله بمقاسات منتجاتك الفعلية من لوحة التحكم.',
-      ).lastInsertRowid,
+      )).lastInsertRowid,
   )
 
-  if (!(d.prepare('SELECT COUNT(*) n FROM gift_wraps').get() as { n: number }).n) {
+  if (!(await d.prepare('SELECT COUNT(*) n FROM gift_wraps').get() as { n: number }).n) {
     const w1 = await art('gift', '#F6C9D3', '#FFFFFF', '#FCEEF0', 'wrap')
     const w2 = await art('gift', '#BFDDF2', '#FFE7A6', '#E3F0F9', 'wrap')
-    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort,is_demo) VALUES(?,?,?,?,?,1)').run('تغليف ناعم (تجريبي)', 'ورق تغليف بلون هادئ مع شريطة', Y(1000), w1, 0)
-    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort,is_demo) VALUES(?,?,?,?,?,1)').run('صندوق هدية (تجريبي)', 'صندوق مقوى مع بطاقة إهداء', Y(2500), w2, 1)
+    await d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort,is_demo) VALUES(?,?,?,?,?,1)').run('تغليف ناعم (تجريبي)', 'ورق تغليف بلون هادئ مع شريطة', Y(1000), w1, 0)
+    await d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort,is_demo) VALUES(?,?,?,?,?,1)').run('صندوق هدية (تجريبي)', 'صندوق مقوى مع بطاقة إهداء', Y(2500), w2, 1)
   }
 
-  if (!(d.prepare('SELECT COUNT(*) n FROM shipping_zones').get() as { n: number }).n) {
+  if (!(await d.prepare('SELECT COUNT(*) n FROM shipping_zones').get() as { n: number }).n) {
     const z = d.prepare('INSERT INTO shipping_zones(name,country,cities,fee,eta_text,sort,is_demo) VALUES(?,?,?,?,?,?,1)')
-    z.run('صنعاء (تجريبي)', 'اليمن', JSON.stringify(['صنعاء', 'أمانة العاصمة']), Y(1000), '1 - 2 يوم عمل', 0)
-    z.run('عدن (تجريبي)', 'اليمن', JSON.stringify(['عدن']), Y(2000), '2 - 4 أيام عمل', 1)
-    z.run('تعز (تجريبي)', 'اليمن', JSON.stringify(['تعز']), Y(2000), '2 - 4 أيام عمل', 2)
-    z.run('باقي المحافظات (تجريبي)', 'اليمن', '[]', Y(3000), '3 - 6 أيام عمل', 3)
+    await z.run('صنعاء (تجريبي)', 'اليمن', JSON.stringify(['صنعاء', 'أمانة العاصمة']), Y(1000), '1 - 2 يوم عمل', 0)
+    await z.run('عدن (تجريبي)', 'اليمن', JSON.stringify(['عدن']), Y(2000), '2 - 4 أيام عمل', 1)
+    await z.run('تعز (تجريبي)', 'اليمن', JSON.stringify(['تعز']), Y(2000), '2 - 4 أيام عمل', 2)
+    await z.run('باقي المحافظات (تجريبي)', 'اليمن', '[]', Y(3000), '3 - 6 أيام عمل', 3)
   }
 
-  d.prepare(
-    "INSERT OR IGNORE INTO coupons(code,description,type,value,min_order,max_discount,usage_limit,per_customer_limit,combine_with_sale,is_demo) VALUES('WELCOME10','خصم ترحيبي 10% (كوبون تجريبي)','percent',1000,?,?,100,1,0,1)",
+  await d.prepare(
+    "INSERT INTO coupons(code,description,type,value,min_order,max_discount,usage_limit,per_customer_limit,combine_with_sale,is_demo) VALUES('WELCOME10','خصم ترحيبي 10% (كوبون تجريبي)','percent',1000,?,?,100,1,0,1) ON CONFLICT DO NOTHING",
   ).run(Y(10000), Y(5000))
 
   const sizeOpt = (values: string[]): ProductOption => ({ name: 'المقاس', kind: 'size', values: values.map((value) => ({ value })) })
@@ -240,11 +240,11 @@ async function main() {
     for (const a of def.arts) images.push({ mediaId: await art(a.a, a.c, a.acc, a.bg), alt: def.name, optionValue: a.opt || null })
     const { key, arts, ...input } = def
     void arts
-    ids[key] = saveProduct({ ...input, images, isDemo: true }, actor)
+    ids[key] = await saveProduct({ ...input, images, isDemo: true }, actor)
   }
 
-  const bodysuitVariants = getVariants(ids['bodysuit'])
-  const blanketCream = getVariants(ids['blanket']).find((v) => v.option1 === 'كريمي')
+  const bodysuitVariants = await getVariants(ids['bodysuit'])
+  const blanketCream = (await getVariants(ids['blanket'])).find((v) => v.option1 === 'كريمي')
   const bundles: Def[] = [
     {
       key: 'gift-bundle', type: 'bundle', name: 'باقة هدية المولود الجديد', status: 'published', price: Y(10500), trackStock: false, manualAvailability: 'in_stock',
@@ -280,17 +280,17 @@ async function main() {
     for (const a of def.arts) images.push({ mediaId: await art(a.a, a.c, a.acc, a.bg), alt: def.name, optionValue: null })
     const { key, arts, ...input } = def
     void arts
-    ids[key] = saveProduct({ ...input, images, isDemo: true }, actor)
+    ids[key] = await saveProduct({ ...input, images, isDemo: true }, actor)
   }
 
   // منتجات مكملة ومرتبطة
-  const rel = d.prepare('INSERT OR IGNORE INTO product_relations(product_id,related_id,kind,sort) VALUES(?,?,?,?)')
-  rel.run(ids['bodysuit'], ids['hat'], 'complementary', 0)
-  rel.run(ids['bodysuit'], ids['socks'], 'complementary', 1)
-  rel.run(ids['bodysuit'], ids['bib'], 'complementary', 2)
-  rel.run(ids['welcome-set'], ids['giftbox'], 'complementary', 0)
-  rel.run(ids['blanket'], ids['bear'], 'complementary', 0)
-  rel.run(ids['pajama'], ids['booties'], 'related', 0)
+  const rel = d.prepare('INSERT INTO product_relations(product_id,related_id,kind,sort) VALUES(?,?,?,?) ON CONFLICT DO NOTHING')
+  await rel.run(ids['bodysuit'], ids['hat'], 'complementary', 0)
+  await rel.run(ids['bodysuit'], ids['socks'], 'complementary', 1)
+  await rel.run(ids['bodysuit'], ids['bib'], 'complementary', 2)
+  await rel.run(ids['welcome-set'], ids['giftbox'], 'complementary', 0)
+  await rel.run(ids['blanket'], ids['bear'], 'complementary', 0)
+  await rel.run(ids['pajama'], ids['booties'], 'related', 0)
 
   // صور البنرات ومنتجات مميزة في المظهر المنشور
   const b1 = await sharp(Buffer.from(bannerSvg('#FCE4EA', '#E3F0F9', '#FFFFFF', 'onesie', '#F4C6D0'))).png().toBuffer()
@@ -301,7 +301,7 @@ async function main() {
   const m2 = await sharp(Buffer.from(bannerSvgMobile('#E3F0F9', '#EAF5EE', '#FFE7A6', 'gift', '#F4C6D0'))).png().toBuffer()
   const m1id = await saveImage(m1, { purpose: 'banner', isDemo: true, widths: [480, 900] })
   const m2id = await saveImage(m2, { purpose: 'banner', isDemo: true, widths: [480, 900] })
-  const a = getPublishedAppearance()
+  const a = await getPublishedAppearance()
   const hero = a.home.sections.find((s) => s.type === 'hero')
   if (hero) {
     hero.banners[0] = { ...hero.banners[0], imageDesktopId: b1id, imageMobileId: m1id }
@@ -311,10 +311,10 @@ async function main() {
   if (featured) featured.productIds = [ids['welcome-set'], ids['blanket'], ids['bear'], ids['pajama'], ids['bib']]
   const age = a.home.sections.find((s) => s.id === 'age')
   const occ = a.home.sections.find((s) => s.id === 'occasion')
-  const groups = d.prepare('SELECT id, slug FROM tag_groups').all() as { id: number; slug: string }[]
+  const groups = await d.prepare('SELECT id, slug FROM tag_groups').all() as { id: number; slug: string }[]
   if (age) age.tagGroupId = groups.find((g) => g.slug === 'age')?.id ?? null
   if (occ) occ.tagGroupId = groups.find((g) => g.slug === 'occasion')?.id ?? null
-  d.prepare("UPDATE appearance_versions SET data=? WHERE status='published'").run(JSON.stringify(a))
+  await d.prepare("UPDATE appearance_versions SET data=? WHERE status='published'").run(JSON.stringify(a))
 
   console.log(`✓ منتجات تجريبية: ${Object.keys(ids).length} (يمكن حذفها من لوحة التحكم ← الإعدادات ← البيانات التجريبية)`)
 }

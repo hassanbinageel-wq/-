@@ -7,13 +7,13 @@ export const metadata = { title: 'التوصيل والاستلام' }
 
 export default async function ShippingPage() {
   await requirePage('owner')
-  const zones = db().prepare('SELECT * FROM shipping_zones ORDER BY sort, id').all() as {
+  const zones = await db().prepare('SELECT * FROM shipping_zones ORDER BY sort, id').all() as {
     id: number; name: string; country: string; cities: string; fee: number; free_shipping_eligible: number; eta_text: string | null; active: number; is_demo: number
   }[]
   return (
     <ShippingManager
-      checkout={getSetting('checkout')}
-      shipping={getSetting('shipping')}
+      checkout={await getSetting('checkout')}
+      shipping={await getSetting('shipping')}
       zones={zones.map((z) => ({ id: z.id, name: z.name, country: z.country, cities: parseJson<string[]>(z.cities, []), fee: z.fee, freeShippingEligible: !!z.free_shipping_eligible, etaText: z.eta_text || '', active: !!z.active, isDemo: !!z.is_demo }))}
     />
   )

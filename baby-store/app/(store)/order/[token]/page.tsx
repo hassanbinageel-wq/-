@@ -23,17 +23,17 @@ const FLOW = [
 
 export default async function TrackOrderPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const o = getOrderByToken(token)
+  const o = await getOrderByToken(token)
   if (!o) notFound()
-  const store = getSetting('store')
+  const store = await getSetting('store')
   const cur = { ...store.currency, symbol: o.currency_symbol }
-  const items = publicItems(o)
-  const events = publicEvents(o.id)
+  const items = await publicItems(o)
+  const events = await publicEvents(o.id)
   const stepIdx = FLOW.findIndex((s) => s.key === o.status)
   const hidePrices = !!o.hide_prices
   const awaiting = ['awaiting_transfer', 'needs_review', 'partially_paid'].includes(o.payment_status) && o.status !== 'cancelled'
   const fmt = (s: string | null) => formatDateTime(s, store.timezone, store.currency.numerals)
-  const wa = waLink(storeWhatsapp(), `مرحباً، أستفسر عن طلبي رقم ${o.number}`)
+  const wa = waLink(await storeWhatsapp(), `مرحباً، أستفسر عن طلبي رقم ${o.number}`)
 
   return (
     <div className="container" style={{ paddingTop: '1.4rem', paddingBottom: '3rem', maxWidth: 860 }}>

@@ -48,13 +48,13 @@ type ZoneRow = {
   sort: number
 }
 
-export function activeZones(): ZoneRow[] {
-  return db().prepare('SELECT * FROM shipping_zones WHERE active=1 ORDER BY sort, id').all() as ZoneRow[]
+export async function activeZones(): Promise<ZoneRow[]> {
+  return await db().prepare('SELECT * FROM shipping_zones WHERE active=1 ORDER BY sort, id').all() as ZoneRow[]
 }
 
 /** خيارات الدول والمدن لصفحة الطلب */
-export function shippingOptions() {
-  const zones = activeZones()
+export async function shippingOptions() {
+  const zones = await activeZones()
   const countries = new Map<string, { cities: Set<string>; other: boolean }>()
   for (const z of zones) {
     if (!countries.has(z.country)) countries.set(z.country, { cities: new Set(), other: false })
@@ -66,9 +66,9 @@ export function shippingOptions() {
   return Array.from(countries.entries()).map(([country, v]) => ({ country, cities: Array.from(v.cities), allowOther: v.other }))
 }
 
-export function resolveZone(country: string | null | undefined, city: string | null | undefined): ZoneRow | null {
+export async function resolveZone(country: string | null | undefined, city: string | null | undefined): Promise<ZoneRow | null> {
   if (!country) return null
-  const zones = activeZones().filter((z) => z.country === country)
+  const zones = (await activeZones()).filter((z) => z.country === country)
   const nc = normalizeArabic(city || '')
   if (nc) {
     const exact = zones.find((z) => parseJson<string[]>(z.cities, []).some((c) => normalizeArabic(c) === nc))
@@ -101,30 +101,30 @@ export type CouponRow = {
   active: number
 }
 
-export function couponUsage(couponId: number, phone?: string | null): { total: number; byCustomer: number } {
+export async function couponUsage(couponId: number, phone?: string | null): Promise<{ total: number; byCustomer: number }> {
   const d = db()
-  const total = (d.prepare("SELECT COUNT(*) AS n FROM orders WHERE coupon_id=? AND status<>'cancelled'").get(couponId) as { n: number }).n
+  const total = (await d.prepare("SELECT COUNT(*) AS n FROM orders WHERE coupon_id=? AND status<>'cancelled'").get(couponId) as { n: number }).n
   const byCustomer = phone
-    ? (d.prepare("SELECT COUNT(*) AS n FROM orders WHERE coupon_id=? AND status<>'cancelled' AND customer_phone=?").get(couponId, phone) as { n: number }).n
+    ? (await d.prepare("SELECT COUNT(*) AS n FROM orders WHERE coupon_id=? AND status<>'cancelled' AND customer_phone=?").get(couponId, phone) as { n: number }).n
     : 0
   return { total, byCustomer }
 }
 
-function evaluateCoupon(
+async function evaluateCoupon(
   code: string,
   lines: QuoteLine[],
   categoryOf: Map<number, number | null>,
   phone: string | null | undefined,
-): { coupon: CouponRow | null; discount: number; valid: boolean; message: string } {
-  const c = db().prepare('SELECT * FROM coupons WHERE code=? COLLATE NOCASE').get(code.trim()) as CouponRow | undefined
-  const cur = getSetting('store').currency
+): Promise<{ coupon: CouponRow | null; discount: number; valid: boolean; message: string }> {
+  const c = await db().prepare('SELECT * FROM coupons WHERE upper(code)=upper(?)').get(code.trim()) as CouponRow | undefined
+  const cur = (await getSetting('store')).currency
   if (!c || !c.active) return { coupon: null, discount: 0, valid: false, message: 'رمز الخصم غير صحيح' }
   const now = new Date()
   const s = sqlToDate(c.starts_at)
   const e = sqlToDate(c.ends_at)
   if (s && s > now) return { coupon: c, discount: 0, valid: false, message: 'رمز الخصم لم يبدأ بعد' }
   if (e && e < now) return { coupon: c, discount: 0, valid: false, message: 'انتهت صلاحية رمز الخصم' }
-  const usage = couponUsage(c.id, phone)
+  const usage = await couponUsage(c.id, phone)
   if (c.usage_limit != null && usage.total >= c.usage_limit) return { coupon: c, discount: 0, valid: false, message: 'تم استخدام رمز الخصم بالحد الأقصى' }
   if (phone && c.per_customer_limit != null && usage.byCustomer >= c.per_customer_limit)
     return { coupon: c, discount: 0, valid: false, message: 'استخدمت هذا الرمز من قبل بالحد المسموح' }
@@ -163,13 +163,13 @@ function optionPairs(options: ProductOption[], values: (string | null)[]): { nam
 }
 
 /** حساب السلة بالكامل في الخادم: الأسعار والتوفر والخصم والتغليف والتخصيص والشحن */
-export function computeQuote(input: QuoteInput): QuoteResult {
+export async function computeQuote(input: QuoteInput): Promise<QuoteResult> {
   const settings = {
-    checkout: getSetting('checkout'),
-    shipping: getSetting('shipping'),
-    gifts: getSetting('gifts'),
-    personalization: getSetting('personalization'),
-    store: getSetting('store'),
+    checkout: await getSetting('checkout'),
+    shipping: await getSetting('shipping'),
+    gifts: await getSetting('gifts'),
+    personalization: await getSetting('personalization'),
+    store: await getSetting('store'),
   }
   const now = new Date()
   const cur = settings.store.currency
@@ -191,7 +191,7 @@ export function computeQuote(input: QuoteInput): QuoteResult {
   for (const li of rawLines) {
     const lineErrors: string[] = []
     const warnings: string[] = []
-    const p: ProductRow | undefined = getProductRow(Number(li.productId))
+    const p: ProductRow | undefined = await getProductRow(Number(li.productId))
     const base: QuoteLine = {
       key: li.key,
       ok: false,
@@ -227,14 +227,14 @@ export function computeQuote(input: QuoteInput): QuoteResult {
     base.slug = p.slug
     base.sku = p.sku
     base.giftWrapEligible = !!p.gift_wrap_eligible
-    const img = db().prepare('SELECT media_id FROM product_images WHERE product_id=? ORDER BY sort, id LIMIT 1').get(p.id) as { media_id: number } | undefined
-    base.image = img ? mediaUrl(getMedia(img.media_id), 320) : null
+    const img = await db().prepare('SELECT media_id FROM product_images WHERE product_id=? ORDER BY sort, id LIMIT 1').get(p.id) as { media_id: number } | undefined
+    base.image = img ? mediaUrl(await getMedia(img.media_id), 320) : null
     const options = parseJson<ProductOption[]>(p.options, [])
     const limit = Math.min(p.max_per_order || settings.checkout.maxQtyPerLine, settings.checkout.maxQtyPerLine)
     const needs: { key: string; productId: number; variantId: number | null; per: number; avail: number; sku: string; name: string }[] = []
 
     if (p.type === 'variable') {
-      const v = li.variantId ? (getVariants(p.id).find((x) => x.id === Number(li.variantId)) as VariantRow | undefined) : undefined
+      const v = li.variantId ? ((await getVariants(p.id)).find((x) => x.id === Number(li.variantId)) as VariantRow | undefined) : undefined
       if (!v) {
         lineErrors.push('يرجى اختيار المقاس/اللون المطلوب')
       } else if (!v.active) {
@@ -248,10 +248,10 @@ export function computeQuote(input: QuoteInput): QuoteResult {
         // صورة الخيار (مثل صورة اللون المختار) إن وجدت
         const vals = [v.option1, v.option2, v.option3].filter(Boolean) as string[]
         if (vals.length) {
-          const vi = db()
+          const vi = await db()
             .prepare(`SELECT media_id FROM product_images WHERE product_id=? AND option_value IN (${vals.map(() => '?').join(',')}) ORDER BY sort, id LIMIT 1`)
             .get(p.id, ...vals) as { media_id: number } | undefined
-          if (vi) base.image = mediaUrl(getMedia(vi.media_id), 320)
+          if (vi) base.image = mediaUrl(await getMedia(vi.media_id), 320)
         }
         const key = p.track_stock ? `v${v.id}` : `nv${v.id}`
         needs.push({ key, productId: p.id, variantId: v.id, per: 1, avail: availOf(key, () => variantAvailable(p, v)), sku: v.sku, name: p.name })
@@ -261,10 +261,10 @@ export function computeQuote(input: QuoteInput): QuoteResult {
       base.unitPrice = pr.price
       base.compareAt = pr.compareAt
       if (p.manual_availability !== 'in_stock') lineErrors.push('هذه الباقة غير متوفرة حالياً')
-      const items = getBundleItems(p.id)
+      const items = await getBundleItems(p.id)
       if (!items.length) lineErrors.push('هذه الباقة غير مكتملة')
       for (const it of items) {
-        const cp = getProductRow(it.product_id)
+        const cp = await getProductRow(it.product_id)
         if (!cp || cp.status === 'archived') {
           lineErrors.push('أحد مكونات الباقة لم يعد متاحاً')
           continue
@@ -272,7 +272,7 @@ export function computeQuote(input: QuoteInput): QuoteResult {
         const copts = parseJson<ProductOption[]>(cp.options, [])
         if (cp.type === 'variable') {
           const chosenId = it.variant_id || li.bundle?.find((b) => Number(b.itemId) === it.id)?.variantId
-          const v = chosenId ? getVariants(cp.id).find((x) => x.id === Number(chosenId)) : undefined
+          const v = chosenId ? (await getVariants(cp.id)).find((x) => x.id === Number(chosenId)) : undefined
           if (!v || !v.active) {
             lineErrors.push(`يرجى اختيار خيارات «${cp.name}» داخل الباقة`)
             continue
@@ -354,7 +354,7 @@ export function computeQuote(input: QuoteInput): QuoteResult {
   let coupon: Quote['coupon'] = null
   let couponId: number | null = null
   if (input.couponCode && input.couponCode.trim()) {
-    const r = evaluateCoupon(input.couponCode, lines, categoryOf, input.phone)
+    const r = await evaluateCoupon(input.couponCode, lines, categoryOf, input.phone)
     coupon = { code: input.couponCode.trim().toUpperCase(), valid: r.valid, message: r.message, discount: r.discount }
     if (r.valid) {
       discount = r.discount
@@ -366,7 +366,7 @@ export function computeQuote(input: QuoteInput): QuoteResult {
   let wrapFee = 0
   let wrap: Quote['wrap'] = null
   if (input.isGift && settings.gifts.giftOrderEnabled && settings.gifts.giftWrapEnabled && input.giftWrapId) {
-    const w = db().prepare('SELECT id, name, price FROM gift_wraps WHERE id=? AND active=1').get(input.giftWrapId) as
+    const w = await db().prepare('SELECT id, name, price FROM gift_wraps WHERE id=? AND active=1').get(input.giftWrapId) as
       | { id: number; name: string; price: number }
       | undefined
     if (w) {
@@ -394,7 +394,7 @@ export function computeQuote(input: QuoteInput): QuoteResult {
     if (!settings.checkout.pickupEnabled) errors.push('الاستلام من المحل غير متاح حالياً')
   } else if (input.fulfillment === 'delivery') {
     if (!settings.checkout.deliveryEnabled) errors.push('التوصيل غير متاح حالياً')
-    const zone = resolveZone(input.country, input.city)
+    const zone = await resolveZone(input.country, input.city)
     if (input.country && !zone) errors.push('عذراً، التوصيل غير متاح لهذه المنطقة حالياً')
     if (zone) {
       zoneId = zone.id

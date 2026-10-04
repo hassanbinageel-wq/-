@@ -10,10 +10,10 @@ import { ContactWhatsapp } from '@/components/store/ContactWhatsapp'
 
 export const metadata: Metadata = { title: 'تواصل معنا' }
 
-export default function ContactPage() {
-  const page = getPage('contact')
-  const store = getSetting('store')
-  const wa = storeWhatsapp()
+export default async function ContactPage() {
+  const page = await getPage('contact')
+  const store = await getSetting('store')
+  const wa = await storeWhatsapp()
   return (
     <div className="container" style={{ paddingTop: '1.6rem', paddingBottom: '3rem' }}>
       <SectionTitle title={page?.title || 'تواصل معنا'} as="h1" />

@@ -1,122 +1,128 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import Database from 'better-sqlite3'
-import * as tar from 'tar'
-import { closeDb, dataPath, db, schemaVersion } from './db'
-import { clearSettingsCache, getSetting, setSetting } from './settings'
-import { clearAppearanceCache } from './appearance'
-import { invalidateCatalog } from './catalog'
+import zlib from 'node:zlib'
+import { promisify } from 'node:util'
+import { db, schemaVersion, tx } from './db'
+import { getSetting, setSetting } from './settings'
+import { bumpCacheVersion } from './cache'
 
-// النسخة الاحتياطية = ملف tar.gz يحتوي قاعدة البيانات (store.db) ومجلد الصور والسندات (uploads)
-// لا تتضمن ملف المفتاح السري .secret
+// النسخة الاحتياطية = ملف JSON مضغوط (gzip) يضم بيانات كل الجداول.
+// الصور محفوظة داخل قاعدة البيانات نفسها ولا تُضمَّن في الملف (حجمها كبير)؛ سجلاتها الوصفية مضمنة.
+// النسخ تُحفظ داخل قاعدة البيانات (جدول backups) وتُنزّل من لوحة التحكم للاحتفاظ بنسخة خارجية.
 
-const NAME_RE = /^backup-[\w.-]+\.tar\.gz$/
+const gzip = promisify(zlib.gzip)
+const gunzip = promisify(zlib.gunzip)
 
-export function backupDir() {
-  const d = dataPath('backups')
-  fs.mkdirSync(d, { recursive: true })
-  return d
-}
+/** ترتيب الجداول حسب الاعتماديات (الأب قبل الابن) */
+export const BACKUP_TABLES = [
+  'settings', 'counters', 'media', 'admin_users', 'audit_log', 'notifications', 'appearance_versions', 'pages', 'faqs',
+  'categories', 'tag_groups', 'tags', 'size_guides', 'products', 'product_images', 'variants', 'product_tags', 'product_relations',
+  'bundle_items', 'stock_movements', 'gift_wraps', 'shipping_zones', 'transfer_methods', 'coupons', 'customers', 'orders',
+  'order_items', 'order_stock_lines', 'order_attachments', 'payments', 'refunds', 'order_returns', 'order_notes', 'order_events',
+] as const
 
-export function listBackups() {
-  return fs
-    .readdirSync(backupDir())
-    .filter((f) => NAME_RE.test(f))
-    .map((f) => {
-      const st = fs.statSync(path.join(backupDir(), f))
-      return { name: f, size: st.size, createdAt: st.mtime.toISOString() }
-    })
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-}
+const NAME_RE = /^backup-[\w.-]+\.json\.gz$/
 
-export function backupPath(name: string): string | null {
-  if (!NAME_RE.test(name)) return null
-  const p = path.join(backupDir(), name)
-  return fs.existsSync(p) ? p : null
+type BackupFile = { app: 'baby-store'; format: 2; schema: number; createdAt: string; tables: Record<string, Record<string, unknown>[]> }
+
+export async function exportData(): Promise<Buffer> {
+  const tables: BackupFile['tables'] = {}
+  for (const t of BACKUP_TABLES) tables[t] = await db().prepare(`SELECT * FROM ${t} ORDER BY 1`).all()
+  const file: BackupFile = { app: 'baby-store', format: 2, schema: schemaVersion(), createdAt: new Date().toISOString(), tables }
+  return gzip(Buffer.from(JSON.stringify(file)), { level: 9 })
 }
 
 export async function createBackup(tag = 'manual'): Promise<string> {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
-  const name = `backup-${stamp}-${tag.replace(/[^\w-]/g, '')}.tar.gz`
-  const work = fs.mkdtempSync(path.join(dataPath('tmp'), 'bk-'))
-  try {
-    await db().backup(path.join(work, 'store.db'))
-    fs.writeFileSync(path.join(work, 'backup.json'), JSON.stringify({ app: 'baby-store', schema: schemaVersion(), createdAt: new Date().toISOString() }))
-    const uploads = dataPath('uploads')
-    const entries = ['store.db', 'backup.json']
-    if (fs.existsSync(uploads)) {
-      fs.cpSync(uploads, path.join(work, 'uploads'), { recursive: true })
-      entries.push('uploads')
-    }
-    await tar.create({ gzip: true, file: path.join(backupDir(), name), cwd: work, portable: true }, entries)
-  } finally {
-    fs.rmSync(work, { recursive: true, force: true })
-  }
+  const name = `backup-${stamp}-${tag.replace(/[^\w-]/g, '')}.json.gz`
+  const data = await exportData()
+  await db().prepare('INSERT INTO backups(name,kind,bytes,data) VALUES(?,?,?,?) ON CONFLICT(name) DO NOTHING RETURNING id').get(name, tag, data.length, data)
   return name
 }
 
-export function pruneBackups(keep: number) {
-  const list = listBackups().filter((b) => b.name.includes('-auto'))
-  for (const b of list.slice(Math.max(1, keep))) fs.rmSync(path.join(backupDir(), b.name), { force: true })
+export async function listBackups() {
+  const rows = await db().prepare('SELECT name, kind, bytes, created_at FROM backups ORDER BY id DESC').all<{ name: string; kind: string; bytes: number; created_at: string }>()
+  return rows.map((r) => ({ name: r.name, size: r.bytes, createdAt: r.created_at.replace(' ', 'T') + 'Z' }))
 }
 
-/** يتحقق من الأرشيف ثم يستبدل البيانات الحالية (مع نسخة أمان تلقائية قبل الاستعادة) */
-export async function restoreBackup(archive: string): Promise<{ safety: string }> {
-  const work = fs.mkdtempSync(path.join(dataPath('tmp'), 'rs-'))
+export async function getBackup(name: string): Promise<Buffer | null> {
+  if (!NAME_RE.test(name)) return null
+  const row = await db().prepare('SELECT data FROM backups WHERE name=?').get<{ data: Uint8Array }>(name)
+  return row ? Buffer.from(row.data) : null
+}
+
+export async function deleteBackup(name: string): Promise<boolean> {
+  return (await db().prepare('DELETE FROM backups WHERE name=?').run(name)).changes > 0
+}
+
+export async function pruneBackups(keep: number) {
+  await db()
+    .prepare("DELETE FROM backups WHERE kind='auto' AND id NOT IN (SELECT id FROM backups WHERE kind='auto' ORDER BY id DESC LIMIT ?)")
+    .run(Math.max(1, keep))
+}
+
+async function parseBackup(buf: Buffer): Promise<BackupFile> {
+  let json: BackupFile
   try {
-    await tar.extract({
-      file: archive,
-      cwd: work,
-      strict: true,
-      filter: (p) => {
-        const n = p.replace(/\\/g, '/')
-        return !n.includes('..') && (n === 'store.db' || n === 'backup.json' || n.startsWith('uploads/') || n === 'uploads')
-      },
-    })
-    const dbFile = path.join(work, 'store.db')
-    if (!fs.existsSync(dbFile)) throw new Error('الملف ليس نسخة احتياطية صالحة (قاعدة البيانات غير موجودة)')
-    const check = new Database(dbFile, { readonly: true })
-    try {
-      const ok = check.pragma('integrity_check', { simple: true })
-      if (ok !== 'ok') throw new Error('قاعدة البيانات في النسخة تالفة')
-      const v = check.prepare("SELECT value FROM meta WHERE key='schema_version'").get() as { value: string } | undefined
-      if (!v || Number(v.value) > schemaVersion()) throw new Error('النسخة من إصدار أحدث من التطبيق الحالي')
-      if (!check.prepare("SELECT 1 FROM sqlite_master WHERE name='orders'").get()) throw new Error('النسخة لا تحتوي جداول المتجر')
-    } finally {
-      check.close()
-    }
-    const safety = await createBackup('before-restore')
-    closeDb()
-    for (const f of ['store.db', 'store.db-wal', 'store.db-shm']) fs.rmSync(dataPath(f), { force: true })
-    fs.copyFileSync(dbFile, dataPath('store.db'))
-    const newUploads = path.join(work, 'uploads')
-    if (fs.existsSync(newUploads)) {
-      const old = dataPath(`uploads-old-${Date.now()}`)
-      if (fs.existsSync(dataPath('uploads'))) fs.renameSync(dataPath('uploads'), old)
-      fs.cpSync(newUploads, dataPath('uploads'), { recursive: true })
-      fs.rmSync(old, { recursive: true, force: true })
-    }
-    clearSettingsCache()
-    clearAppearanceCache()
-    invalidateCatalog()
-    db() // يعيد الفتح ويطبق أي ترحيلات ناقصة
-    return { safety }
-  } finally {
-    fs.rmSync(work, { recursive: true, force: true })
+    json = JSON.parse((await gunzip(buf)).toString('utf8'))
+  } catch {
+    throw new Error('الملف ليس نسخة احتياطية صالحة')
   }
+  if (json?.app !== 'baby-store' || json.format !== 2 || !json.tables) throw new Error('الملف ليس نسخة احتياطية من هذا المتجر')
+  if (json.schema > schemaVersion()) throw new Error('النسخة من إصدار أحدث من التطبيق الحالي')
+  return json
 }
 
-/** نسخة تلقائية يومية إن كانت مفعلة */
+/**
+ * يستبدل بيانات المتجر بمحتوى النسخة (بعد أخذ نسخة أمان من البيانات الحالية).
+ * سجلات الصور تُدمج ولا تُحذف حتى لا تضيع الصور المرفوعة بعد تاريخ النسخة.
+ */
+export async function restoreBackup(buf: Buffer): Promise<{ safety: string }> {
+  const file = await parseBackup(buf)
+  const safety = await createBackup('before-restore')
+  await tx(async () => {
+    const d = db()
+    const toClear = BACKUP_TABLES.filter((t) => t !== 'media')
+    await d.exec(`TRUNCATE ${toClear.join(', ')} RESTART IDENTITY CASCADE`)
+    for (const t of BACKUP_TABLES) {
+      const rows = file.tables[t] || []
+      if (!rows.length) continue
+      const cols = (await d.prepare('SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name=?').all<{ column_name: string }>(t)).map((c) => c.column_name)
+      // إدخال على دفعات (عدة صفوف في كل استعلام) لتسريع الاستعادة
+      const keys = Object.keys(rows[0]).filter((k) => cols.includes(k))
+      const conflict = t === 'media' ? ` ON CONFLICT (id) DO UPDATE SET ${keys.filter((k) => k !== 'id').map((k) => `${k}=excluded.${k}`).join(', ')}` : ''
+      const per = Math.max(1, Math.min(500, Math.floor(30000 / keys.length)))
+      for (let i = 0; i < rows.length; i += per) {
+        const chunk = rows.slice(i, i + per)
+        const values = chunk.map(() => `(${keys.map(() => '?').join(',')})`).join(',')
+        await d.prepare(`INSERT INTO ${t}(${keys.join(',')}) VALUES ${values}${conflict} RETURNING 1`).run(...chunk.flatMap((r) => keys.map((k) => r[k] ?? null)))
+      }
+      if (cols.includes('id')) {
+        await d.prepare(`SELECT setval(pg_get_serial_sequence(?, 'id'), COALESCE((SELECT MAX(id) FROM ${t}), 0) + 1, false)`).get(`${t}`)
+      }
+    }
+  })
+  await bumpCacheVersion()
+  return { safety }
+}
+
+/** نسخة تلقائية يومية إن كانت مفعلة (تُستدعى من المهمة الدورية) */
 export async function autoBackupIfDue() {
-  const s = getSetting('backup')
+  const s = await getSetting('backup')
   if (!s.autoEnabled) return
   const last = s.lastAutoAt ? new Date(s.lastAutoAt).getTime() : 0
   if (Date.now() - last < 24 * 3600e3) return
-  setSetting('backup', { ...s, lastAutoAt: new Date().toISOString() })
+  await setSetting('backup', { ...s, lastAutoAt: new Date().toISOString() })
   try {
     await createBackup('auto')
-    pruneBackups(s.keep)
+    await pruneBackups(s.keep)
   } catch (e) {
     console.error('[auto-backup]', e)
   }
+}
+
+/** حجم قاعدة البيانات (الخطة المجانية في Supabase حدها 500 ميجابايت) */
+export async function databaseSize(): Promise<{ total: number; images: number; backups: number }> {
+  const total = (await db().prepare('SELECT pg_database_size(current_database()) n').get<{ n: number }>())!.n
+  const images = (await db().prepare('SELECT COALESCE(SUM(bytes),0) n FROM media_blobs').get<{ n: number }>())!.n
+  const backups = (await db().prepare('SELECT COALESCE(SUM(bytes),0) n FROM backups').get<{ n: number }>())!.n
+  return { total, images, backups }
 }

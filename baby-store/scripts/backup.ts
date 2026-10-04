@@ -1,15 +1,21 @@
-// نسخة احتياطية من سطر الأوامر (مناسبة للجدولة عبر cron)
-// npm run backup            → ينشئ نسخة في data/backups
-// npm run backup -- --keep 14 → يحذف النسخ التلقائية الأقدم ويبقي آخر 14
-import { createBackup, pruneBackups, backupDir } from '../lib/server/backup'
+// نسخة احتياطية من سطر الأوامر: تُحفظ في قاعدة البيانات وتُكتب نسخة منها في ملف محلي
+// npm run backup                  → ./backups/backup-....json.gz
+// npm run backup -- --out ملف.gz  → مسار مخصص
+import fs from 'node:fs'
+import path from 'node:path'
+import { createBackup, getBackup } from '../lib/server/backup'
+import { closeDb } from '../lib/server/db'
 
 async function main() {
-  const name = await createBackup(process.argv.includes('--keep') ? 'auto' : 'cli')
-  const i = process.argv.indexOf('--keep')
-  if (i > 0) pruneBackups(Number(process.argv[i + 1]) || 7)
-  console.log(`✓ ${backupDir()}/${name}`)
+  const name = await createBackup('cli')
+  const i = process.argv.indexOf('--out')
+  const out = i > 0 ? process.argv[i + 1] : path.join('backups', name)
+  fs.mkdirSync(path.dirname(out), { recursive: true })
+  fs.writeFileSync(out, (await getBackup(name))!)
+  console.log(`✓ ${out}`)
+  await closeDb()
 }
-main().then(() => process.exit(0), (e) => {
+main().catch((e) => {
   console.error('✗', e.message)
   process.exit(1)
 })

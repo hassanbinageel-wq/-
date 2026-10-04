@@ -1,4 +1,4 @@
-import { db, parseJson } from './db'
+import { db, parseJson, tx } from './db'
 import { productToInput, saveProduct, type ProductInput } from './products'
 import { getVariants, type VariantRow } from './catalog'
 import { toCsv } from './admin/queries'
@@ -56,11 +56,11 @@ export const COLUMN_HELP: Record<string, string> = {
   tags: 'أسماء التصنيفات مفصولة بالرمز |',
 }
 
-export function productsCsv(): string {
+export async function productsCsv(): Promise<string> {
   const d = db()
-  const products = d.prepare("SELECT * FROM products WHERE type<>'bundle' ORDER BY id").all() as Record<string, unknown>[]
-  const cats = new Map((d.prepare('SELECT id, name FROM categories').all() as { id: number; name: string }[]).map((c) => [c.id, c.name]))
-  const tagRows = d.prepare('SELECT pt.product_id, t.name FROM product_tags pt JOIN tags t ON t.id=pt.tag_id').all() as { product_id: number; name: string }[]
+  const products = await d.prepare("SELECT * FROM products WHERE type<>'bundle' ORDER BY id").all() as Record<string, unknown>[]
+  const cats = new Map((await d.prepare('SELECT id, name FROM categories').all() as { id: number; name: string }[]).map((c) => [c.id, c.name]))
+  const tagRows = await d.prepare('SELECT pt.product_id, t.name FROM product_tags pt JOIN tags t ON t.id=pt.tag_id').all() as { product_id: number; name: string }[]
   const tagMap = new Map<number, string[]>()
   for (const t of tagRows) {
     if (!tagMap.has(t.product_id)) tagMap.set(t.product_id, [])
@@ -78,7 +78,7 @@ export function productsCsv(): string {
       (tagMap.get(p.id as number) || []).join('|'), p.pieces_count ?? '', p.prep_days_min ?? '', p.prep_days_max ?? '',
     ])
     if (p.type === 'variable') {
-      for (const v of getVariants(p.id as number)) {
+      for (const v of await getVariants(p.id as number)) {
         out.push([
           'variant', v.sku, p.sku, '', '', v.active ? 'published' : 'draft', money(v.price), money(v.sale_price), v.stock, '',
           opts[0]?.name || '', v.option1 || '', opts[1]?.name || '', v.option2 || '', opts[2]?.name || '', v.option3 || '',
@@ -109,7 +109,7 @@ type Plan = {
   groups: { sku: string; existingId: number | null; head: Row | null; variants: Row[] }[]
 }
 
-function plan(text: string): Plan {
+async function plan(text: string): Promise<Plan> {
   const d = db()
   const table = parseCsv(text)
   if (!table.length) return { rows: [{ line: 1, type: '', sku: '', name: '', action: 'error', errors: ['الملف فارغ'], warnings: [] }], groups: [] }
@@ -127,8 +127,8 @@ function plan(text: string): Plan {
     r.parent_sku = r.parent_sku.toUpperCase()
     return r
   })
-  const cats = d.prepare('SELECT id, name, slug FROM categories').all() as { id: number; name: string; slug: string }[]
-  const tags = d.prepare('SELECT id, name, slug FROM tags').all() as { id: number; name: string; slug: string }[]
+  const cats = await d.prepare('SELECT id, name, slug FROM categories').all() as { id: number; name: string; slug: string }[]
+  const tags = await d.prepare('SELECT id, name, slug FROM tags').all() as { id: number; name: string; slug: string }[]
   const out: PreviewRow[] = []
   const groups = new Map<string, Plan['groups'][number]>()
   const seen = new Set<string>()
@@ -150,10 +150,10 @@ function plan(text: string): Plan {
     if (r.type === 'variant') {
       if (!r.parent_sku) errors.push('حدد parent_sku للخيار')
       if (!r.option1_value) errors.push('حدد قيمة الخيار الأول')
-      const v = r.sku ? (d.prepare('SELECT id, product_id FROM variants WHERE sku=? COLLATE NOCASE').get(r.sku) as { id: number; product_id: number } | undefined) : undefined
+      const v = r.sku ? (await d.prepare('SELECT id, product_id FROM variants WHERE upper(sku)=upper(?)').get(r.sku) as { id: number; product_id: number } | undefined) : undefined
       if (v) action = 'update'
       const parentInFile = rows.some((x) => x.type === 'variable' && x.sku === r.parent_sku)
-      const parentDb = d.prepare("SELECT id, type FROM products WHERE sku=? COLLATE NOCASE").get(r.parent_sku) as { id: number; type: string } | undefined
+      const parentDb = await d.prepare("SELECT id, type FROM products WHERE upper(sku)=upper(?)").get(r.parent_sku) as { id: number; type: string } | undefined
       if (!parentInFile && !parentDb) errors.push('المنتج الأصلي غير موجود في الملف أو المتجر')
       if (parentDb && parentDb.type !== 'variable') errors.push('المنتج الأصلي ليس منتجاً بخيارات')
       if (!errors.length) {
@@ -162,7 +162,7 @@ function plan(text: string): Plan {
         groups.set(r.parent_sku, g)
       }
     } else if (r.type === 'simple' || r.type === 'variable') {
-      const existing = r.sku ? (d.prepare('SELECT id, type FROM products WHERE sku=? COLLATE NOCASE').get(r.sku) as { id: number; type: string } | undefined) : undefined
+      const existing = r.sku ? (await d.prepare('SELECT id, type FROM products WHERE upper(sku)=upper(?)').get(r.sku) as { id: number; type: string } | undefined) : undefined
       if (existing) {
         action = 'update'
         if (existing.type !== r.type) errors.push(`نوع المنتج في المتجر ${existing.type} ولا يمكن تغييره من الملف`)
@@ -201,8 +201,8 @@ function plan(text: string): Plan {
   return { rows: out, groups: Array.from(groups.values()) }
 }
 
-export function previewImport(text: string) {
-  const p = plan(text)
+export async function previewImport(text: string) {
+  const p = await plan(text)
   return {
     rows: p.rows,
     summary: {
@@ -215,20 +215,20 @@ export function previewImport(text: string) {
 }
 
 /** تنفيذ الاستيراد (يتطلب عدم وجود أخطاء) */
-export function commitImport(text: string, actor: Actor): { created: number; updated: number } {
-  const p = plan(text)
+export async function commitImport(text: string, actor: Actor): Promise<{ created: number; updated: number }> {
+  const p = await plan(text)
   if (p.rows.some((r) => r.action === 'error')) throw new Error('يوجد أخطاء في الملف. صححها ثم أعد المعاينة')
   const d = db()
-  const cats = d.prepare('SELECT id, name, slug FROM categories').all() as { id: number; name: string; slug: string }[]
-  const tags = d.prepare('SELECT id, name, slug FROM tags').all() as { id: number; name: string; slug: string }[]
+  const cats = await d.prepare('SELECT id, name, slug FROM categories').all() as { id: number; name: string; slug: string }[]
+  const tags = await d.prepare('SELECT id, name, slug FROM tags').all() as { id: number; name: string; slug: string }[]
   let created = 0
   let updated = 0
-  d.transaction(() => {
+  await tx(async () => {
     for (const g of p.groups) {
       const h = g.head
       let input: ProductInput
       if (g.existingId) {
-        input = productToInput(g.existingId)!
+        input = (await productToInput(g.existingId))!
         updated++
       } else {
         input = { type: (h!.type as 'simple' | 'variable') || 'simple', name: '', status: 'draft', price: 0, trackStock: true, variants: [], options: [] }
@@ -283,9 +283,9 @@ export function commitImport(text: string, actor: Actor): { created: number; upd
         input.options = options.filter(Boolean)
         input.variants = variants
       }
-      saveProduct({ ...input, stockNote: 'استيراد CSV', stockReason: 'import' }, actor)
+      await saveProduct({ ...input, stockNote: 'استيراد CSV', stockReason: 'import' }, actor)
     }
-  })()
+  })
   return { created, updated }
 }
 

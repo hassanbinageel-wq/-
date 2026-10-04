@@ -7,9 +7,9 @@ export const metadata = { title: 'المستخدمون والصلاحيات' }
 
 export default async function UsersPage() {
   const me = await requirePage('owner')
-  const rows = db()
-    .prepare("SELECT u.*, (SELECT COUNT(*) FROM sessions s WHERE s.user_id=u.id AND s.expires_at > datetime('now')) AS sessions FROM admin_users u ORDER BY u.id")
-    .all() as { id: number; username: string; name: string; permissions: string; active: number; last_login_at: string | null; locked_until: string | null; sessions: number }[]
+  const rows = await db()
+      .prepare("SELECT u.*, (SELECT COUNT(*) FROM sessions s WHERE s.user_id=u.id AND s.expires_at > datetime('now')) AS sessions FROM admin_users u ORDER BY u.id")
+      .all() as { id: number; username: string; name: string; permissions: string; active: number; last_login_at: string | null; locked_until: string | null; sessions: number }[]
   return (
     <UsersManager
       meId={me.id}

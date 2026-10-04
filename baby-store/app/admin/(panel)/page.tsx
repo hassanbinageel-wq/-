@@ -13,17 +13,17 @@ import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/ui'
 export default async function Dashboard({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePage()
   const sp = await searchParams
-  const store = getSetting('store')
+  const store = await getSetting('store')
   const m = (c: number) => formatMoney(c, store.currency)
-  const live = liveCounts()
-  const range = resolveRange(sp)
+  const live = await liveCounts()
+  const range = await resolveRange(sp)
   const showMoney = can(user, ['owner', 'payments'])
   const showOrders = can(user, ['orders', 'payments'])
-  const money = showMoney ? moneyStats(range) : null
-  const top = showOrders || can(user, 'products') ? topProducts(range, 6) : []
-  const low = can(user, 'products') ? lowStockItems(10) : []
-  const recent = showOrders ? listOrders({ perPage: 8 }).rows : []
-  const checklist = can(user, 'owner') ? setupChecklist() : []
+  const money = showMoney ? await moneyStats(range) : null
+  const top = showOrders || can(user, 'products') ? await topProducts(range, 6) : []
+  const low = can(user, 'products') ? await lowStockItems(10) : []
+  const recent = showOrders ? (await listOrders({ perPage: 8 })).rows : []
+  const checklist = can(user, 'owner') ? await setupChecklist() : []
   const todo = checklist.filter((c) => !c.done)
 
   return (

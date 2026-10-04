@@ -14,8 +14,8 @@ export const metadata = { title: 'العملاء' }
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   await requirePage('orders')
   const sp = await searchParams
-  const r = listCustomers(sp.q || '', Number(sp.page) || 1)
-  const store = getSetting('store')
+  const r = await listCustomers(sp.q || '', Number(sp.page) || 1)
+  const store = await getSetting('store')
   return (
     <>
       <PageHead title="العملاء" subtitle={<span className="num">{r.total} عميل — يُنشأ العميل تلقائياً عند أول طلب برقم واتساب</span>} />

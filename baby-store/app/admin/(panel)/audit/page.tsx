@@ -22,13 +22,13 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams
   const page = Number(sp.page) || 1
   const q = sp.q ? `%${sp.q}%` : null
-  const where = q ? 'WHERE user_name LIKE ? OR action LIKE ? OR entity_id LIKE ? OR details LIKE ?' : ''
+  const where = q ? 'WHERE user_name ILIKE ? OR action ILIKE ? OR entity_id ILIKE ? OR details ILIKE ?' : ''
   const args = q ? [q, q, q, q] : []
-  const total = (db().prepare(`SELECT COUNT(*) n FROM audit_log ${where}`).get(...args) as { n: number }).n
-  const rows = db().prepare(`SELECT * FROM audit_log ${where} ORDER BY id DESC LIMIT 50 OFFSET ?`).all(...args, (page - 1) * 50) as {
+  const total = (await db().prepare(`SELECT COUNT(*) n FROM audit_log ${where}`).get(...args) as { n: number }).n
+  const rows = await db().prepare(`SELECT * FROM audit_log ${where} ORDER BY id DESC LIMIT 50 OFFSET ?`).all(...args, (page - 1) * 50) as {
     id: number; user_name: string | null; action: string; entity: string | null; entity_id: string | null; details: string | null; ip: string | null; created_at: string
   }[]
-  const tz = getSetting('store').timezone
+  const tz = (await getSetting('store')).timezone
   return (
     <>
       <PageHead title="سجل الإجراءات المهمة" subtitle="من فعل ماذا ومتى (للمالك فقط)" />

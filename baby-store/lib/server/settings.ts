@@ -1,4 +1,5 @@
 import { db, parseJson } from './db'
+import { bumpCacheVersion, ensureFresh, onInvalidate } from './cache'
 import type { AllSettings, MessageTemplate } from '../shared/types'
 import { DEFAULT_CURRENCY } from '../shared/money'
 
@@ -110,46 +111,48 @@ function mergeDefaults<K extends Key>(key: K, value: unknown): AllSettings[K] {
   return merged as AllSettings[K]
 }
 
-export function getSetting<K extends Key>(key: K): AllSettings[K] {
+export async function getSetting<K extends Key>(key: K): Promise<AllSettings[K]> {
+  await ensureFresh()
   if (!g.__settingsCache) g.__settingsCache = {}
   const cached = g.__settingsCache[key]
   if (cached) return cached as AllSettings[K]
-  const row = db().prepare('SELECT value FROM settings WHERE key=?').get(key) as { value: string } | undefined
+  const row = await db().prepare('SELECT value FROM settings WHERE key=?').get<{ value: string }>(key)
   const value = mergeDefaults(key, row ? parseJson(row.value, null) : null)
   g.__settingsCache[key] = value
   return value
 }
 
-export function setSetting<K extends Key>(key: K, value: AllSettings[K]) {
-  db()
+export async function setSetting<K extends Key>(key: K, value: AllSettings[K]) {
+  await db()
     .prepare(
       "INSERT INTO settings(key,value,updated_at) VALUES(?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
     )
     .run(key, JSON.stringify(value))
-  if (g.__settingsCache) delete g.__settingsCache[key]
+  await bumpCacheVersion()
 }
 
 export function clearSettingsCache() {
   g.__settingsCache = {}
 }
+onInvalidate(clearSettingsCache)
 
-export function getAllSettings(): AllSettings {
+export async function getAllSettings(): Promise<AllSettings> {
   return {
-    store: getSetting('store'),
-    checkout: getSetting('checkout'),
-    shipping: getSetting('shipping'),
-    gifts: getSetting('gifts'),
-    personalization: getSetting('personalization'),
-    inventory: getSetting('inventory'),
-    maintenance: getSetting('maintenance'),
-    messages: getSetting('messages'),
-    backup: getSetting('backup'),
+    store: await getSetting('store'),
+    checkout: await getSetting('checkout'),
+    shipping: await getSetting('shipping'),
+    gifts: await getSetting('gifts'),
+    personalization: await getSetting('personalization'),
+    inventory: await getSetting('inventory'),
+    maintenance: await getSetting('maintenance'),
+    messages: await getSetting('messages'),
+    backup: await getSetting('backup'),
   }
 }
 
 /** رقم واتساب المتجر بالصيغة الدولية (أرقام فقط) مثل 967775038900 */
-export function storeWhatsapp(): string {
-  const s = getSetting('store')
+export async function storeWhatsapp(): Promise<string> {
+  const s = await getSetting('store')
   const cc = s.whatsappCountryCode.replace(/\D/g, '')
   const n = s.whatsappNumber.replace(/\D/g, '').replace(/^0+/, '')
   if (n.startsWith(cc) && n.length > cc.length + 6) return n
@@ -157,7 +160,8 @@ export function storeWhatsapp(): string {
 }
 
 export function siteUrl(fallbackOrigin?: string): string {
-  const env = process.env.SITE_URL
+  // SITE_URL يدوياً، أو URL الذي توفره Netlify تلقائياً
+  const env = process.env.SITE_URL || process.env.URL
   if (env) return env.replace(/\/+$/, '')
   return (fallbackOrigin || 'http://localhost:3000').replace(/\/+$/, '')
 }

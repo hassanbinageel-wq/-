@@ -12,7 +12,7 @@ const many = (v: string | string[] | undefined) =>
     .slice(0, 20)
 
 /** تحويل معاملات الرابط إلى فلاتر قائمة المنتجات */
-export function parseListParams(sp: SP): ListFilters {
+export async function parseListParams(sp: SP): Promise<ListFilters> {
   const num = (k: string) => {
     const n = Number(one(sp[k]))
     return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null
@@ -22,13 +22,13 @@ export function parseListParams(sp: SP): ListFilters {
   let categoryId: number | null = null
   const catSlug = one(sp.category)
   if (catSlug) {
-    const c = db().prepare('SELECT id FROM categories WHERE slug=?').get(catSlug) as { id: number } | undefined
+    const c = await db().prepare('SELECT id FROM categories WHERE slug=?').get(catSlug) as { id: number } | undefined
     categoryId = c?.id ?? null
   }
   let tagIds: number[] | undefined
   const scopeTag = one(sp.scope_tag)
   if (scopeTag) {
-    const t = db().prepare('SELECT id FROM tags WHERE slug=?').get(scopeTag) as { id: number } | undefined
+    const t = await db().prepare('SELECT id FROM tags WHERE slug=?').get(scopeTag) as { id: number } | undefined
     tagIds = t ? [t.id] : [-1]
   }
   return {

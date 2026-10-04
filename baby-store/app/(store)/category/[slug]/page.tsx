@@ -8,14 +8,14 @@ import { imageRefById } from '@/lib/server/media'
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }
 type Cat = { id: number; name: string; slug: string; description: string | null; image_id: number | null; seo_title: string | null; seo_description: string | null }
 
-function getCat(slug: string) {
-  return db().prepare('SELECT * FROM categories WHERE slug=?').get(decodeURIComponent(slug)) as Cat | undefined
+async function getCat(slug: string) {
+  return await db().prepare('SELECT * FROM categories WHERE slug=?').get(decodeURIComponent(slug)) as Cat | undefined
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const c = getCat((await params).slug)
+  const c = await getCat((await params).slug)
   if (!c) return { title: 'القسم غير موجود' }
-  const img = imageRefById(c.image_id, c.name, 1080)
+  const img = await imageRefById(c.image_id, c.name, 1080)
   return {
     title: c.seo_title || c.name,
     description: c.seo_description || c.description || undefined,
@@ -25,10 +25,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CategoryPage({ params, searchParams }: Props) {
-  const c = getCat((await params).slug)
+  const c = await getCat((await params).slug)
   if (!c) notFound()
   const sp = await searchParams
-  const f = { ...parseListParams(sp), categoryId: c.id }
+  const f = { ...await parseListParams(sp), categoryId: c.id }
   return (
     <Listing
       title={c.name}

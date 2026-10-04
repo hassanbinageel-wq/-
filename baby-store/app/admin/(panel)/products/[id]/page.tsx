@@ -8,7 +8,7 @@ export const metadata = { title: 'تعديل المنتج' }
 
 export default async function EditProduct({ params }: { params: Promise<{ id: string }> }) {
   await requirePage('products')
-  const p = productToInput(Number((await params).id))
+  const p = await productToInput(Number((await params).id))
   if (!p) notFound()
-  return <ProductEditor key={p.id ?? 0} initial={p} refs={editorRefs(p)} isNew={false} />
+  return <ProductEditor key={p.id ?? 0} initial={p} refs={await editorRefs(p)} isNew={false} />
 }

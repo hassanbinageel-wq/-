@@ -38,7 +38,7 @@ export function adminRoute<P = Record<string, string>>(perm: Permission | Permis
   return async (req: NextRequest, ctx: Ctx<P>) => {
     try {
       if (req.method !== 'GET' && req.method !== 'HEAD' && !sameOrigin(req)) throw new ApiError(403, 'طلب مرفوض (مصدر غير موثوق)')
-      const user = userFromToken(req.cookies.get(SESSION_COOKIE)?.value)
+      const user = await userFromToken(req.cookies.get(SESSION_COOKIE)?.value)
       if (!user) throw new ApiError(401, 'انتهت الجلسة، يرجى تسجيل الدخول')
       if (perm && !can(user, perm)) throw new ApiError(403, 'ليست لديك صلاحية لهذا الإجراء')
       const params = (ctx?.params ? await ctx.params : {}) as P

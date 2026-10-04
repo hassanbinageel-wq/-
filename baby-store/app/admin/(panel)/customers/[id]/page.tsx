@@ -13,12 +13,12 @@ import type { OrderRow } from '@/lib/server/orders'
 export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
   await requirePage('orders')
   const id = Number((await params).id)
-  const c = db().prepare('SELECT * FROM customers WHERE id=?').get(id) as
+  const c = await db().prepare('SELECT * FROM customers WHERE id=?').get(id) as
     | { id: number; name: string; phone: string; country: string | null; city: string | null; area: string | null; address: string | null; notes: string | null; created_at: string }
     | undefined
   if (!c) notFound()
-  const orders = db().prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC').all(id) as OrderRow[]
-  const store = getSetting('store')
+  const orders = await db().prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC').all(id) as OrderRow[]
+  const store = await getSetting('store')
   const m = (v: number) => formatMoney(v, store.currency)
   const totalValue = orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0)
   return (

@@ -7,8 +7,8 @@ import { Markdown } from '@/lib/shared/markdown'
 
 export const metadata: Metadata = { title: 'الأسئلة الشائعة' }
 
-export default function FaqPage() {
-  const faqs = publishedFaqs()
+export default async function FaqPage() {
+  const faqs = await publishedFaqs()
   const groups = new Map<string, typeof faqs>()
   for (const f of faqs) {
     const k = f.category || 'عام'

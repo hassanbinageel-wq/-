@@ -181,3 +181,8 @@ a.a-stat:hover { border-color: var(--a-primary); }
 }
 .a-grid > * { min-width: 0; }
 @media (max-width: 899px) { .a-side-first { order: -1; } }
+
+/* شريط استخدام المساحة */
+.usage-bar { height: 8px; border-radius: 99px; background: var(--a-border); overflow: hidden; margin: 8px 0; }
+.usage-bar > span { display: block; height: 100%; border-radius: 99px; background: var(--a-primary); }
+.usage-bar > span[data-warn] { background: var(--a-warn); }

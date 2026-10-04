@@ -1,4 +1,4 @@
-import { db, nowSql, nextCounter, parseJson } from './db'
+import { db, nowSql, nextCounter, parseJson, tx } from './db'
 import { computeQuote, publicQuote, type QuoteResult } from './pricing'
 import { deductLines, releaseLines, restockItem, releaseExpiredReservations, StockError, type Actor } from './inventory'
 import { getSetting, storeWhatsapp, siteUrl } from './settings'
@@ -137,11 +137,11 @@ const clean = (s: string | null | undefined, max = 300) =>
 
 export type FieldErrors = Record<string, string>
 
-function validateCustomer(input: CreateOrderInput): { errors: FieldErrors; phone: string; recipientPhone: string | null } {
+async function validateCustomer(input: CreateOrderInput): Promise<{ errors: FieldErrors; phone: string; recipientPhone: string | null }> {
   const errors: FieldErrors = {}
   const c = input.customer
-  const checkout = getSetting('checkout')
-  const gifts = getSetting('gifts')
+  const checkout = await getSetting('checkout')
+  const gifts = await getSetting('gifts')
   const name = clean(c.name, 80)
   if (name.length < 3) errors['customer.name'] = 'يرجى كتابة الاسم الكامل'
   const ph = validatePhone(c.phoneCode, c.phone)
@@ -189,8 +189,8 @@ function validateCustomer(input: CreateOrderInput): { errors: FieldErrors; phone
   return { errors, phone: ph.ok ? ph.intl : '', recipientPhone }
 }
 
-export function quoteForOrder(input: CreateOrderInput, phone?: string | null): QuoteResult {
-  const gifts = getSetting('gifts')
+export async function quoteForOrder(input: CreateOrderInput, phone?: string | null): Promise<QuoteResult> {
+  const gifts = await getSetting('gifts')
   const toRecipient = !!(input.gift?.isGift && gifts.giftOrderEnabled && gifts.recipientEnabled && input.gift.toRecipient)
   const loc = toRecipient ? input.gift?.recipient : input.customer
   return computeQuote({
@@ -205,165 +205,164 @@ export function quoteForOrder(input: CreateOrderInput, phone?: string | null): Q
   })
 }
 
-export function createOrder(input: CreateOrderInput, ctx: { ipHash: string }): { id: number; number: string; token: string; existing: boolean } {
+export async function createOrder(input: CreateOrderInput, ctx: { ipHash: string }): Promise<{ id: number; number: string; token: string; existing: boolean }> {
   const d = db()
   if (!input.idempotencyKey || input.idempotencyKey.length < 16 || input.idempotencyKey.length > 100) {
     throw new ApiError(400, 'طلب غير صالح، أعد تحميل الصفحة')
   }
-  const prior = d.prepare('SELECT id, number, token FROM orders WHERE idempotency_key=?').get(input.idempotencyKey) as
+  const prior = await d.prepare('SELECT id, number, token FROM orders WHERE idempotency_key=?').get(input.idempotencyKey) as
     | { id: number; number: string; token: string }
     | undefined
   if (prior) return { ...prior, existing: true }
 
-  releaseExpiredReservations()
-  const v = validateCustomer(input)
+  await releaseExpiredReservations()
+  const v = await validateCustomer(input)
   if (Object.keys(v.errors).length) throw new ApiError(422, 'يرجى مراجعة البيانات المطلوبة', 'FIELDS', { fieldErrors: v.errors })
 
-  const checkout = getSetting('checkout')
-  const gifts = getSetting('gifts')
-  const store = getSetting('store')
+  const checkout = await getSetting('checkout')
+  const gifts = await getSetting('gifts')
+  const store = await getSetting('store')
 
-  return d
-    .transaction(() => {
-      // فحص التكرار مرة أخرى داخل المعاملة
-      const again = d.prepare('SELECT id, number, token FROM orders WHERE idempotency_key=?').get(input.idempotencyKey) as
-        | { id: number; number: string; token: string }
+  return tx(async () => {
+    // فحص التكرار مرة أخرى داخل المعاملة
+    const again = await d.prepare('SELECT id, number, token FROM orders WHERE idempotency_key=?').get(input.idempotencyKey) as
+      | { id: number; number: string; token: string }
+      | undefined
+    if (again) return { ...again, existing: true }
+
+    const pending = (await d
+      .prepare("SELECT COUNT(*) AS n FROM orders WHERE customer_phone=? AND status='pending' AND payment_status='awaiting_transfer'")
+      .get(v.phone) as { n: number }).n
+    if (checkout.maxPendingPerPhone > 0 && pending >= checkout.maxPendingPerPhone) {
+      throw new ApiError(429, 'لديك طلبات سابقة بانتظار التحويل. أكمل تحويلها أو تواصل معنا عبر واتساب قبل إنشاء طلب جديد', 'PENDING_LIMIT')
+    }
+
+    const quote = await quoteForOrder(input, v.phone)
+    if (quote.coupon && !quote.coupon.valid) {
+      throw new ApiError(409, quote.coupon.message, 'COUPON_INVALID', { quote: publicQuote(quote) })
+    }
+    if (quote.hasBlockingErrors) {
+      throw new ApiError(409, quote.errors[0] || 'تغيرت بعض المنتجات في السلة. راجعها قبل المتابعة', 'CART_INVALID', { quote: publicQuote(quote) })
+    }
+    if (input.fulfillment === 'delivery' && !quote.shipping.zone) {
+      throw new ApiError(409, 'عذراً، التوصيل غير متاح لهذه المنطقة حالياً', 'ZONE', { quote: publicQuote(quote) })
+    }
+    if (Math.round(input.expectedTotal) !== quote.total) {
+      throw new ApiError(409, 'تغير إجمالي الطلب (سعر أو توفر أو رسوم). راجع الملخص المحدث ثم أكد الطلب', 'PRICE_CHANGED', {
+        quote: publicQuote(quote),
+      })
+    }
+
+    let methodName: string | null = null
+    let methodId: number | null = null
+    if (input.transferMethodId) {
+      const m = await d.prepare('SELECT id, name FROM transfer_methods WHERE id=? AND active=1').get(input.transferMethodId) as
+        | { id: number; name: string }
         | undefined
-      if (again) return { ...again, existing: true }
+      if (m) {
+        methodId = m.id
+        methodName = m.name
+      }
+    }
 
-      const pending = (d
-        .prepare("SELECT COUNT(*) AS n FROM orders WHERE customer_phone=? AND status='pending' AND payment_status='awaiting_transfer'")
-        .get(v.phone) as { n: number }).n
-      if (checkout.maxPendingPerPhone > 0 && pending >= checkout.maxPendingPerPhone) {
-        throw new ApiError(429, 'لديك طلبات سابقة بانتظار التحويل. أكمل تحويلها أو تواصل معنا عبر واتساب قبل إنشاء طلب جديد', 'PENDING_LIMIT')
-      }
+    const c = input.customer
+    const isGift = !!input.gift?.isGift && gifts.giftOrderEnabled
+    const toRecipient = isGift && gifts.recipientEnabled && !!input.gift?.toRecipient
+    const r = toRecipient ? input.gift?.recipient : null
+    const now = nowSql()
 
-      const quote = quoteForOrder(input, v.phone)
-      if (quote.coupon && !quote.coupon.valid) {
-        throw new ApiError(409, quote.coupon.message, 'COUPON_INVALID', { quote: publicQuote(quote) })
-      }
-      if (quote.hasBlockingErrors) {
-        throw new ApiError(409, quote.errors[0] || 'تغيرت بعض المنتجات في السلة. راجعها قبل المتابعة', 'CART_INVALID', { quote: publicQuote(quote) })
-      }
-      if (input.fulfillment === 'delivery' && !quote.shipping.zone) {
-        throw new ApiError(409, 'عذراً، التوصيل غير متاح لهذه المنطقة حالياً', 'ZONE', { quote: publicQuote(quote) })
-      }
-      if (Math.round(input.expectedTotal) !== quote.total) {
-        throw new ApiError(409, 'تغير إجمالي الطلب (سعر أو توفر أو رسوم). راجع الملخص المحدث ثم أكد الطلب', 'PRICE_CHANGED', {
-          quote: publicQuote(quote),
-        })
-      }
-
-      let methodName: string | null = null
-      let methodId: number | null = null
-      if (input.transferMethodId) {
-        const m = d.prepare('SELECT id, name FROM transfer_methods WHERE id=? AND active=1').get(input.transferMethodId) as
-          | { id: number; name: string }
-          | undefined
-        if (m) {
-          methodId = m.id
-          methodName = m.name
-        }
-      }
-
-      const c = input.customer
-      const isGift = !!input.gift?.isGift && gifts.giftOrderEnabled
-      const toRecipient = isGift && gifts.recipientEnabled && !!input.gift?.toRecipient
-      const r = toRecipient ? input.gift?.recipient : null
-      const now = nowSql()
-
-      // العميل (حسب رقم الهاتف)
-      const existingCustomer = d.prepare('SELECT id FROM customers WHERE phone=?').get(v.phone) as { id: number } | undefined
-      let customerId: number
-      if (existingCustomer) {
-        customerId = existingCustomer.id
-        d.prepare(
+    // العميل (حسب رقم الهاتف)
+    const existingCustomer = await d.prepare('SELECT id FROM customers WHERE phone=?').get(v.phone) as { id: number } | undefined
+    let customerId: number
+    if (existingCustomer) {
+      customerId = existingCustomer.id
+      await d.prepare(
           'UPDATE customers SET name=?, country=COALESCE(?,country), city=COALESCE(?,city), area=COALESCE(?,area), address=COALESCE(?,address), updated_at=?, last_order_at=? WHERE id=?',
-        ).run(clean(c.name, 80), clean(c.country) || null, clean(c.city) || null, clean(c.area) || null, clean(c.address, 500) || null, now, now, customerId)
-      } else {
-        customerId = Number(
-          d
-            .prepare('INSERT INTO customers(phone,name,country,city,area,address,last_order_at) VALUES(?,?,?,?,?,?,?)')
-            .run(v.phone, clean(c.name, 80), clean(c.country) || null, clean(c.city) || null, clean(c.area) || null, clean(c.address, 500) || null, now)
-            .lastInsertRowid,
+      ).run(clean(c.name, 80), clean(c.country) || null, clean(c.city) || null, clean(c.area) || null, clean(c.address, 500) || null, now, now, customerId)
+    } else {
+      customerId = Number(
+        (await d
+          .prepare('INSERT INTO customers(phone,name,country,city,area,address,last_order_at) VALUES(?,?,?,?,?,?,?)')
+          .run(v.phone, clean(c.name, 80), clean(c.country) || null, clean(c.city) || null, clean(c.area) || null, clean(c.address, 500) || null, now))
+          .lastInsertRowid,
+      )
+    }
+
+    const seq = await nextCounter('order', 1001)
+    const number = `${(store.orderPrefix || 'ORD').replace(/[^\w]/g, '')}-${seq}`
+    const token = randomToken(24)
+    const hasStock = quote.stockNeeds.length > 0
+    const expires = hasStock ? nowSql(new Date(Date.now() + checkout.reservationMinutes * 60000)) : null
+
+    const orderId = Number(
+      (await d
+        .prepare(
+          `INSERT INTO orders(number,token,idempotency_key,customer_id,customer_name,customer_phone,customer_country,customer_city,customer_area,
+          customer_address,customer_landmark,customer_map_url,notes,fulfillment,zone_id,zone_name,eta_text,is_gift,recipient_name,recipient_phone,
+          recipient_country,recipient_city,recipient_area,recipient_address,gift_message,hide_prices,gift_wrap_id,gift_wrap_name,subtotal,discount,
+          wrap_fee,personalization_fee,shipping_fee,total,currency,currency_symbol,coupon_id,coupon_code,transfer_method_id,transfer_method_name,
+          status,payment_status,stock_state,reservation_expires_at,prep_days_min,prep_days_max,ip_hash,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','awaiting_transfer',?,?,?,?,?,?,?)`,
         )
-      }
+        .run(
+          number,
+          token,
+          input.idempotencyKey,
+          customerId,
+          clean(c.name, 80),
+          v.phone,
+          clean(c.country) || null,
+          clean(c.city) || null,
+          clean(c.area) || null,
+          clean(c.address, 500) || null,
+          clean(c.landmark, 200) || null,
+          clean(c.mapUrl, 500) || null,
+          clean(c.notes, checkout.notesMax) || null,
+          input.fulfillment,
+          quote.shipping.zone?.id ?? null,
+          quote.shipping.zone?.name ?? null,
+          quote.shipping.zone?.eta ?? null,
+          isGift ? 1 : 0,
+          r ? clean(r.name, 80) : null,
+          r ? v.recipientPhone : null,
+          r ? clean(r.country) || null : null,
+          r ? clean(r.city) || null : null,
+          r ? clean(r.area) || null : null,
+          r ? clean(r.address, 500) || null : null,
+          isGift && gifts.giftMessageEnabled ? clean(input.gift?.message, gifts.giftMessageMax) || null : null,
+          isGift && gifts.hidePricesEnabled && input.gift?.hidePrices ? 1 : 0,
+          quote.wrap?.id ?? null,
+          quote.wrap?.name ?? null,
+          quote.subtotal,
+          quote.discount,
+          quote.wrapFee,
+          quote.personalizationTotal,
+          quote.shippingFee,
+          quote.total,
+          store.currency.code,
+          store.currency.symbol,
+          quote.couponId,
+          quote.couponId ? quote.coupon?.code ?? null : null,
+          methodId,
+          methodName,
+          hasStock ? 'reserved' : 'none',
+          expires,
+          quote.prepDaysMin,
+          quote.prepDaysMax,
+          ctx.ipHash,
+          now,
+          now,
+        )).lastInsertRowid,
+    )
 
-      const seq = nextCounter('order', 1001)
-      const number = `${(store.orderPrefix || 'ORD').replace(/[^\w]/g, '')}-${seq}`
-      const token = randomToken(24)
-      const hasStock = quote.stockNeeds.length > 0
-      const expires = hasStock ? nowSql(new Date(Date.now() + checkout.reservationMinutes * 60000)) : null
-
-      const orderId = Number(
-        d
-          .prepare(
-            `INSERT INTO orders(number,token,idempotency_key,customer_id,customer_name,customer_phone,customer_country,customer_city,customer_area,
-             customer_address,customer_landmark,customer_map_url,notes,fulfillment,zone_id,zone_name,eta_text,is_gift,recipient_name,recipient_phone,
-             recipient_country,recipient_city,recipient_area,recipient_address,gift_message,hide_prices,gift_wrap_id,gift_wrap_name,subtotal,discount,
-             wrap_fee,personalization_fee,shipping_fee,total,currency,currency_symbol,coupon_id,coupon_code,transfer_method_id,transfer_method_name,
-             status,payment_status,stock_state,reservation_expires_at,prep_days_min,prep_days_max,ip_hash,created_at,updated_at)
-             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending','awaiting_transfer',?,?,?,?,?,?,?)`,
-          )
-          .run(
-            number,
-            token,
-            input.idempotencyKey,
-            customerId,
-            clean(c.name, 80),
-            v.phone,
-            clean(c.country) || null,
-            clean(c.city) || null,
-            clean(c.area) || null,
-            clean(c.address, 500) || null,
-            clean(c.landmark, 200) || null,
-            clean(c.mapUrl, 500) || null,
-            clean(c.notes, checkout.notesMax) || null,
-            input.fulfillment,
-            quote.shipping.zone?.id ?? null,
-            quote.shipping.zone?.name ?? null,
-            quote.shipping.zone?.eta ?? null,
-            isGift ? 1 : 0,
-            r ? clean(r.name, 80) : null,
-            r ? v.recipientPhone : null,
-            r ? clean(r.country) || null : null,
-            r ? clean(r.city) || null : null,
-            r ? clean(r.area) || null : null,
-            r ? clean(r.address, 500) || null : null,
-            isGift && gifts.giftMessageEnabled ? clean(input.gift?.message, gifts.giftMessageMax) || null : null,
-            isGift && gifts.hidePricesEnabled && input.gift?.hidePrices ? 1 : 0,
-            quote.wrap?.id ?? null,
-            quote.wrap?.name ?? null,
-            quote.subtotal,
-            quote.discount,
-            quote.wrapFee,
-            quote.personalizationTotal,
-            quote.shippingFee,
-            quote.total,
-            store.currency.code,
-            store.currency.symbol,
-            quote.couponId,
-            quote.couponId ? quote.coupon?.code ?? null : null,
-            methodId,
-            methodName,
-            hasStock ? 'reserved' : 'none',
-            expires,
-            quote.prepDaysMin,
-            quote.prepDaysMax,
-            ctx.ipHash,
-            now,
-            now,
-          ).lastInsertRowid,
-      )
-
-      const insItem = d.prepare(
-        `INSERT INTO order_items(order_id,product_id,variant_id,product_type,name,sku,options,image,unit_price,compare_price,qty,line_total,
-         personalization_label,personalization_text,personalization_fee,components) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      )
-      const insLine = d.prepare('INSERT INTO order_stock_lines(order_id,order_item_id,product_id,variant_id,sku,name,qty,deducted) VALUES(?,?,?,?,?,?,?,0)')
-      for (const l of quote.lines.filter((x) => x.ok)) {
-        const itemId = Number(
-          insItem.run(
+    const insItem = d.prepare(
+      `INSERT INTO order_items(order_id,product_id,variant_id,product_type,name,sku,options,image,unit_price,compare_price,qty,line_total,
+       personalization_label,personalization_text,personalization_fee,components) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    )
+    const insLine = d.prepare('INSERT INTO order_stock_lines(order_id,order_item_id,product_id,variant_id,sku,name,qty,deducted) VALUES(?,?,?,?,?,?,?,0)')
+    for (const l of quote.lines.filter((x) => x.ok)) {
+      const itemId = Number(
+        (await insItem.run(
             orderId,
             l.productId,
             l.variantId,
@@ -380,61 +379,60 @@ export function createOrder(input: CreateOrderInput, ctx: { ipHash: string }): {
             l.personalization?.text ?? null,
             l.personalization?.feeUnit ?? 0,
             JSON.stringify(l.components),
-          ).lastInsertRowid,
-        )
-        for (const n of quote.stockNeeds.filter((s) => s.lineKey === l.key)) {
-          insLine.run(orderId, itemId, n.productId, n.variantId, n.sku, n.name, n.qty)
-        }
-      }
-
-      try {
-        if (hasStock) deductLines(orderId, 'order_reserve', null)
-      } catch (e) {
-        if (e instanceof StockError) {
-          throw new ApiError(409, 'نفدت كمية بعض المنتجات أثناء إنشاء الطلب. راجع السلة', 'OUT_OF_STOCK', {
-            quote: publicQuote(quoteForOrder(input, v.phone)),
-          })
-        }
-        throw e
-      }
-
-      d.prepare('INSERT INTO order_events(order_id,type,message,public) VALUES(?,?,?,1)').run(orderId, 'created', 'تم استلام الطلب وهو بانتظار التأكيد والتحويل')
-      d.prepare("INSERT INTO notifications(type,title,body,link,permission) VALUES('order','طلب جديد',?,?,'orders')").run(
-        `${number} — ${clean(c.name, 80)} — ${formatMoney(quote.total, store.currency)}`,
-        `/admin/orders/${orderId}`,
+          )).lastInsertRowid,
       )
-      return { id: orderId, number, token, existing: false }
-    })
-    .immediate()
+      for (const n of quote.stockNeeds.filter((s) => s.lineKey === l.key)) {
+        await insLine.run(orderId, itemId, n.productId, n.variantId, n.sku, n.name, n.qty)
+      }
+    }
+
+    try {
+      if (hasStock) await deductLines(orderId, 'order_reserve', null)
+    } catch (e) {
+      if (e instanceof StockError) {
+        throw new ApiError(409, 'نفدت كمية بعض المنتجات أثناء إنشاء الطلب. راجع السلة', 'OUT_OF_STOCK', {
+          quote: publicQuote(await quoteForOrder(input, v.phone)),
+        })
+      }
+      throw e
+    }
+
+    await d.prepare('INSERT INTO order_events(order_id,type,message,public) VALUES(?,?,?,1)').run(orderId, 'created', 'تم استلام الطلب وهو بانتظار التأكيد والتحويل')
+    await d.prepare("INSERT INTO notifications(type,title,body,link,permission) VALUES('order','طلب جديد',?,?,'orders')").run(
+      `${number} — ${clean(c.name, 80)} — ${formatMoney(quote.total, store.currency)}`,
+      `/admin/orders/${orderId}`,
+    )
+    return { id: orderId, number, token, existing: false }
+  })
 }
 
 // ===== القراءة =====
 
-export function getOrder(id: number): OrderRow | undefined {
-  return db().prepare('SELECT * FROM orders WHERE id=?').get(id) as OrderRow | undefined
+export async function getOrder(id: number): Promise<OrderRow | undefined> {
+  return await db().prepare('SELECT * FROM orders WHERE id=?').get(id) as OrderRow | undefined
 }
 
-export function getOrderByToken(token: string): OrderRow | undefined {
+export async function getOrderByToken(token: string): Promise<OrderRow | undefined> {
   if (!token || token.length < 20 || token.length > 64) return undefined
-  return db().prepare('SELECT * FROM orders WHERE token=?').get(token) as OrderRow | undefined
+  return await db().prepare('SELECT * FROM orders WHERE token=?').get(token) as OrderRow | undefined
 }
 
-export function getOrderItems(orderId: number): OrderItemRow[] {
-  return db().prepare('SELECT * FROM order_items WHERE order_id=? ORDER BY id').all(orderId) as OrderItemRow[]
+export async function getOrderItems(orderId: number): Promise<OrderItemRow[]> {
+  return await db().prepare('SELECT * FROM order_items WHERE order_id=? ORDER BY id').all(orderId) as OrderItemRow[]
 }
 
-export function paymentSummary(orderId: number, total: number) {
+export async function paymentSummary(orderId: number, total: number) {
   const d = db()
-  const received = (d.prepare('SELECT COALESCE(SUM(amount),0) AS s FROM payments WHERE order_id=?').get(orderId) as { s: number }).s
-  const refunded = (d.prepare('SELECT COALESCE(SUM(amount),0) AS s FROM refunds WHERE order_id=?').get(orderId) as { s: number }).s
+  const received = (await d.prepare('SELECT COALESCE(SUM(amount),0) AS s FROM payments WHERE order_id=?').get(orderId) as { s: number }).s
+  const refunded = (await d.prepare('SELECT COALESCE(SUM(amount),0) AS s FROM refunds WHERE order_id=?').get(orderId) as { s: number }).s
   return { received, refunded, net: received - refunded, balance: total - received }
 }
 
-export function addEvent(orderId: number, type: string, message: string, actor: Actor, isPublic = false, data?: unknown) {
-  db()
-    .prepare('INSERT INTO order_events(order_id,type,message,data,public,user_id,user_name) VALUES(?,?,?,?,?,?,?)')
-    .run(orderId, type, message, data ? JSON.stringify(data) : null, isPublic ? 1 : 0, actor?.id ?? null, actor?.name ?? null)
-  db().prepare('UPDATE orders SET updated_at=? WHERE id=?').run(nowSql(), orderId)
+export async function addEvent(orderId: number, type: string, message: string, actor: Actor, isPublic = false, data?: unknown) {
+  await db()
+        .prepare('INSERT INTO order_events(order_id,type,message,data,public,user_id,user_name) VALUES(?,?,?,?,?,?,?)')
+        .run(orderId, type, message, data ? JSON.stringify(data) : null, isPublic ? 1 : 0, actor?.id ?? null, actor?.name ?? null)
+  await db().prepare('UPDATE orders SET updated_at=? WHERE id=?').run(nowSql(), orderId)
 }
 
 // ===== إجراءات الموظفين =====
@@ -443,66 +441,66 @@ const ACTIVE_FLOW: OrderStatus[] = ['confirmed', 'preparing', 'shipped', 'comple
 
 export function updateOrderStatus(orderId: number, to: OrderStatus, actor: Actor, note?: string) {
   const d = db()
-  return d
-    .transaction(() => {
-      const o = getOrder(orderId)
-      if (!o) throw new ApiError(404, 'الطلب غير موجود')
-      if (o.status === to) return o
-      if (o.status === 'cancelled') throw new ApiError(400, 'لا يمكن تعديل حالة طلب ملغي')
-      if (to === 'cancelled') return cancelOrderTx(o, actor, note || '')
-      const now = nowSql()
-      if (ACTIVE_FLOW.includes(to)) {
-        if (o.stock_state === 'released') {
-          throw new ApiError(
-            409,
-            'انتهت مهلة حجز المخزون لهذا الطلب. استخدم «إعادة حجز المخزون» للتحقق من توفر المنتجات قبل تأكيد الطلب',
-            'STOCK_RELEASED',
-          )
-        }
-        if (o.stock_state === 'reserved') d.prepare("UPDATE orders SET stock_state='committed', reservation_expires_at=NULL WHERE id=?").run(o.id)
+  return tx(async () => {
+    const o = await getOrder(orderId)
+    if (!o) throw new ApiError(404, 'الطلب غير موجود')
+    if (o.status === to) return o
+    if (o.status === 'cancelled') throw new ApiError(400, 'لا يمكن تعديل حالة طلب ملغي')
+    if (to === 'cancelled') return cancelOrderTx(o, actor, note || '')
+    const now = nowSql()
+    if (ACTIVE_FLOW.includes(to)) {
+      if (o.stock_state === 'released') {
+        throw new ApiError(
+          409,
+          'انتهت مهلة حجز المخزون لهذا الطلب. استخدم «إعادة حجز المخزون» للتحقق من توفر المنتجات قبل تأكيد الطلب',
+          'STOCK_RELEASED',
+        )
       }
-      d.prepare(
-        `UPDATE orders SET status=?, updated_at=?, shipped_at=CASE WHEN ?='shipped' AND shipped_at IS NULL THEN ? ELSE shipped_at END,
-         completed_at=CASE WHEN ?='completed' THEN ? ELSE completed_at END WHERE id=?`,
-      ).run(to, now, to, now, to, now, o.id)
-      addEvent(o.id, 'status', `تم تحديث حالة الطلب إلى: ${ORDER_STATUS_LABELS[to]}`, actor, true, { from: o.status, to })
-      if (note) addEvent(o.id, 'note', note, actor, false)
-      return getOrder(o.id)!
-    })
-    .immediate()
+      if (o.stock_state === 'reserved') await d.prepare("UPDATE orders SET stock_state='committed', reservation_expires_at=NULL WHERE id=?").run(o.id)
+    }
+    await d.prepare(
+      `UPDATE orders SET status=?, updated_at=?, shipped_at=CASE WHEN ?='shipped' AND shipped_at IS NULL THEN ? ELSE shipped_at END,
+      completed_at=CASE WHEN ?='completed' THEN ? ELSE completed_at END WHERE id=?`,
+    ).run(to, now, to, now, to, now, o.id)
+    await addEvent(o.id, 'status', `تم تحديث حالة الطلب إلى: ${ORDER_STATUS_LABELS[to]}`, actor, true, { from: o.status, to })
+    if (note) await addEvent(o.id, 'note', note, actor, false)
+    return (await getOrder(o.id))!
+  })
 }
 
-function cancelOrderTx(o: OrderRow, actor: Actor, reason: string) {
+async function cancelOrderTx(o: OrderRow, actor: Actor, reason: string) {
   const d = db()
   if (o.status === 'completed') throw new ApiError(400, 'الطلب مكتمل. استخدم تسجيل المرتجعات بدلاً من الإلغاء')
-  const released = releaseLines(o.id, 'order_cancel', actor, reason || 'إلغاء الطلب')
+  const released = await releaseLines(o.id, 'order_cancel', actor, reason || 'إلغاء الطلب')
   const now = nowSql()
-  d.prepare(
+  await d.prepare(
     "UPDATE orders SET status='cancelled', stock_state=CASE WHEN stock_state='none' THEN 'none' ELSE 'released' END, reservation_expires_at=NULL, cancelled_at=?, cancel_reason=?, updated_at=? WHERE id=?",
   ).run(now, reason || null, now, o.id)
-  addEvent(o.id, 'status', `تم إلغاء الطلب${reason ? `: ${reason}` : ''}`, actor, true, { from: o.status, to: 'cancelled', restoredLines: released })
-  return getOrder(o.id)!
+  await addEvent(o.id, 'status', `تم إلغاء الطلب${reason ? `: ${reason}` : ''}`, actor, true, { from: o.status, to: 'cancelled', restoredLines: released })
+  return (await getOrder(o.id))!
 }
 
 export function cancelOrder(orderId: number, actor: Actor, reason: string) {
-  return db()
-    .transaction(() => {
-      const o = getOrder(orderId)
-      if (!o) throw new ApiError(404, 'الطلب غير موجود')
-      if (o.status === 'cancelled') return o
-      return cancelOrderTx(o, actor, reason)
-    })
-    .immediate()
+  return tx(async () => {
+    const o = await getOrder(orderId)
+    if (!o) throw new ApiError(404, 'الطلب غير موجود')
+    if (o.status === 'cancelled') return o
+    return cancelOrderTx(o, actor, reason)
+  })
 }
 
-export function updatePaymentStatus(orderId: number, to: PaymentStatus, actor: Actor, note?: string) {
+export async function updatePaymentStatus(orderId: number, to: PaymentStatus, actor: Actor, note?: string) {
+  return tx(() => updatePaymentStatusTx(orderId, to, actor, note))
+}
+
+async function updatePaymentStatusTx(orderId: number, to: PaymentStatus, actor: Actor, note?: string) {
   const d = db()
-  const o = getOrder(orderId)
+  const o = await getOrder(orderId)
   if (!o) throw new ApiError(404, 'الطلب غير موجود')
   if (o.payment_status === to) return o
   const now = nowSql()
   if (to === 'paid') {
-    d.prepare('UPDATE orders SET payment_status=?, payment_confirmed_by=?, payment_confirmed_by_name=?, payment_confirmed_at=?, updated_at=? WHERE id=?').run(
+    await d.prepare('UPDATE orders SET payment_status=?, payment_confirmed_by=?, payment_confirmed_by_name=?, payment_confirmed_at=?, updated_at=? WHERE id=?').run(
       to,
       actor?.id ?? null,
       actor?.name ?? null,
@@ -511,83 +509,83 @@ export function updatePaymentStatus(orderId: number, to: PaymentStatus, actor: A
       o.id,
     )
   } else {
-    d.prepare('UPDATE orders SET payment_status=?, updated_at=? WHERE id=?').run(to, now, o.id)
+    await d.prepare('UPDATE orders SET payment_status=?, updated_at=? WHERE id=?').run(to, now, o.id)
   }
-  addEvent(o.id, 'payment_status', `حالة الدفع: ${PAYMENT_STATUS_LABELS[to]}`, actor, true, { from: o.payment_status, to })
-  if (note) addEvent(o.id, 'note', note, actor, false)
-  return getOrder(o.id)!
+  await addEvent(o.id, 'payment_status', `حالة الدفع: ${PAYMENT_STATUS_LABELS[to]}`, actor, true, { from: o.payment_status, to })
+  if (note) await addEvent(o.id, 'note', note, actor, false)
+  return (await getOrder(o.id))!
 }
 
-export function extendReservation(orderId: number, hours: number, actor: Actor) {
-  const o = getOrder(orderId)
+export async function extendReservation(orderId: number, hours: number, actor: Actor) {
+  return tx(() => extendReservationTx(orderId, hours, actor))
+}
+
+async function extendReservationTx(orderId: number, hours: number, actor: Actor) {
+  const o = await getOrder(orderId)
   if (!o) throw new ApiError(404, 'الطلب غير موجود')
   if (o.stock_state !== 'reserved') throw new ApiError(400, 'لا يوجد حجز نشط لتمديده')
   const base = Math.max(Date.now(), new Date((o.reservation_expires_at || nowSql()).replace(' ', 'T') + 'Z').getTime())
   const until = nowSql(new Date(base + hours * 3600e3))
-  db().prepare('UPDATE orders SET reservation_expires_at=?, updated_at=? WHERE id=?').run(until, nowSql(), o.id)
-  addEvent(o.id, 'reservation', `تم تمديد حجز المخزون ${hours} ساعة`, actor, false)
-  return getOrder(o.id)!
+  await db().prepare('UPDATE orders SET reservation_expires_at=?, updated_at=? WHERE id=?').run(until, nowSql(), o.id)
+  await addEvent(o.id, 'reservation', `تم تمديد حجز المخزون ${hours} ساعة`, actor, false)
+  return (await getOrder(o.id))!
 }
 
 export function rereserveOrder(orderId: number, actor: Actor) {
   const d = db()
-  return d
-    .transaction(() => {
-      const o = getOrder(orderId)
-      if (!o) throw new ApiError(404, 'الطلب غير موجود')
-      if (o.status === 'cancelled') throw new ApiError(400, 'الطلب ملغي')
-      if (o.stock_state !== 'released') throw new ApiError(400, 'المخزون محجوز لهذا الطلب بالفعل')
-      try {
-        deductLines(o.id, 'order_rereserve', actor)
-      } catch (e) {
-        if (e instanceof StockError) {
-          throw new ApiError(409, 'الكمية غير كافية لإعادة الحجز', 'SHORTAGE', { shortages: e.shortages })
-        }
-        throw e
+  return tx(async () => {
+    const o = await getOrder(orderId)
+    if (!o) throw new ApiError(404, 'الطلب غير موجود')
+    if (o.status === 'cancelled') throw new ApiError(400, 'الطلب ملغي')
+    if (o.stock_state !== 'released') throw new ApiError(400, 'المخزون محجوز لهذا الطلب بالفعل')
+    try {
+      await deductLines(o.id, 'order_rereserve', actor)
+    } catch (e) {
+      if (e instanceof StockError) {
+        throw new ApiError(409, 'الكمية غير كافية لإعادة الحجز', 'SHORTAGE', { shortages: e.shortages })
       }
-      const minutes = getSetting('checkout').reservationMinutes
-      d.prepare("UPDATE orders SET stock_state='reserved', reservation_expires_at=?, reservation_released_at=NULL, updated_at=? WHERE id=?").run(
-        nowSql(new Date(Date.now() + minutes * 60000)),
-        nowSql(),
-        o.id,
-      )
-      addEvent(o.id, 'reservation', 'تمت إعادة حجز المخزون بعد التحقق من التوفر', actor, false)
-      return getOrder(o.id)!
-    })
-    .immediate()
+      throw e
+    }
+    const minutes = (await getSetting('checkout')).reservationMinutes
+    await d.prepare("UPDATE orders SET stock_state='reserved', reservation_expires_at=?, reservation_released_at=NULL, updated_at=? WHERE id=?").run(
+      nowSql(new Date(Date.now() + minutes * 60000)),
+      nowSql(),
+      o.id,
+    )
+    await addEvent(o.id, 'reservation', 'تمت إعادة حجز المخزون بعد التحقق من التوفر', actor, false)
+    return (await getOrder(o.id))!
+  })
 }
 
 export function recordReturn(orderId: number, items: { orderItemId: number; qty: number }[], restock: boolean, reason: string, actor: Actor) {
   const d = db()
-  return d
-    .transaction(() => {
-      const o = getOrder(orderId)
-      if (!o) throw new ApiError(404, 'الطلب غير موجود')
-      const orderItems = getOrderItems(orderId)
-      const saved: { orderItemId: number; name: string; qty: number; restocked: number }[] = []
-      for (const it of items) {
-        const oi = orderItems.find((x) => x.id === it.orderItemId)
-        if (!oi) throw new ApiError(400, 'منتج غير موجود في الطلب')
-        const q = Math.floor(it.qty)
-        if (q <= 0) continue
-        if (q > oi.qty - oi.returned_qty) throw new ApiError(400, `كمية المرتجع لـ «${oi.name}» أكبر من المتبقي (${oi.qty - oi.returned_qty})`)
-        d.prepare('UPDATE order_items SET returned_qty=returned_qty+? WHERE id=?').run(q, oi.id)
-        const restocked = restock ? restockItem(orderId, oi.id, q, actor, reason) : 0
-        saved.push({ orderItemId: oi.id, name: oi.name, qty: q, restocked })
-      }
-      if (!saved.length) throw new ApiError(400, 'حدد كمية مرتجعة واحدة على الأقل')
-      d.prepare('INSERT INTO order_returns(order_id,items,reason,restocked,created_by,created_by_name) VALUES(?,?,?,?,?,?)').run(
-        orderId,
-        JSON.stringify(saved),
-        reason || null,
-        restock ? 1 : 0,
-        actor?.id ?? null,
-        actor?.name ?? null,
-      )
-      addEvent(orderId, 'return', `تسجيل مرتجع: ${saved.map((s) => `${s.name} × ${s.qty}`).join('، ')}${restock ? ' (أعيد للمخزون)' : ''}`, actor, false)
-      return saved
-    })
-    .immediate()
+  return tx(async () => {
+    const o = await getOrder(orderId)
+    if (!o) throw new ApiError(404, 'الطلب غير موجود')
+    const orderItems = await getOrderItems(orderId)
+    const saved: { orderItemId: number; name: string; qty: number; restocked: number }[] = []
+    for (const it of items) {
+      const oi = orderItems.find((x) => x.id === it.orderItemId)
+      if (!oi) throw new ApiError(400, 'منتج غير موجود في الطلب')
+      const q = Math.floor(it.qty)
+      if (q <= 0) continue
+      if (q > oi.qty - oi.returned_qty) throw new ApiError(400, `كمية المرتجع لـ «${oi.name}» أكبر من المتبقي (${oi.qty - oi.returned_qty})`)
+      await d.prepare('UPDATE order_items SET returned_qty=returned_qty+? WHERE id=?').run(q, oi.id)
+      const restocked = restock ? await restockItem(orderId, oi.id, q, actor, reason) : 0
+      saved.push({ orderItemId: oi.id, name: oi.name, qty: q, restocked })
+    }
+    if (!saved.length) throw new ApiError(400, 'حدد كمية مرتجعة واحدة على الأقل')
+    await d.prepare('INSERT INTO order_returns(order_id,items,reason,restocked,created_by,created_by_name) VALUES(?,?,?,?,?,?)').run(
+      orderId,
+      JSON.stringify(saved),
+      reason || null,
+      restock ? 1 : 0,
+      actor?.id ?? null,
+      actor?.name ?? null,
+    )
+    await addEvent(orderId, 'return', `تسجيل مرتجع: ${saved.map((s) => `${s.name} × ${s.qty}`).join('، ')}${restock ? ' (أعيد للمخزون)' : ''}`, actor, false)
+    return saved
+  })
 }
 
 // ===== رسائل واتساب =====
@@ -595,17 +593,17 @@ export function recordReturn(orderId: number, items: { orderItemId: number; qty:
 const LRM = '‎'
 const ltr = (s: string) => `${LRM}${s}${LRM}`
 
-export function storeName(): string {
-  return getPublishedAppearance().brand.name
+export async function storeName(): Promise<string> {
+  return (await getPublishedAppearance()).brand.name
 }
 
-export function buildOrderWhatsappMessage(o: OrderRow, items: OrderItemRow[], opts: { masked?: boolean; methodName?: string | null } = {}): string {
-  const store = getSetting('store')
+export async function buildOrderWhatsappMessage(o: OrderRow, items: OrderItemRow[], opts: { masked?: boolean; methodName?: string | null } = {}): Promise<string> {
+  const store = await getSetting('store')
   const cur = { ...store.currency, symbol: o.currency_symbol }
   const m = (c: number) => formatMoney(c, cur)
   const masked = !!opts.masked
   const L: string[] = []
-  L.push(`طلب جديد من متجر ${storeName()}`)
+  L.push(`طلب جديد من متجر ${await storeName()}`)
   L.push(`رقم الطلب: ${ltr(o.number)}`)
   L.push(`تاريخ الطلب: ${formatDateTime(o.created_at, store.timezone, store.currency.numerals)}`)
   L.push('')
@@ -669,9 +667,9 @@ export function buildOrderWhatsappMessage(o: OrderRow, items: OrderItemRow[], op
   return L.join('\n')
 }
 
-export function orderWhatsappLink(o: OrderRow, items: OrderItemRow[], opts: { masked?: boolean } = {}) {
-  const text = buildOrderWhatsappMessage(o, items, opts)
-  return { text, url: waLink(storeWhatsapp(), text), number: storeWhatsapp() }
+export async function orderWhatsappLink(o: OrderRow, items: OrderItemRow[], opts: { masked?: boolean } = {}) {
+  const text = await buildOrderWhatsappMessage(o, items, opts)
+  return { text, url: waLink(await storeWhatsapp(), text), number: await storeWhatsapp() }
 }
 
 export function trackingUrl(o: Pick<OrderRow, 'token'>, origin?: string) {
@@ -679,10 +677,10 @@ export function trackingUrl(o: Pick<OrderRow, 'token'>, origin?: string) {
 }
 
 /** تعبئة قالب رسالة للموظف */
-export function fillTemplate(body: string, o: OrderRow, origin?: string): string {
-  const store = getSetting('store')
+export async function fillTemplate(body: string, o: OrderRow, origin?: string): Promise<string> {
+  const store = await getSetting('store')
   const cur = { ...store.currency, symbol: o.currency_symbol }
-  const methods = db().prepare('SELECT * FROM transfer_methods WHERE active=1 ORDER BY sort, id').all() as {
+  const methods = await db().prepare('SELECT * FROM transfer_methods WHERE active=1 ORDER BY sort, id').all() as {
     name: string; beneficiary: string; account_number: string; currency: string | null; extra_info: string | null
   }[]
   const methodsText = methods.length
@@ -690,14 +688,14 @@ export function fillTemplate(body: string, o: OrderRow, origin?: string): string
         .map((x) => `• ${x.name}\nالمستفيد: ${x.beneficiary}\nالرقم: ${LRM}${x.account_number}${LRM}${x.currency ? `\nالعملة: ${x.currency}` : ''}${x.extra_info ? `\n${x.extra_info}` : ''}`)
         .join('\n\n')
     : '(لم تُضف وسائل تحويل بعد في لوحة التحكم)'
-  const sum = paymentSummary(o.id, o.total)
+  const sum = await paymentSummary(o.id, o.total)
   const vars: Record<string, string> = {
     customer_name: o.customer_name.split(' ')[0] || o.customer_name,
     customer_full_name: o.customer_name,
     order_number: ltr(o.number),
     total: formatMoney(o.total, cur),
     remaining_amount: formatMoney(Math.max(0, sum.balance), cur),
-    store_name: storeName(),
+    store_name: await storeName(),
     tracking_link: trackingUrl(o, origin),
     transfer_methods: methodsText,
     reservation_deadline: o.reservation_expires_at ? formatDateTime(o.reservation_expires_at, store.timezone, store.currency.numerals) : '—',

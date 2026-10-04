@@ -14,15 +14,15 @@ export const metadata = { title: 'طباعة الطلب' }
 
 export default async function PrintOrder({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ slip?: string }> }) {
   await requirePage(['orders', 'payments'])
-  const o = getOrder(Number((await params).id))
+  const o = await getOrder(Number((await params).id))
   if (!o) notFound()
   const slip = (await searchParams).slip === '1'
-  const store = getSetting('store')
-  const a = getPublishedAppearance()
+  const store = await getSetting('store')
+  const a = await getPublishedAppearance()
   const cur = { ...store.currency, symbol: o.currency_symbol }
   const m = (c: number) => formatMoney(c, cur)
-  const items = getOrderItems(o.id)
-  const sum = paymentSummary(o.id, o.total)
+  const items = await getOrderItems(o.id)
+  const sum = await paymentSummary(o.id, o.total)
   const showPrices = !slip
   return (
     <div style={{ background: '#fff', minHeight: '100vh', padding: '24px', maxWidth: 820, margin: '0 auto', color: '#222' }}>
