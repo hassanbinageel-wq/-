@@ -1,0 +1,362 @@
+// تهيئة المتجر: الصفحات والأسئلة والأقسام، مع بيانات تجريبية واضحة (يمكن حذفها من لوحة التحكم)
+// الاستخدام: npm run db:seed            (مع منتجات تجريبية)
+//           npm run db:seed -- --no-demo (هيكل المتجر فقط)
+import sharp from 'sharp'
+import { db } from '../lib/server/db'
+import { ensureAppearance, getPublishedAppearance } from '../lib/server/appearance'
+import { saveImage } from '../lib/server/media'
+import { saveProduct } from '../lib/server/products'
+import { getVariants } from '../lib/server/catalog'
+import { DEFAULT_PAGES, DEFAULT_FAQS } from '../lib/server/default-content'
+import { demoSvg, bannerSvg, bannerSvgMobile, type Art } from './demo-art'
+import type { ProductOption } from '../lib/shared/types'
+
+const withDemo = !process.argv.includes('--no-demo')
+const d = db()
+const actor = { id: 0, name: 'التهيئة' }
+const Y = (n: number) => n * 100 // ريال → سنت
+
+async function art(a: Art, color: string, accent: string, bg: string, purpose = 'product') {
+  const png = await sharp(Buffer.from(demoSvg(a, color, accent, bg))).png().toBuffer()
+  return saveImage(png, { purpose, isDemo: true, originalName: `demo-${a}.png` })
+}
+
+async function main() {
+  ensureAppearance()
+
+  if (!(d.prepare('SELECT COUNT(*) n FROM pages').get() as { n: number }).n) {
+    const ins = d.prepare('INSERT INTO pages(slug,title,content,status,show_in_footer,system,sort) VALUES(?,?,?,?,?,1,?)')
+    for (const p of DEFAULT_PAGES) ins.run(p.slug, p.title, p.content, 'published', p.slug === 'contact' ? 0 : 1, p.sort)
+    console.log('✓ الصفحات')
+  }
+  if (!(d.prepare('SELECT COUNT(*) n FROM faqs').get() as { n: number }).n) {
+    const ins = d.prepare('INSERT INTO faqs(question,answer,category,sort) VALUES(?,?,?,?)')
+    DEFAULT_FAQS.forEach((f, i) => ins.run(f.question, f.answer, f.category, i))
+    console.log('✓ الأسئلة الشائعة')
+  }
+
+  const cats: Record<string, number> = {}
+  if (!(d.prepare('SELECT COUNT(*) n FROM categories').get() as { n: number }).n) {
+    const list: [string, string, string, Art, string, string, string][] = [
+      ['ملابس المواليد', 'baby-clothes', 'بدلات وبيجامات وقطع يومية ناعمة', 'onesie', '#F6C9D3', '#FFFFFF', '#FBE6EA'],
+      ['أطقم المواليد', 'baby-sets', 'أطقم استقبال وخروج ومناسبات', 'set', '#BFDDF2', '#F6C9D3', '#E3F0F9'],
+      ['الإكسسوارات', 'accessories', 'قبعات وجوارب وقفازات ومرايل', 'hat', '#CDE8D6', '#F6C9D3', '#E5F3EA'],
+      ['الهدايا والتغليف', 'gifts', 'هدايا وعلب وتغليف للمناسبات', 'gift', '#F6C9D3', '#FFE7A6', '#FCEEF0'],
+      ['مستلزمات المواليد', 'essentials', 'بطانيات ورضاعات ومستلزمات يومية', 'blanket', '#FFE7A6', '#BFDDF2', '#FFF6DA'],
+    ]
+    let i = 0
+    for (const [name, slug, desc, a, c, acc, bg] of list) {
+      const img = withDemo ? await art(a, c, acc, bg, 'category') : null
+      cats[slug] = Number(
+        d.prepare('INSERT INTO categories(name,slug,description,image_id,sort) VALUES(?,?,?,?,?)').run(name, slug, desc, img, i++).lastInsertRowid,
+      )
+    }
+    console.log('✓ الأقسام')
+  } else {
+    for (const r of d.prepare('SELECT id, slug FROM categories').all() as { id: number; slug: string }[]) cats[r.slug] = r.id
+  }
+
+  const tags: Record<string, number> = {}
+  if (!(d.prepare('SELECT COUNT(*) n FROM tag_groups').get() as { n: number }).n) {
+    const groups: [string, string, 'age' | 'occasion' | 'custom', [string, string][]][] = [
+      ['العمر', 'age', 'age', [['حديثو الولادة (0-3 أشهر)', 'age-0-3'], ['3-6 أشهر', 'age-3-6'], ['6-12 شهراً', 'age-6-12'], ['1-2 سنة', 'age-12-24']]],
+      ['المناسبة', 'occasion', 'occasion', [['استقبال المولود', 'occ-welcome'], ['هدية ولادة', 'occ-gift'], ['السبوع والعقيقة', 'occ-aqiqah'], ['العيد', 'occ-eid']]],
+      ['مناسب لـ', 'for', 'custom', [['للبنات', 'for-girls'], ['للأولاد', 'for-boys'], ['للجنسين', 'for-all']]],
+    ]
+    groups.forEach(([name, slug, kind, list], gi) => {
+      const gid = Number(d.prepare('INSERT INTO tag_groups(name,slug,kind,sort) VALUES(?,?,?,?)').run(name, slug, kind, gi).lastInsertRowid)
+      list.forEach(([tn, ts], ti) => {
+        tags[ts] = Number(d.prepare('INSERT INTO tags(group_id,name,slug,sort) VALUES(?,?,?,?)').run(gid, tn, ts, ti).lastInsertRowid)
+      })
+    })
+    console.log('✓ التصنيفات (العمر، المناسبة)')
+  } else {
+    for (const r of d.prepare('SELECT id, slug FROM tags').all() as { id: number; slug: string }[]) tags[r.slug] = r.id
+  }
+
+  if (!withDemo) return
+  if ((d.prepare('SELECT COUNT(*) n FROM products WHERE is_demo=1').get() as { n: number }).n) {
+    console.log('البيانات التجريبية موجودة مسبقاً — لم تتم إضافتها مرة أخرى')
+    return
+  }
+
+  // دليل مقاسات نموذجي
+  const sizeGuide = Number(
+    d
+      .prepare('INSERT INTO size_guides(name,intro,columns,rows,notes,is_demo) VALUES(?,?,?,?,?,1)')
+      .run(
+        'دليل مقاسات ملابس المواليد (نموذج)',
+        'اختر المقاس حسب طول الطفل ووزنه، وعند التردد بين مقاسين اختر الأكبر.',
+        JSON.stringify(['المقاس', 'العمر التقريبي', 'الطول (سم)', 'الوزن (كجم)']),
+        JSON.stringify([
+          ['0-3 أشهر', 'حتى 3 أشهر', '50 - 62', '3 - 6'],
+          ['3-6 أشهر', '3 - 6 أشهر', '62 - 68', '6 - 8'],
+          ['6-12 شهراً', '6 - 12 شهراً', '68 - 80', '8 - 10'],
+        ]),
+        'جدول نموذجي للتوضيح فقط — استبدله بمقاسات منتجاتك الفعلية من لوحة التحكم.',
+      ).lastInsertRowid,
+  )
+
+  if (!(d.prepare('SELECT COUNT(*) n FROM gift_wraps').get() as { n: number }).n) {
+    const w1 = await art('gift', '#F6C9D3', '#FFFFFF', '#FCEEF0', 'wrap')
+    const w2 = await art('gift', '#BFDDF2', '#FFE7A6', '#E3F0F9', 'wrap')
+    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort) VALUES(?,?,?,?,?)').run('تغليف ناعم (تجريبي)', 'ورق تغليف بلون هادئ مع شريطة', Y(1000), w1, 0)
+    d.prepare('INSERT INTO gift_wraps(name,description,price,image_id,sort) VALUES(?,?,?,?,?)').run('صندوق هدية (تجريبي)', 'صندوق مقوى مع بطاقة إهداء', Y(2500), w2, 1)
+  }
+
+  if (!(d.prepare('SELECT COUNT(*) n FROM shipping_zones').get() as { n: number }).n) {
+    const z = d.prepare('INSERT INTO shipping_zones(name,country,cities,fee,eta_text,sort,is_demo) VALUES(?,?,?,?,?,?,1)')
+    z.run('صنعاء (تجريبي)', 'اليمن', JSON.stringify(['صنعاء', 'أمانة العاصمة']), Y(1000), '1 - 2 يوم عمل', 0)
+    z.run('عدن (تجريبي)', 'اليمن', JSON.stringify(['عدن']), Y(2000), '2 - 4 أيام عمل', 1)
+    z.run('تعز (تجريبي)', 'اليمن', JSON.stringify(['تعز']), Y(2000), '2 - 4 أيام عمل', 2)
+    z.run('باقي المحافظات (تجريبي)', 'اليمن', '[]', Y(3000), '3 - 6 أيام عمل', 3)
+  }
+
+  d.prepare(
+    "INSERT OR IGNORE INTO coupons(code,description,type,value,min_order,max_discount,usage_limit,per_customer_limit,combine_with_sale,is_demo) VALUES('WELCOME10','خصم ترحيبي 10% (كوبون تجريبي)','percent',1000,?,?,100,1,0,1)",
+  ).run(Y(10000), Y(5000))
+
+  const sizeOpt = (values: string[]): ProductOption => ({ name: 'المقاس', kind: 'size', values: values.map((value) => ({ value })) })
+  const colorOpt = (values: [string, string][]): ProductOption => ({ name: 'اللون', kind: 'color', values: values.map(([value, color]) => ({ value, color })) })
+  const pink: [string, string] = ['وردي', '#F4C6D0']
+  const sky: [string, string] = ['سماوي', '#BFDDF2']
+  const cream: [string, string] = ['كريمي', '#F3E9D8']
+  const mint: [string, string] = ['نعناعي', '#CDE8D6']
+
+  const ids: Record<string, number> = {}
+  type Def = Parameters<typeof saveProduct>[0] & { key: string; arts: { a: Art; c: string; acc: string; bg: string; opt?: string }[] }
+  const variantsFor = (sizes: string[], colors: [string, string][], stock: (s: number, c: number) => number, price?: (s: number) => number | null) =>
+    sizes.flatMap((s, si) =>
+      colors.map((c, ci) => ({ options: [s, c[0]] as (string | null)[], stock: stock(si, ci), active: true, price: price ? price(si) : null })),
+    )
+
+  const defs: Def[] = [
+    {
+      key: 'bodysuit', type: 'variable', name: 'بدلة قطنية بأكمام قصيرة', status: 'published', price: Y(3500), trackStock: true,
+      categoryId: cats['baby-clothes'], tagIds: [tags['age-0-3'], tags['age-3-6'], tags['age-6-12'], tags['for-all'], tags['occ-welcome']],
+      shortDescription: 'بدلة يومية ناعمة بأزرار سفلية لتغيير الحفاض بسهولة.',
+      description: 'بدلة بأكمام قصيرة وتصميم مريح مع أزرار سفلية تسهّل تغيير الحفاض.\n\n- قصة واسعة عند الرقبة لسهولة الارتداء.\n- رسمة نجمة لطيفة على الصدر.\n\n> منتج تجريبي لعرض طريقة اختيار المقاس واللون — استبدله بمنتجاتك.',
+      material: 'قطن (مثال توضيحي — عدّله حسب المنتج الفعلي)', careInstructions: 'يُغسل على درجة حرارة منخفضة (مثال توضيحي)',
+      sizeGuideId: sizeGuide, options: [sizeOpt(['0-3 أشهر', '3-6 أشهر', '6-12 شهراً']), colorOpt([pink, sky, cream])],
+      variants: variantsFor(['0-3 أشهر', '3-6 أشهر', '6-12 شهراً'], [pink, sky, cream], (s, c) => [6, 4, 0][c] + s, (s) => (s === 2 ? Y(4000) : null)),
+      prepDaysMin: 1, prepDaysMax: 2,
+      arts: [
+        { a: 'onesie', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0', opt: 'وردي' },
+        { a: 'onesie', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA', opt: 'سماوي' },
+        { a: 'onesie', c: '#F3E9D8', acc: '#F4C6D0', bg: '#FBF6EE', opt: 'كريمي' },
+      ],
+    },
+    {
+      key: 'pajama', type: 'variable', name: 'بيجامة نوم بأزرار وطبعة قمر', status: 'published', price: Y(5500), salePrice: Y(4500), trackStock: true,
+      categoryId: cats['baby-clothes'], tagIds: [tags['age-3-6'], tags['age-6-12'], tags['age-12-24'], tags['for-all']],
+      shortDescription: 'بيجامة بأكمام وأرجل طويلة لنوم هادئ ودافئ.',
+      description: 'بيجامة قطعة واحدة بأزرار أمامية وطبعة نجوم وقمر.\n\n> منتج تجريبي — عدّل الوصف والخامة حسب منتجك الفعلي.',
+      sizeGuideId: sizeGuide, options: [sizeOpt(['3-6 أشهر', '6-12 شهراً', '1-2 سنة']), colorOpt([sky, mint])],
+      variants: variantsFor(['3-6 أشهر', '6-12 شهراً', '1-2 سنة'], [sky, mint], (s, c) => 3 + s + c),
+      arts: [
+        { a: 'pajama', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA', opt: 'سماوي' },
+        { a: 'pajama', c: '#CDE8D6', acc: '#FFFFFF', bg: '#EAF5EE', opt: 'نعناعي' },
+      ],
+    },
+    {
+      key: 'welcome-set', type: 'simple', name: 'طقم استقبال المولود 5 قطع', status: 'published', price: Y(14500), trackStock: true, stock: 8,
+      categoryId: cats['baby-sets'], tagIds: [tags['age-0-3'], tags['occ-welcome'], tags['occ-gift'], tags['for-all']],
+      shortDescription: 'طقم متكامل لأول أيام المولود مع إمكانية تطريز الاسم.',
+      description: 'طقم استقبال يضم القطع الأساسية للأيام الأولى، ويمكن تطريز اسم المولود على البطانية.\n\n> منتج تجريبي لعرض محتويات الطقم والتخصيص.',
+      setContents: ['بدلة بأكمام طويلة', 'قبعة', 'قفازات', 'جوارب', 'بطانية لف صغيرة'], piecesCount: 5,
+      prepDaysMin: 1, prepDaysMax: 3,
+      personalization: { enabled: true, label: 'اسم المولود للتطريز', placeholder: 'مثال: ليان', maxLength: 12, fee: Y(1500), extraDays: 2, required: false, help: 'يُطرز الاسم على البطانية' },
+      arts: [{ a: 'set', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0' }, { a: 'blanket', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FBF6EE' }],
+    },
+    {
+      key: 'hospital-set', type: 'variable', name: 'طقم الخروج من المستشفى', status: 'published', price: Y(9500), trackStock: true,
+      categoryId: cats['baby-sets'], tagIds: [tags['age-0-3'], tags['occ-welcome'], tags['for-boys']],
+      shortDescription: 'طقم أنيق لأول خروج للمولود.',
+      description: 'طقم من ثلاث قطع للمناسبة الأولى.\n\n> منتج تجريبي.',
+      setContents: ['بدلة', 'قبعة', 'جوارب'], piecesCount: 3, sizeGuideId: sizeGuide,
+      options: [sizeOpt(['0-3 أشهر', '3-6 أشهر'])],
+      variants: [{ options: ['0-3 أشهر', null], stock: 5, active: true }, { options: ['3-6 أشهر', null], stock: 3, active: true }],
+      arts: [{ a: 'set', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA' }],
+    },
+    {
+      key: 'hat', type: 'variable', name: 'قبعة قطنية ناعمة', status: 'published', price: Y(1800), trackStock: true,
+      categoryId: cats['accessories'], tagIds: [tags['age-0-3'], tags['age-3-6'], tags['for-all']],
+      shortDescription: 'قبعة خفيفة مع كرة صغيرة.', description: 'قبعة لطيفة بحافة مزدوجة.\n\n> منتج تجريبي.',
+      options: [colorOpt([pink, sky, mint])],
+      variants: [pink, sky, mint].map((c, i) => ({ options: [c[0]], stock: [7, 5, 2][i], active: true })),
+      arts: [
+        { a: 'hat', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0', opt: 'وردي' },
+        { a: 'hat', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA', opt: 'سماوي' },
+        { a: 'hat', c: '#CDE8D6', acc: '#F4C6D0', bg: '#EAF5EE', opt: 'نعناعي' },
+      ],
+    },
+    {
+      key: 'socks', type: 'simple', name: 'جوارب مواليد (3 أزواج)', status: 'published', price: Y(1500), trackStock: true, stock: 20,
+      categoryId: cats['accessories'], tagIds: [tags['age-0-3'], tags['age-3-6'], tags['for-all']],
+      shortDescription: 'ثلاثة أزواج بألوان هادئة.', description: 'جوارب ناعمة بثلاثة ألوان.\n\n> منتج تجريبي.',
+      setContents: ['زوج وردي', 'زوج سماوي', 'زوج كريمي'], piecesCount: 3,
+      arts: [{ a: 'socks', c: '#F3E9D8', acc: '#F4C6D0', bg: '#FBF6EE' }],
+    },
+    {
+      key: 'bib', type: 'simple', name: 'مريلة مطرزة بالاسم', status: 'published', price: Y(2000), trackStock: true, stock: 12,
+      categoryId: cats['accessories'], tagIds: [tags['age-3-6'], tags['age-6-12'], tags['occ-gift'], tags['for-all']],
+      shortDescription: 'مريلة لطيفة يمكن تطريز اسم المولود عليها.', description: 'مريلة بإغلاق خلفي.\n\n> منتج تجريبي لعرض التخصيص الاختياري.',
+      personalization: { enabled: true, label: 'اسم المولود', placeholder: 'مثال: يوسف', maxLength: 10, fee: Y(800), extraDays: 2, required: false, help: '' },
+      prepDaysMin: 1, prepDaysMax: 2,
+      arts: [{ a: 'bib', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA' }, { a: 'bib', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0' }],
+    },
+    {
+      key: 'mittens', type: 'simple', name: 'قفازات حماية للمواليد', status: 'published', price: Y(1200), trackStock: true, stock: 2,
+      categoryId: cats['accessories'], tagIds: [tags['age-0-3'], tags['for-all']],
+      shortDescription: 'قفازات خفيفة لحماية وجه المولود.', description: 'زوج قفازات بحافة مطاطية ناعمة.\n\n> منتج تجريبي (مخزون منخفض لعرض التنبيه).',
+      arts: [{ a: 'mittens', c: '#F3E9D8', acc: '#BFDDF2', bg: '#FBF6EE' }],
+    },
+    {
+      key: 'blanket', type: 'variable', name: 'بطانية لف المولود', status: 'published', price: Y(6500), trackStock: true,
+      categoryId: cats['essentials'], tagIds: [tags['age-0-3'], tags['occ-welcome'], tags['occ-gift'], tags['for-all']],
+      shortDescription: 'بطانية ناعمة بنقشة نجوم، مع خيار تطريز الاسم.', description: 'بطانية مربعة للف المولود.\n\n> منتج تجريبي.',
+      options: [colorOpt([pink, sky, cream])],
+      variants: [pink, sky, cream].map((c, i) => ({ options: [c[0]], stock: [4, 4, 3][i], active: true })),
+      personalization: { enabled: true, label: 'اسم المولود', placeholder: '', maxLength: 12, fee: Y(1500), extraDays: 3, required: false, help: '' },
+      arts: [
+        { a: 'blanket', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0', opt: 'وردي' },
+        { a: 'blanket', c: '#BFDDF2', acc: '#FFFFFF', bg: '#E8F3FA', opt: 'سماوي' },
+        { a: 'blanket', c: '#F3E9D8', acc: '#F4C6D0', bg: '#FBF6EE', opt: 'كريمي' },
+      ],
+    },
+    {
+      key: 'booties', type: 'variable', name: 'حذاء مواليد ناعم', status: 'published', price: Y(3000), trackStock: true,
+      categoryId: cats['accessories'], tagIds: [tags['age-3-6'], tags['age-6-12'], tags['for-girls']],
+      shortDescription: 'حذاء قماشي خفيف لأول الخطوات.', description: 'حذاء مرن بنعل ناعم.\n\n> منتج تجريبي.',
+      options: [sizeOpt(['0-6 أشهر', '6-12 شهراً'])],
+      variants: [{ options: ['0-6 أشهر'], stock: 6, active: true }, { options: ['6-12 شهراً'], stock: 0, active: true }],
+      arts: [{ a: 'booties', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0' }],
+    },
+    {
+      key: 'bear', type: 'simple', name: 'دبدوب قطني صغير', status: 'published', price: Y(4000), salePrice: Y(3200), trackStock: true, stock: 10,
+      categoryId: cats['gifts'], tagIds: [tags['occ-gift'], tags['occ-eid'], tags['for-all']],
+      shortDescription: 'رفيق ناعم لأحلام المولود.', description: 'دبدوب صغير بفيونكة.\n\n> منتج تجريبي.',
+      arts: [{ a: 'bear', c: '#E8CBA8', acc: '#F4C6D0', bg: '#FBF6EE' }],
+    },
+    {
+      key: 'bottle', type: 'simple', name: 'رضّاعة أطفال 150 مل', status: 'published', price: Y(2500), trackStock: true, stock: 15,
+      categoryId: cats['essentials'], tagIds: [tags['age-0-3'], tags['age-3-6'], tags['for-all']],
+      shortDescription: 'رضّاعة بحجم مناسب للأشهر الأولى.', description: 'رضّاعة بسعة 150 مل.\n\n> منتج تجريبي — أضف مواصفات منتجك الفعلية دون ادعاءات غير موثقة.',
+      arts: [{ a: 'bottle', c: '#BFDDF2', acc: '#F4C6D0', bg: '#E8F3FA' }],
+    },
+    {
+      key: 'giftbox', type: 'simple', name: 'علبة هدية مع شريطة', status: 'published', price: Y(1500), trackStock: false, manualAvailability: 'in_stock',
+      categoryId: cats['gifts'], tagIds: [tags['occ-gift'], tags['occ-aqiqah'], tags['occ-eid']],
+      shortDescription: 'علبة جاهزة لتغليف هديتك.', description: 'علبة مقواة بشريطة.\n\n> منتج تجريبي (بدون تتبع مخزون).',
+      giftWrapEligible: false,
+      arts: [{ a: 'gift', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0' }],
+    },
+    {
+      key: 'jacket', type: 'variable', name: 'سترة شتوية مبطنة', status: 'published', price: Y(8500), trackStock: true,
+      categoryId: cats['baby-clothes'], tagIds: [tags['age-6-12'], tags['age-12-24'], tags['for-all']],
+      shortDescription: 'سترة دافئة للأيام الباردة.', description: 'سترة بسحاب أمامي وقبعة.\n\n> منتج تجريبي غير متوفر لعرض حالة نفاد الكمية.',
+      options: [sizeOpt(['6-12 شهراً', '1-2 سنة'])],
+      variants: [{ options: ['6-12 شهراً'], stock: 0, active: true }, { options: ['1-2 سنة'], stock: 0, active: true }],
+      arts: [{ a: 'jacket', c: '#CDE8D6', acc: '#FFE7A6', bg: '#EAF5EE' }],
+    },
+    {
+      key: 'draft', type: 'simple', name: 'منتج مسودة (لا يظهر في المتجر)', status: 'draft', price: Y(1000), trackStock: true, stock: 5,
+      categoryId: cats['essentials'], shortDescription: 'مثال على منتج محفوظ كمسودة.',
+      arts: [{ a: 'bottle', c: '#F3E9D8', acc: '#BFDDF2', bg: '#FBF6EE' }],
+    },
+  ]
+
+  for (const def of defs) {
+    const images: { mediaId: number; alt: string; optionValue: string | null }[] = []
+    for (const a of def.arts) images.push({ mediaId: await art(a.a, a.c, a.acc, a.bg), alt: def.name, optionValue: a.opt || null })
+    const { key, arts, ...input } = def
+    void arts
+    ids[key] = saveProduct({ ...input, images, isDemo: true }, actor)
+  }
+
+  const bodysuitVariants = getVariants(ids['bodysuit'])
+  const blanketCream = getVariants(ids['blanket']).find((v) => v.option1 === 'كريمي')
+  const bundles: Def[] = [
+    {
+      key: 'gift-bundle', type: 'bundle', name: 'باقة هدية المولود الجديد', status: 'published', price: Y(10500), trackStock: false, manualAvailability: 'in_stock',
+      categoryId: cats['gifts'], tagIds: [tags['occ-gift'], tags['occ-welcome'], tags['age-0-3']],
+      shortDescription: 'بدلة وقبعة وجوارب ودبدوب في باقة واحدة بسعر خاص.',
+      description: 'باقة هدية متكاملة. اختر مقاس البدلة ولونها ولون القبعة.\n\n> باقة تجريبية لعرض اختيار خيارات المكونات وربط توفرها بمخزونها.',
+      bundleItems: [
+        { productId: ids['bodysuit'], variantId: null, qty: 1 },
+        { productId: ids['hat'], variantId: null, qty: 1 },
+        { productId: ids['socks'], variantId: null, qty: 1 },
+        { productId: ids['bear'], variantId: null, qty: 1 },
+      ],
+      prepDaysMin: 1, prepDaysMax: 2,
+      arts: [{ a: 'gift', c: '#BFDDF2', acc: '#F4C6D0', bg: '#E8F3FA' }, { a: 'set', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0' }],
+    },
+    {
+      key: 'care-bundle', type: 'bundle', name: 'باقة العناية اليومية', status: 'published', price: Y(9000), trackStock: false, manualAvailability: 'in_stock',
+      categoryId: cats['essentials'], tagIds: [tags['occ-welcome'], tags['age-0-3']],
+      shortDescription: 'مريلة وقفازات وبطانية كريمية ورضّاعة.',
+      description: 'باقة لمستلزمات الأيام الأولى بمكونات محددة.\n\n> باقة تجريبية.',
+      bundleItems: [
+        { productId: ids['bib'], variantId: null, qty: 2 },
+        { productId: ids['mittens'], variantId: null, qty: 1 },
+        { productId: ids['blanket'], variantId: blanketCream?.id ?? null, qty: 1 },
+        { productId: ids['bottle'], variantId: null, qty: 1 },
+      ],
+      arts: [{ a: 'blanket', c: '#F3E9D8', acc: '#BFDDF2', bg: '#FBF6EE' }],
+    },
+  ]
+  void bodysuitVariants
+  for (const def of bundles) {
+    const images: { mediaId: number; alt: string; optionValue: string | null }[] = []
+    for (const a of def.arts) images.push({ mediaId: await art(a.a, a.c, a.acc, a.bg), alt: def.name, optionValue: null })
+    const { key, arts, ...input } = def
+    void arts
+    ids[key] = saveProduct({ ...input, images, isDemo: true }, actor)
+  }
+
+  // منتجات مكملة ومرتبطة
+  const rel = d.prepare('INSERT OR IGNORE INTO product_relations(product_id,related_id,kind,sort) VALUES(?,?,?,?)')
+  rel.run(ids['bodysuit'], ids['hat'], 'complementary', 0)
+  rel.run(ids['bodysuit'], ids['socks'], 'complementary', 1)
+  rel.run(ids['bodysuit'], ids['bib'], 'complementary', 2)
+  rel.run(ids['welcome-set'], ids['giftbox'], 'complementary', 0)
+  rel.run(ids['blanket'], ids['bear'], 'complementary', 0)
+  rel.run(ids['pajama'], ids['booties'], 'related', 0)
+
+  // صور البنرات ومنتجات مميزة في المظهر المنشور
+  const b1 = await sharp(Buffer.from(bannerSvg('#FCE4EA', '#E3F0F9', '#FFFFFF', 'onesie', '#F4C6D0'))).png().toBuffer()
+  const b2 = await sharp(Buffer.from(bannerSvg('#E3F0F9', '#EAF5EE', '#FFE7A6', 'gift', '#F4C6D0'))).png().toBuffer()
+  const b1id = await saveImage(b1, { purpose: 'banner', isDemo: true, widths: [640, 1080, 1600, 1800] })
+  const b2id = await saveImage(b2, { purpose: 'banner', isDemo: true, widths: [640, 1080, 1600, 1800] })
+  const m1 = await sharp(Buffer.from(bannerSvgMobile('#FCE4EA', '#E3F0F9', '#FFFFFF', 'onesie', '#F4C6D0'))).png().toBuffer()
+  const m2 = await sharp(Buffer.from(bannerSvgMobile('#E3F0F9', '#EAF5EE', '#FFE7A6', 'gift', '#F4C6D0'))).png().toBuffer()
+  const m1id = await saveImage(m1, { purpose: 'banner', isDemo: true, widths: [480, 900] })
+  const m2id = await saveImage(m2, { purpose: 'banner', isDemo: true, widths: [480, 900] })
+  const a = getPublishedAppearance()
+  const hero = a.home.sections.find((s) => s.type === 'hero')
+  if (hero) {
+    hero.banners[0] = { ...hero.banners[0], imageDesktopId: b1id, imageMobileId: m1id }
+    if (hero.banners[1]) hero.banners[1] = { ...hero.banners[1], imageDesktopId: b2id, imageMobileId: m2id }
+  }
+  const featured = a.home.sections.find((s) => s.type === 'featured')
+  if (featured) featured.productIds = [ids['welcome-set'], ids['blanket'], ids['bear'], ids['pajama'], ids['bib']]
+  const age = a.home.sections.find((s) => s.id === 'age')
+  const occ = a.home.sections.find((s) => s.id === 'occasion')
+  const groups = d.prepare('SELECT id, slug FROM tag_groups').all() as { id: number; slug: string }[]
+  if (age) age.tagGroupId = groups.find((g) => g.slug === 'age')?.id ?? null
+  if (occ) occ.tagGroupId = groups.find((g) => g.slug === 'occasion')?.id ?? null
+  d.prepare("UPDATE appearance_versions SET data=? WHERE status='published'").run(JSON.stringify(a))
+
+  console.log(`✓ منتجات تجريبية: ${Object.keys(ids).length} (يمكن حذفها من لوحة التحكم ← الإعدادات ← البيانات التجريبية)`)
+}
+
+main().then(
+  () => {
+    console.log('تمت التهيئة بنجاح')
+    process.exit(0)
+  },
+  (e) => {
+    console.error(e)
+    process.exit(1)
+  },
+)
