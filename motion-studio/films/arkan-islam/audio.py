@@ -1,4 +1,4 @@
-"""أركان الإسلام — تسجيل المقدّم + مؤثرات ورقية لطيفة بلا موسيقى، على نفس توقيت film.html (timing.json)."""
+"""أركان الإسلام — تسجيل المقدّم + مؤثرات ورقية لطيفة بلا موسيقى (فكرة رحلة الخريطة)، على نفس توقيت film.html (timing.json)."""
 import json, os, subprocess, sys
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -21,11 +21,15 @@ HEAD, NAME = [10, 16, 20, 25, 30], [11, 17, 21, 26, 31]
 sfx.add(k.pop(.3, .9), .15 - E); sfx.add(k.whoosh(.4, .2), .15); sfx.add(thud(.35), .75)
 sfx.add(paper(1.6, .1), at(3) + .2); sfx.add(paper(.4, .18), at(3) + .1)
 for t in (at(4) + .9, at(5), at(6)): sfx.add(k.pop(.25, 1.1), t - E)
-sfx.add(sparkle(.6, .08), at(7) + .6); sfx.add(k.pop(.35, 1.2), at(8) - E); sfx.add(sparkle(.6, .08), at(9) + .1)
-# الأركان الخمسة: بطاقة + بناء عمود
-for h, n in zip(HEAD, NAME):
-    sfx.add(paper(.4, .16), at(h) - .1)
-    t = at(n) + .1; sfx.add(k.whoosh(.3, .14), t - .1); sfx.add(thud(.4), t + .3 - E); sfx.add(thud(.5), t + .62 - E); sfx.add(k.pop(.25, 1.3), t + .6 - E)
+sfx.add(sparkle(.6, .08), at(7) + .6); # الرحلة: خطوات القطعة إلى كل محطة + فتح القفل
+for i in range(5):
+    sfx.add(paper(.4, .12), at(HEAD[i]) - .1)
+    g = at(HEAD[i]) - .55
+    for j in range(5): sfx.add(k.tick(.16, pitch=.8 + .05 * j), g + .1 + j * .26)
+    u = at(NAME[i]) + .15
+    sfx.add(k.click(.5, pitch=.7), u - E); sfx.add(k.pop(.35, 1.2), u + .15 - E); sfx.add(sparkle(.9, .12), u + .05)
+for j in range(5): sfx.add(k.pop(.2, .9 + .08 * j), at(8) + .1 + j * .16 - E)
+sfx.add(paper(1.6, .08), at(9) + .05)
 for t in (at(12) + .1, at(13) + .1, at(14) + .2, at(15) + .2): sfx.add(k.click(.25, pitch=1.2), t - E)
 sfx.add(k.pop(.28, 1.0), at(17) + .4 - E)
 for j in range(5): sfx.add(k.pop(.22, 1 + .1 * j), at(18) + .9 + j * .28 - E)
@@ -39,9 +43,7 @@ sfx.add(k.pop(.3, .8), at(32) + .3 - E); sfx.add(k.pop(.25, 1.1), at(34) - E); s
 # اليد والسقف والعدّ
 sfx.add(k.whoosh(.4, .2), at(36) + .2)
 for j in range(5): sfx.add(k.click(.2, pitch=1 + .1 * j), at(37) + .2 + j * .12)
-roof = at(38) + .1
-sfx.add(sparkle(1.0, .1), roof - .6); sfx.add(k.whoosh(.5, .26, up=False), roof - .2); sfx.add(thud(.9), roof + .35 - E); sfx.add(paper(.8, .2), roof + .38); sfx.add(sparkle(1.2, .12), roof + .45)
-for j, i in enumerate(range(39, 44)): sfx.add(k.pop(.32, 1 + .12 * j), at(i) - E)
+for j, i in enumerate(range(39, 44)): sfx.add(k.whoosh(.3, .12), at(i)); sfx.add(k.pop(.32, 1 + .12 * j), at(i) + .45 - E)
 bravo = at(44)
 sfx.add(sparkle(1.4, .16), bravo + .1)
 for i in range(12): sfx.add(k.click(.1, pitch=k.vary()), bravo + .2 + i * .08)
