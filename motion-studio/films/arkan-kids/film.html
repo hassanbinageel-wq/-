@@ -40,19 +40,19 @@
   #rays { left:525px; top:330px; width:10px; height:10px; }
 
   /* البطاقات */
-  .card { position:absolute; left:940px; top:200px; width:530px; background:#fff; border-radius:32px; padding:34px 40px 30px; border-right:14px solid var(--c); }
-  .card h2 { font:800 78px 'B'; color:var(--c); line-height:1.1; }
-  .card p { font:700 46px 'B'; line-height:1.35; margin-top:10px; }
+  .card { position:absolute; left:880px; top:200px; width:470px; background:#fff; border-radius:32px; padding:34px 40px 30px; border-right:14px solid var(--c); }
+  .card h2 { font:800 72px 'B'; color:var(--c); line-height:1.1; }
+  .card p { font:700 42px 'B'; line-height:1.35; margin-top:10px; }
   .card .icons { display:flex; gap:48px; justify-content:center; margin-top:18px; }
   .icon { text-align:center; font:700 36px 'B'; color:#6A6153; }
-  .icon svg { width:128px; height:128px; display:block; margin:0 auto 4px; overflow:visible; }
+  .icon svg { width:112px; height:112px; display:block; margin:0 auto 4px; overflow:visible; }
   #c0 { --c:var(--dg); } #c1 { --c:var(--g); } #c2 { --c:var(--gold); } #c3 { --c:var(--blue); }
-  #three { left:1140px; top:250px; width:200px; height:200px; border-radius:50%; background:var(--gold); color:#fff; font:800 150px 'B'; display:flex; align-items:center; justify-content:center; line-height:1; }
-  #ribbon { left:960px; top:260px; width:500px; text-align:center; }
+  #three { left:1060px; top:250px; width:200px; height:200px; border-radius:50%; background:var(--gold); color:#fff; font:800 150px 'B'; display:flex; align-items:center; justify-content:center; line-height:1; }
+  #ribbon { left:880px; top:260px; width:500px; text-align:center; }
   #ribbon p { font:700 46px 'B'; color:var(--dg); margin-bottom:14px; }
   #ribbon div { display:inline-block; white-space:nowrap; background:var(--roof); color:#fff; font:800 58px 'B'; padding:16px 42px 26px; border-radius:22px; }
-  #remember { left:980px; top:150px; width:470px; text-align:center; font:700 64px 'K'; color:var(--roof); }
-  .chip { position:absolute; left:1000px; width:440px; height:108px; border-radius:56px; display:flex; align-items:center; gap:22px; padding:0 30px; color:#fff; font:800 58px 'B'; }
+  #remember { left:900px; top:150px; width:460px; text-align:center; font:700 64px 'K'; color:var(--roof); }
+  .chip { position:absolute; left:920px; width:420px; height:108px; border-radius:56px; display:flex; align-items:center; gap:22px; padding:0 30px; color:#fff; font:800 58px 'B'; }
   .chip i { width:58px; height:58px; border-radius:50%; background:#fff; display:inline-flex; align-items:center; justify-content:center; font:800 36px 'B'; font-style:normal; color:var(--dg); }
   #k1 { top:290px; background:var(--g); } #k2 { top:430px; background:var(--gold); } #k3 { top:570px; background:var(--blue); }
 
@@ -66,7 +66,7 @@
   /* الطفل المقدّم */
   #boy { position:absolute; left:1289px; top:0; width:783px; height:1712px; transform-origin:391px 1712px; }
   #body { position:absolute; left:0; top:737px; }
-  #headw { position:absolute; left:0; top:0; width:783px; height:795px; transform-origin:317px 782px; }
+  #headw { position:absolute; left:0; top:0; width:783px; height:795px; transform-origin:349px 789px; }
   #headw img, #headw svg { position:absolute; left:0; top:0; width:783px; height:795px; }
   #shadow { position:absolute; left:1530px; top:1022px; width:300px; height:40px; border-radius:50%; background:rgba(30,60,40,.28); filter:blur(6px); }
   #bubble { left:1150px; top:190px; }
@@ -135,6 +135,10 @@
 
     <!-- المقدّم -->
     <svg id="arrow" class="abs" viewBox="0 0 1920 1080"><path id="arrp" pathLength="1" d="" fill="none" stroke="#1F5C4A" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 1"/><path id="arrh" d="" fill="#1F5C4A"/></svg>
+  </div>
+
+  <!-- المقدّم خارج الكاميرا: لا يقصّه الزوم أبدًا -->
+  <div id="presenter" class="L" style="pointer-events:none">
     <div id="shadow"></div>
     <div id="boy">
       <img id="body" src="assets/boy_body.png" alt="">
@@ -287,10 +291,10 @@ window.renderAt = async function (t) {
   lean += -3 * Math.sin(Math.PI * clamp((t - E.k1 + .2) / 3.4));
   const bob = Math.sin(t * 2.1) * 4 + talk * 6;
   const S = .44;
-  set($('#boy'), { x: (1 - inS) * 700, y: (1045 - 1712) - hop - bob * .3, s: S, r: lean });   // القدمان على الأرض عند y=1045
+  set($('#boy'), { x: (1 - inS) * 700, y: (1035 - 1712) - hop - bob * .3, s: S, r: lean });   // القدمان على الأرض عند y=1045
   set($('#shadow'), { x: (1 - inS) * 700, sx: 1 - hop / 300, o: .9 });
-  const nod = talk * 4 + Math.sin(t * 1.3) * 1.5;
-  const tilt = Math.sin(t * 1.7) * (1.5 + talk * 3) + (t > E.bravo ? 5 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
+  const nod = talk * 3 + Math.sin(t * 1.3) * 1;
+  const tilt = Math.sin(t * 1.7) * (1 + talk * 2) + (t > E.bravo ? 3 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
   $('#headw').style.transform = `translate(0px, ${-nod}px) rotate(${tilt}deg)`;
   // الفم: يفتح مع غلاف الصوت؛ في الصمت تبقى ابتسامة الرسم الأصلية
   const mo = clamp((e - .06) * 1.25);
