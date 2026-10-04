@@ -380,12 +380,12 @@ export function AppearanceEditor(p: Props) {
                         </Field>
                       </div>
                     )}
-                    {['new', 'offers', 'bundles', 'featured', 'categories'].includes(s.type) && (
+                    {['new', 'offers', 'bundles', 'featured', 'categories', 'rail'].includes(s.type) && (
                       <div className="a-form a-form--3">
                         <Field label="عدد العناصر">
                           <NumInput value={s.limit} min={1} max={48} onChange={(v) => setSection(s.id, { limit: v || 8 })} />
                         </Field>
-                        {s.type !== 'categories' && (
+                        {s.type !== 'categories' && s.type !== 'rail' && (
                           <Field label="طريقة العرض">
                             <select className="a-select" value={s.layout} onChange={(e) => setSection(s.id, { layout: e.target.value as 'carousel' | 'grid' })}>
                               <option value="carousel">شريط أفقي بالسحب</option>
@@ -413,8 +413,13 @@ export function AppearanceEditor(p: Props) {
                         </select>
                       </Field>
                     )}
-                    {s.type === 'featured' && (
-                      <Field label="المنتجات المميزة (بالترتيب)">
+                    {s.type === 'rail' && (
+                      <p className="small muted" style={{ margin: 0 }}>
+                        تُعرض القطع معلقة على عمود: تمرير المؤشر يديرها لتواجه الزائر، والضغط يفتح عرضاً مكبراً مع الأمام والخلف. اترك قائمة المنتجات فارغة لعرض أحدث المنتجات. لأجمل مظهر ارفع لكل منتج «صورة الشماعة» بخلفية شفافة (PNG) وحدد «صورة الخلف» من صفحة المنتج ← الصور.
+                      </p>
+                    )}
+                    {(s.type === 'featured' || s.type === 'rail') && (
+                      <Field label={s.type === 'rail' ? 'منتجات الشماعة (بالترتيب، اختياري)' : 'المنتجات المميزة (بالترتيب)'}>
                         <div className="a-row">
                           {s.productIds.map((id) => (
                             <span key={id} className="a-badge" style={{ fontSize: '0.85rem', padding: '0.2rem 0.6rem' }}>

@@ -256,7 +256,46 @@ export function Pager({ page, pages, onPage }: { page: number; pages: number; on
 }
 
 // ===== رفع الصور =====
+const MAX_UPLOAD = 5 * 1024 * 1024
+const MAX_SIDE = 2400
+
+/** تصغير الصور الكبيرة في المتصفح قبل الرفع (حد الاستضافة ~6 ميجابايت للطلب) مع الحفاظ على الشفافية */
+async function shrinkImage(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') return file
+  let bmp: ImageBitmap
+  try {
+    bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  } catch {
+    return file
+  }
+  const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height))
+  if (scale === 1 && file.size <= MAX_UPLOAD) {
+    bmp.close()
+    return file
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(bmp.width * scale)
+  canvas.height = Math.round(bmp.height * scale)
+  canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+  bmp.close()
+  const toBlob = (type: string, q?: number) => new Promise<Blob | null>((res) => canvas.toBlob(res, type, q))
+  let blob = await toBlob('image/webp', 0.9)
+  // بعض المتصفحات لا تدعم WEBP: PNG للصور الشفافة وJPEG لغيرها
+  if (!blob || blob.type !== 'image/webp') blob = file.type === 'image/png' ? await toBlob('image/png') : await toBlob('image/jpeg', 0.9)
+  if (!blob) return file
+  return new File([blob], file.name.replace(/\.\w+$/, '') + (blob.type === 'image/png' ? '.png' : blob.type === 'image/jpeg' ? '.jpg' : '.webp'), { type: blob.type })
+}
+
+/** يجهّز الملف للرفع: يصغّر الصور الكبيرة ويرفض ما يتجاوز الحد */
+export async function prepareUpload(file: File): Promise<File> {
+  const f = await shrinkImage(file)
+  if (f.size > MAX_UPLOAD + 512 * 1024) throw new Error('حجم الملف أكبر من 5 ميجابايت')
+  return f
+}
+
 export async function uploadFile(file: File, kind: 'image' | 'favicon' | 'font' = 'image', purpose = 'product') {
+  if (kind !== 'font') file = await prepareUpload(file)
+  else if (file.size > MAX_UPLOAD + 512 * 1024) throw new Error('حجم الملف أكبر من 5 ميجابايت')
   const fd = new FormData()
   fd.append('file', file)
   fd.append('kind', kind)
@@ -355,11 +394,16 @@ export function SortableList<T>({ items, getId, onReorder, render, grid }: { ite
 }
 
 /** مدير صور متعددة مع الرفع والسحب للترتيب */
+type ManagedImage = { mediaId: number; url: string; alt?: string | null; optionValue?: string | null; role?: 'rail' | 'back' | null }
+
 export function ImagesManager({ images, onChange, optionValues }: {
-  images: { mediaId: number; url: string; alt?: string | null; optionValue?: string | null }[]
-  onChange: (imgs: { mediaId: number; url: string; alt?: string | null; optionValue?: string | null }[]) => void
+  images: ManagedImage[]
+  onChange: (imgs: ManagedImage[]) => void
   optionValues: string[]
 }) {
+  // صورة واحدة فقط لكل دور (الشماعة / الخلف)
+  const setRole = (id: number, role: ManagedImage['role']) =>
+    onChange(images.map((x) => (x.mediaId === id ? { ...x, role } : role && x.role === role ? { ...x, role: null } : x)))
   const { toast } = useAdmin()
   const [busy, setBusy] = useState(0)
   const [over, setOver] = useState(false)
@@ -391,9 +435,15 @@ export function ImagesManager({ images, onChange, optionValues }: {
           getId={(i) => i.mediaId}
           onReorder={onChange}
           render={(im, handle, i) => (
-            <div className="a-image">
-              {i === 0 && <span className="main-tag">الرئيسية</span>}
+            <div className={`a-image ${im.role === 'rail' ? 'a-image--rail' : ''}`}>
+              {i === 0 && im.role !== 'rail' && <span className="main-tag">الرئيسية</span>}
+              {im.role && <span className="main-tag main-tag--role">{im.role === 'rail' ? 'الشماعة' : 'الخلف'}</span>}
               <img src={im.url} alt="" />
+              <select className="a-image__role" aria-label="استخدام الصورة" value={im.role || ''} onChange={(e) => setRole(im.mediaId, (e.target.value || null) as ManagedImage['role'])}>
+                <option value="">صورة عادية</option>
+                <option value="rail">صورة الشماعة (الأمام بخلفية شفافة)</option>
+                <option value="back">صورة الخلف</option>
+              </select>
               <div className="a-image__bar">
                 {handle}
                 {optionValues.length > 0 && (

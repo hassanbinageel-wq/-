@@ -20,7 +20,7 @@ export type EditorRefs = {
 }
 
 type Variant = NonNullable<ProductInput['variants']>[number]
-type Img = { mediaId: number; url: string; alt?: string | null; optionValue?: string | null }
+type Img = { mediaId: number; url: string; alt?: string | null; optionValue?: string | null; role?: 'rail' | 'back' | null }
 
 const blank = (type: ProductInput['type']): ProductInput => ({
   type,
@@ -137,7 +137,7 @@ export function ProductEditor({ initial, refs, isNew }: { initial: ProductInput 
         const body: ProductInput = {
           ...p,
           status: status || p.status,
-          images: images.map((i) => ({ mediaId: i.mediaId, alt: i.alt || p.name, optionValue: i.optionValue || null })),
+          images: images.map((i) => ({ mediaId: i.mediaId, alt: i.alt || p.name, optionValue: i.optionValue || null, role: i.role || null })),
           setContents: (p.setContents || []).filter(Boolean),
           personalization: p.personalization?.enabled ? p.personalization : null,
         }

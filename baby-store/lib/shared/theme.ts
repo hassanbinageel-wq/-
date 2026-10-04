@@ -170,6 +170,7 @@ export function defaultAppearance(): Appearance {
     },
     home: {
       sections: [
+        newSection('rail', { id: 'rail', title: 'على الشماعة', subtitle: 'قطع ناعمة لأجمل البدايات', limit: 10, buttonText: 'تسوق كل المنتجات', buttonLink: '/products' }),
         newSection('hero', {
           id: 'hero',
           banners: [

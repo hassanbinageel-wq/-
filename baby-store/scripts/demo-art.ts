@@ -1,7 +1,7 @@
 // رسومات توضيحية بسيطة للمنتجات التجريبية (تُحول إلى صور WEBP عند التهيئة)
 // ليست صوراً حقيقية لمنتجات — تُستبدل بصور المنتجات الفعلية من لوحة التحكم
 
-type Art = 'onesie' | 'pajama' | 'hat' | 'socks' | 'bib' | 'blanket' | 'mittens' | 'gift' | 'bear' | 'bottle' | 'booties' | 'set' | 'jacket'
+type Art = 'onesie' | 'pajama' | 'hat' | 'socks' | 'bib' | 'blanket' | 'mittens' | 'gift' | 'bear' | 'bottle' | 'booties' | 'set' | 'jacket' | 'dress' | 'romper' | 'onesie-long'
 
 function shade(hex: string, amt: number): string {
   const n = parseInt(hex.slice(1), 16)
@@ -154,6 +154,102 @@ function jacket(c: string, accent: string) {
   ${star(150, 180, 14, accent)}`
 }
 
+function onesieBack(c: string, accent: string, longSleeves = false) {
+  const dark = shade(c, -28)
+  // نفس القصّة من الخلف: رقبة أعلى، ملصق صغير، ورسمة غيمة
+  return onesie(c, accent, longSleeves)
+    .replace(/<path d="M138 118 Q170 150 200 150 Q230 150 262 118"[^>]*\/>/, `<path d="M138 118 Q170 134 200 134 Q230 134 262 118" fill="none" stroke="${dark}" stroke-width="5"/>`)
+    .replace(/<polygon[^>]*\/>/, '')
+    .replace(/<circle cx="160" cy="215"[^>]*\/>/, '')
+    .replace(/<circle cx="246" cy="350"[^>]*\/>/, '') +
+    `<rect x="188" y="134" width="24" height="15" rx="3" fill="#FFFDF8" stroke="${dark}" stroke-width="2"/>
+     ${cloud(152, 300, 0.85, '#FFFFFF', 0.95)}${star(262, 250, 11, accent)}`
+}
+
+function pajamaBack(c: string, accent: string) {
+  const dark = shade(c, -28)
+  return `<path d="M120 100 L40 190 L40 300 Q40 316 56 316 L76 316 Q92 316 94 300 L104 210 Z" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  <path d="M280 100 L360 190 L360 300 Q360 316 344 316 L324 316 Q308 316 306 300 L296 210 Z" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  <path d="M120 92 Q160 112 200 112 Q240 112 280 92 L300 105 L300 470 Q300 488 282 488 L222 488 Q210 488 208 470 L200 380 L192 470 Q190 488 178 488 L118 488 Q100 488 100 470 L100 105 Z" fill="${c}" stroke="${dark}" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M215 170 a44 44 0 1 0 38 68 a34 34 0 1 1 -38 -68z" fill="${accent}"/>
+  ${star(150, 300, 14, accent)}${star(245, 330, 12, accent)}${star(165, 430, 10, accent)}${star(255, 440, 10, accent)}`
+}
+
+function jacketBack(c: string, accent: string) {
+  const dark = shade(c, -28)
+  return `<path d="M120 110 L40 200 L40 330 Q40 348 58 348 L80 348 Q96 348 98 330 L104 230 Z" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  <path d="M280 110 L360 200 L360 330 Q360 348 342 348 L320 348 Q304 348 302 330 L296 230 Z" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  <path d="M120 100 Q200 70 280 100 L300 115 L300 420 Q300 440 280 440 L120 440 Q100 440 100 420 L100 115 Z" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  <path d="M132 100 Q200 30 268 100 Q268 190 200 196 Q132 190 132 100 Z" fill="${shade(c, 10)}" stroke="${dark}" stroke-width="5"/>
+  <circle cx="160" cy="62" r="16" fill="${c}" stroke="${dark}" stroke-width="5"/><circle cx="240" cy="62" r="16" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  ${[250, 310, 370].map((y) => `<path d="M100 ${y} Q200 ${y + 14} 300 ${y}" fill="none" stroke="${dark}" stroke-width="3" opacity=".45"/>`).join('')}
+  ${star(200, 300, 22, accent)}`
+}
+
+function dress(c: string, accent: string, back = false) {
+  const dark = shade(c, -28)
+  let hem = ''
+  for (let x = 64; x < 336; x += 34) hem += `<path d="M${x} 428 q17 22 34 0" fill="${shade(c, 12)}" stroke="${dark}" stroke-width="4"/>`
+  const front = `${star(150, 320, 13, accent)}${star(250, 360, 13, accent)}${star(205, 290, 10, accent)}${star(120, 400, 9, accent)}${star(282, 410, 9, accent)}`
+  const backPart = `${[150, 175, 200].map((y) => `<circle cx="200" cy="${y}" r="6" fill="#FFFDF8" stroke="${dark}" stroke-width="3"/>`).join('')}
+    <path d="M200 216 C160 190 150 250 200 228 C250 250 240 190 200 216 Z" fill="${accent}" stroke="${shade(accent, -30)}" stroke-width="4"/>
+    <path d="M196 228 L182 270 M204 228 L218 270" stroke="${shade(accent, -30)}" stroke-width="6" stroke-linecap="round"/>`
+  return `<ellipse cx="116" cy="140" rx="34" ry="28" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  <ellipse cx="284" cy="140" rx="34" ry="28" fill="${c}" stroke="${dark}" stroke-width="5"/>
+  <path d="M130 214 L270 214 L340 430 Q200 456 60 430 Z" fill="${c}" stroke="${dark}" stroke-width="5" stroke-linejoin="round"/>
+  ${hem}
+  <path d="M140 110 Q200 ${back ? 128 : 146} 260 110 L280 124 L272 218 L128 218 L120 124 Z" fill="${shade(c, 6)}" stroke="${dark}" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M150 112 Q200 ${back ? 128 : 146} 250 112" fill="none" stroke="${dark}" stroke-width="4"/>
+  <rect x="126" y="206" width="148" height="18" rx="9" fill="${accent}" stroke="${shade(accent, -30)}" stroke-width="3"/>
+  ${back ? backPart : `${front}<path d="M200 214 C176 196 168 232 200 222 C232 232 224 196 200 214 Z" fill="${accent}" stroke="${shade(accent, -30)}" stroke-width="3"/>`}`
+}
+
+function romper(c: string, accent: string, back = false) {
+  const dark = shade(c, -28)
+  const straps = back
+    ? `<path d="M150 92 L250 170 M250 92 L150 170" stroke="${shade(c, -12)}" stroke-width="22" stroke-linecap="round"/>
+       <path d="M150 92 L250 170 M250 92 L150 170" stroke="${dark}" stroke-width="3" fill="none" opacity=".35"/>`
+    : `<rect x="140" y="88" width="24" height="70" rx="10" fill="${shade(c, -12)}" stroke="${dark}" stroke-width="4"/>
+       <rect x="236" y="88" width="24" height="70" rx="10" fill="${shade(c, -12)}" stroke="${dark}" stroke-width="4"/>`
+  const front = `<circle cx="152" cy="160" r="8" fill="#FFFDF8" stroke="${dark}" stroke-width="3"/><circle cx="248" cy="160" r="8" fill="#FFFDF8" stroke="${dark}" stroke-width="3"/>
+    <rect x="164" y="190" width="72" height="58" rx="12" fill="${shade(c, 10)}" stroke="${dark}" stroke-width="4"/>${star(200, 219, 15, accent)}`
+  const backPart = `<path d="M200 300 c-14 -16 -40 0 -26 18 l26 24 l26 -24 c14 -18 -12 -34 -26 -18z" fill="${accent}"/>`
+  return `${straps}
+  <path d="M130 150 L270 150 L284 300 Q300 356 262 376 L216 396 L200 372 L184 396 L138 376 Q100 356 116 300 Z" fill="${c}" stroke="${dark}" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M138 376 L150 350 M262 376 L250 350" stroke="${dark}" stroke-width="3" opacity=".5"/>
+  ${back ? backPart : front}`
+}
+
+type View = 'front' | 'back'
+const CROPS: Partial<Record<Art, string>> = {
+  onesie: '36 96 328 386',
+  'onesie-long': '30 96 340 386',
+  pajama: '30 84 340 414',
+  jacket: '30 26 340 422',
+  dress: '56 100 288 362',
+  romper: '96 76 208 330',
+  bib: '60 82 280 366',
+}
+
+/** رسم قطعة بخلفية شفافة (لعرض «على الشماعة») — الأمام أو الخلف */
+export function garmentSvg(art: Art, color: string, accent: string, view: View = 'front'): string {
+  let body = ''
+  const back = view === 'back'
+  switch (art) {
+    case 'onesie': body = back ? onesieBack(color, accent) : onesie(color, accent); break
+    case 'onesie-long': body = back ? onesieBack(color, accent, true) : onesie(color, accent, true); break
+    case 'pajama': body = back ? pajamaBack(color, accent) : pajama(color, accent); break
+    case 'jacket': body = back ? jacketBack(color, accent) : jacket(color, accent); break
+    case 'dress': body = dress(color, accent, back); break
+    case 'romper': body = romper(color, accent, back); break
+    case 'bib': body = bib(color, accent); break
+    default: body = onesie(color, accent)
+  }
+  const vb = CROPS[art] || '30 90 340 400'
+  const [, , w, h] = vb.split(' ').map(Number)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w * 3}" height="${h * 3}" viewBox="${vb}">${body}</svg>`
+}
+
 export function demoSvg(art: Art, color: string, accent: string, bg: string): string {
   let body = ''
   switch (art) {
@@ -169,6 +265,9 @@ export function demoSvg(art: Art, color: string, accent: string, bg: string): st
     case 'bottle': body = bottle(color, accent); break
     case 'booties': body = bootie(10, color, accent) + bootie(190, shade(color, 6), accent); break
     case 'jacket': body = jacket(color, accent); break
+    case 'dress': body = dress(color, accent); break
+    case 'romper': body = `<g transform="translate(-20 30) scale(1.1)">${romper(color, accent)}</g>`; break
+    case 'onesie-long': body = onesie(color, accent, true); break
     case 'set':
       body = `<g transform="translate(-30 40) scale(.7)">${onesie(color, accent, true)}</g>
               <g transform="translate(210 0) scale(.5)">${hat(color, accent)}</g>

@@ -83,6 +83,6 @@ export async function readFile(req: Request, field = 'file'): Promise<{ buf: Buf
   const f = form.get(field)
   if (!f || typeof f === 'string') throw new ApiError(400, 'لم يتم اختيار ملف')
   const file = f as File
-  if (file.size > 12 * 1024 * 1024) throw new ApiError(413, 'حجم الملف أكبر من 12 ميجابايت')
+  if (file.size > 6 * 1024 * 1024) throw new ApiError(413, 'حجم الملف أكبر من 5 ميجابايت')
   return { buf: Buffer.from(await file.arrayBuffer()), name: file.name || 'file', form }
 }

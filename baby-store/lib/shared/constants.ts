@@ -70,6 +70,7 @@ export const TRANSFER_TYPE_LABELS: Record<string, string> = {
 }
 
 export const HOME_SECTION_TYPES = {
+  rail: 'على الشماعة (عرض تفاعلي)',
   hero: 'البنرات الرئيسية',
   categories: 'أقسام المتجر',
   tag_group: 'تسوق حسب (العمر / المناسبة)',

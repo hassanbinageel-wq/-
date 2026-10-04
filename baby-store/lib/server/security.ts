@@ -60,8 +60,16 @@ export async function cleanupRateLimits() {
 }
 
 // ===== عنوان IP =====
+/** نعمل على Netlify؟ (الدوال تعمل على AWS Lambda) */
+export const onNetlify = () => !!(process.env.NETLIFY || process.env.SITE_ID || process.env.AWS_LAMBDA_FUNCTION_NAME)
+
 export function clientIp(headers: Headers): string {
-  if (process.env.TRUST_PROXY === '1') {
+  // Netlify تضع عنوان الزائر الحقيقي في هذا الترويسة ولا يمكن للزائر تزويرها
+  if (onNetlify()) {
+    const nf = headers.get('x-nf-client-connection-ip')
+    if (nf) return nf.trim()
+  }
+  if (process.env.TRUST_PROXY === '1' || onNetlify()) {
     const xff = headers.get('x-forwarded-for')
     if (xff) return xff.split(',')[0].trim()
     const real = headers.get('x-real-ip') || headers.get('cf-connecting-ip')

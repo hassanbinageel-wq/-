@@ -10,6 +10,7 @@ import type {
   ProductCard,
   ProductDetail,
   ProductOption,
+  RailItem,
   VariantPublic,
 } from '../shared/types'
 
@@ -116,17 +117,18 @@ export async function getBundleItems(bundleId: number): Promise<BundleItemRow[]>
   return await db().prepare('SELECT * FROM bundle_items WHERE bundle_id=? ORDER BY sort, id').all(bundleId) as BundleItemRow[]
 }
 
-type ImgRow = { product_id: number; media_id: number; alt: string | null; option_value: string | null }
+type ImgRow = { product_id: number; media_id: number; alt: string | null; option_value: string | null; role: string | null }
 
+/** صور المنتجات للبطاقات والمعرض (صور الشماعة المخصصة لا تظهر فيها) */
 async function productImages(productIds: number[]): Promise<Map<number, ImageRef[]>> {
   const map = new Map<number, ImageRef[]>()
   if (!productIds.length) return map
   const rows = await db()
-      .prepare(
-        `SELECT pi.product_id, pi.media_id, pi.alt, pi.option_value, m.* FROM product_images pi JOIN media m ON m.id=pi.media_id
-       WHERE pi.product_id IN (${productIds.map(() => '?').join(',')}) ORDER BY pi.product_id, pi.sort, pi.id`,
-      )
-      .all(...productIds) as (ImgRow & MediaRow)[]
+    .prepare(
+      `SELECT pi.product_id, pi.media_id, pi.alt, pi.option_value, pi.role, m.* FROM product_images pi JOIN media m ON m.id=pi.media_id
+       WHERE pi.product_id IN (${productIds.map(() => '?').join(',')}) AND pi.role IS DISTINCT FROM 'rail' ORDER BY pi.product_id, pi.sort, pi.id`,
+    )
+    .all(...productIds) as (ImgRow & MediaRow)[]
   for (const r of rows) {
     const ref = imageRef({ ...r, id: r.media_id }, r.alt || '', r.option_value, 640)
     if (!ref) continue
@@ -134,6 +136,59 @@ async function productImages(productIds: number[]): Promise<Map<number, ImageRef
     map.get(r.product_id)!.push(ref)
   }
   return map
+}
+
+/**
+ * عناصر قسم «على الشماعة»: صورة الأمام (صورة الشماعة إن وُجدت، وإلا الصورة الرئيسية) وصورة الخلف إن حُددت.
+ * productIds فارغة = أحدث المنتجات المنشورة.
+ */
+export async function railItems(productIds: number[], limit: number): Promise<RailItem[]> {
+  const idx = await catalogIndex()
+  const max = Math.max(1, Math.min(24, limit || 10))
+  const chosen = productIds.length
+    ? productIds.map((id) => idx.byId.get(id)).filter((x): x is IndexedProduct => !!x)
+    : [...idx.items].sort((a, b) => Number(b.card.available) - Number(a.card.available) || b.createdAt - a.createdAt)
+  const list = chosen.slice(0, max * 2)
+  if (!list.length) return []
+  const ids = list.map((x) => x.row.id)
+  const rows = await db()
+    .prepare(
+      `SELECT pi.product_id, pi.media_id, pi.alt, pi.option_value, pi.role, m.* FROM product_images pi JOIN media m ON m.id=pi.media_id
+       WHERE pi.product_id IN (${ids.map(() => '?').join(',')}) ORDER BY pi.product_id, pi.sort, pi.id`,
+    )
+    .all<ImgRow & MediaRow>(...ids)
+  const byProduct = new Map<number, (ImgRow & MediaRow)[]>()
+  for (const r of rows) {
+    if (!byProduct.has(r.product_id)) byProduct.set(r.product_id, [])
+    byProduct.get(r.product_id)!.push(r)
+  }
+  const items: RailItem[] = []
+  for (const x of list) {
+    const imgs = byProduct.get(x.row.id) || []
+    const rail = imgs.find((r) => r.role === 'rail')
+    const front = rail || imgs.find((r) => r.role !== 'back') || imgs[0]
+    const back = imgs.find((r) => r.role === 'back' && r !== front)
+    const frontRef = front ? imageRef({ ...front, id: front.media_id }, front.alt || x.card.name, null, 800) : null
+    if (!frontRef) continue
+    const nc = x.colors.length
+    const colors = nc === 2 ? 'لونان' : nc > 10 ? `${nc} لوناً` : nc > 2 ? `${nc} ألوان` : x.colors[0] || ''
+    items.push({
+      id: x.row.id,
+      slug: x.card.slug,
+      name: x.card.name,
+      subtitle: [x.card.categoryName, colors].filter(Boolean).join(' · '),
+      price: x.card.price,
+      compareAt: x.card.compareAt,
+      priceFrom: x.card.priceFrom,
+      available: x.card.available,
+      front: frontRef,
+      back: back ? imageRef({ ...back, id: back.media_id }, back.alt || x.card.name, null, 800) : null,
+      cutout: !!rail,
+      isDemo: x.card.isDemo,
+    })
+    if (items.length >= max) break
+  }
+  return items
 }
 
 // ===== فهرس الكتالوج (في الذاكرة لسرعة التصفية والبحث) =====

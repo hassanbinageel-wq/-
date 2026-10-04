@@ -1,0 +1,10 @@
+# نشر متجر المواليد (مجلد baby-store) على Netlify — الخطة المجانية
+# المتغير المطلوب في إعدادات الموقع على Netlify: DATABASE_URL (رابط قاعدة Supabase)
+[build]
+  base = "baby-store"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"

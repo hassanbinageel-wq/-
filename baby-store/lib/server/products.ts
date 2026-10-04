@@ -5,7 +5,7 @@ import { getSetting } from './settings'
 import { ApiError } from './errors'
 import { deleteMediaFiles, type MediaRow } from './media'
 import { slugify } from '../shared/arabic'
-import type { Personalization, ProductOption } from '../shared/types'
+import type { ImageRole, Personalization, ProductOption } from '../shared/types'
 
 export type ProductInput = {
   id?: number | null
@@ -29,7 +29,7 @@ export type ProductInput = {
   maxPerOrder?: number | null
   options?: ProductOption[]
   variants?: { id?: number | null; sku?: string | null; options: (string | null)[]; price?: number | null; salePrice?: number | null; stock: number; active: boolean }[]
-  images?: { mediaId: number; alt?: string | null; optionValue?: string | null }[]
+  images?: { mediaId: number; alt?: string | null; optionValue?: string | null; role?: ImageRole }[]
   material?: string | null
   careInstructions?: string | null
   sizeGuideId?: number | null
@@ -256,10 +256,11 @@ export async function saveProduct(input: ProductInput, actor: Actor): Promise<nu
     // الصور
     if (input.images) {
       await d.prepare('DELETE FROM product_images WHERE product_id=?').run(id)
-      const ins = d.prepare('INSERT INTO product_images(product_id,media_id,alt,option_value,sort) VALUES(?,?,?,?,?)')
+      const ins = d.prepare('INSERT INTO product_images(product_id,media_id,alt,option_value,sort,role) VALUES(?,?,?,?,?,?)')
       for (const [i, im] of input.images.slice(0, 30).entries()) {
         const m = await d.prepare("SELECT id FROM media WHERE id=? AND kind='public'").get(im.mediaId)
-        if (m) await ins.run(id, im.mediaId, t(im.alt, 200), t(im.optionValue, 40), i)
+        const role = im.role === 'rail' || im.role === 'back' ? im.role : null
+        if (m) await ins.run(id, im.mediaId, t(im.alt, 200), t(im.optionValue, 40), i, role)
       }
     }
 
@@ -315,8 +316,8 @@ export async function productToInput(id: number): Promise<ProductInput | null> {
   const p = await getProductRow(id)
   if (!p) return null
   const variants = await d.prepare('SELECT * FROM variants WHERE product_id=? ORDER BY sort, id').all(id) as VariantRow[]
-  const images = await d.prepare('SELECT media_id, alt, option_value FROM product_images WHERE product_id=? ORDER BY sort, id').all(id) as {
-    media_id: number; alt: string | null; option_value: string | null
+  const images = await d.prepare('SELECT media_id, alt, option_value, role FROM product_images WHERE product_id=? ORDER BY sort, id').all(id) as {
+    media_id: number; alt: string | null; option_value: string | null; role: string | null
   }[]
   const tags = (await d.prepare('SELECT tag_id FROM product_tags WHERE product_id=?').all(id) as { tag_id: number }[]).map((r) => r.tag_id)
   const rel = await d.prepare('SELECT related_id, kind FROM product_relations WHERE product_id=? ORDER BY sort').all(id) as { related_id: number; kind: string }[]
@@ -345,7 +346,7 @@ export async function productToInput(id: number): Promise<ProductInput | null> {
     maxPerOrder: p.max_per_order,
     options: parseJson<ProductOption[]>(p.options, []),
     variants: variants.map((v) => ({ id: v.id, sku: v.sku, options: [v.option1, v.option2, v.option3], price: v.price, salePrice: v.sale_price, stock: v.stock, active: !!v.active })),
-    images: images.map((i) => ({ mediaId: i.media_id, alt: i.alt, optionValue: i.option_value })),
+    images: images.map((i) => ({ mediaId: i.media_id, alt: i.alt, optionValue: i.option_value, role: (i.role as ImageRole) || null })),
     material: p.material,
     careInstructions: p.care_instructions,
     sizeGuideId: p.size_guide_id,

@@ -5,7 +5,7 @@ import { useState } from 'react'
 import {
   Printer, Gift, MessageCircle, Copy, ExternalLink, Clock, AlertTriangle, RefreshCw, Trash2, Upload, Truck, RotateCcw, Ban, FileText, Image as ImageIcon, MapPin, User,
 } from 'lucide-react'
-import { api, useAction, useAdmin, Field, MoneyInput, Modal, OrderStatusBadge, PaymentStatusBadge, confirmAction } from './ui'
+import { api, useAction, useAdmin, Field, MoneyInput, Modal, OrderStatusBadge, PaymentStatusBadge, confirmAction, prepareUpload } from './ui'
 import { ORDER_STATUSES, ORDER_STATUS_LABELS, PAYMENT_STATUSES, PAYMENT_STATUS_LABELS, STOCK_STATE_LABELS, FULFILLMENT_LABELS } from '@/lib/shared/constants'
 import { formatDateTime, relativeHours, toDate } from '@/lib/shared/dates'
 import { formatIntl, waLink } from '@/lib/shared/phone'
@@ -643,10 +643,12 @@ function AttachmentUpload({ orderId }: { orderId: number }) {
         onChange={(e) => {
           const f = e.target.files?.[0]
           if (!f) return
-          const fd = new FormData()
-          fd.append('file', f)
-          fd.append('label', 'سند تحويل')
-          run(() => api('POST', `orders/${orderId}/attachments`, fd), 'تم إرفاق السند')
+          run(async () => {
+            const fd = new FormData()
+            fd.append('file', await prepareUpload(f))
+            fd.append('label', 'سند تحويل')
+            return api('POST', `orders/${orderId}/attachments`, fd)
+          }, 'تم إرفاق السند')
           e.target.value = ''
         }}
       />
@@ -664,7 +666,7 @@ function PaymentModal({ o, methods, remaining, onClose }: { o: OrderRow; methods
       let attachmentId: number | null = null
       if (file) {
         const fd = new FormData()
-        fd.append('file', file)
+        fd.append('file', await prepareUpload(file))
         fd.append('label', 'سند تحويل')
         attachmentId = (await api<{ id: number }>('POST', `orders/${o.id}/attachments`, fd)).id
       }

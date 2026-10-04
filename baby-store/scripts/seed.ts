@@ -1,13 +1,12 @@
 // تهيئة المتجر: الصفحات والأسئلة والأقسام، مع بيانات تجريبية واضحة (يمكن حذفها من لوحة التحكم)
 // الاستخدام: npm run db:seed            (مع منتجات تجريبية)
 //           npm run db:seed -- --no-demo (هيكل المتجر فقط)
-import sharp from 'sharp'
 import { db } from '../lib/server/db'
 import { ensureAppearance, getPublishedAppearance } from '../lib/server/appearance'
-import { saveImage } from '../lib/server/media'
+import { demoMedia } from './demo-media'
 import { saveProduct } from '../lib/server/products'
 import { getVariants } from '../lib/server/catalog'
-import { demoSvg, bannerSvg, bannerSvgMobile, type Art } from './demo-art'
+import { demoSvg, bannerSvg, bannerSvgMobile, garmentSvg, type Art } from './demo-art'
 import type { ProductOption } from '../lib/shared/types'
 
 const withDemo = !process.argv.includes('--no-demo')
@@ -16,8 +15,14 @@ const actor = { id: 0, name: 'التهيئة' }
 const Y = (n: number) => n * 100 // ريال → سنت
 
 async function art(a: Art, color: string, accent: string, bg: string, purpose = 'product') {
-  const png = await sharp(Buffer.from(demoSvg(a, color, accent, bg))).png().toBuffer()
-  return saveImage(png, { purpose, isDemo: true, originalName: `demo-${a}.png` })
+  return demoMedia(demoSvg(a, color, accent, bg), { name: a, purpose, widths: [400, 800] })
+}
+
+/** صورتا الشماعة (الأمام والخلف) بخلفية شفافة */
+async function railArt(a: Art, color: string, accent: string) {
+  const front = await demoMedia(garmentSvg(a, color, accent, 'front'), { name: `${a}-front`, purpose: 'product', widths: [400, 800] })
+  const back = await demoMedia(garmentSvg(a, color, accent, 'back'), { name: `${a}-back`, purpose: 'product', widths: [400, 800] })
+  return { front, back }
 }
 
 async function main() {
@@ -93,7 +98,11 @@ async function main() {
   const mint: [string, string] = ['نعناعي', '#CDE8D6']
 
   const ids: Record<string, number> = {}
-  type Def = Parameters<typeof saveProduct>[0] & { key: string; arts: { a: Art; c: string; acc: string; bg: string; opt?: string }[] }
+  type Def = Parameters<typeof saveProduct>[0] & {
+    key: string
+    arts: { a: Art; c: string; acc: string; bg: string; opt?: string }[]
+    rail?: { a: Art; c: string; acc: string }
+  }
   const variantsFor = (sizes: string[], colors: [string, string][], stock: (s: number, c: number) => number, price?: (s: number) => number | null) =>
     sizes.flatMap((s, si) =>
       colors.map((c, ci) => ({ options: [s, c[0]] as (string | null)[], stock: stock(si, ci), active: true, price: price ? price(si) : null })),
@@ -114,6 +123,7 @@ async function main() {
         { a: 'onesie', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA', opt: 'سماوي' },
         { a: 'onesie', c: '#F3E9D8', acc: '#F4C6D0', bg: '#FBF6EE', opt: 'كريمي' },
       ],
+      rail: { a: 'onesie', c: '#F4C6D0', acc: '#FFFFFF' },
     },
     {
       key: 'pajama', type: 'variable', name: 'بيجامة نوم بأزرار وطبعة قمر', status: 'published', price: Y(5500), salePrice: Y(4500), trackStock: true,
@@ -126,6 +136,7 @@ async function main() {
         { a: 'pajama', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA', opt: 'سماوي' },
         { a: 'pajama', c: '#CDE8D6', acc: '#FFFFFF', bg: '#EAF5EE', opt: 'نعناعي' },
       ],
+      rail: { a: 'pajama', c: '#BFDDF2', acc: '#FFE7A6' },
     },
     {
       key: 'welcome-set', type: 'simple', name: 'طقم استقبال المولود 5 قطع', status: 'published', price: Y(14500), trackStock: true, stock: 8,
@@ -136,6 +147,7 @@ async function main() {
       prepDaysMin: 1, prepDaysMax: 3,
       personalization: { enabled: true, label: 'اسم المولود للتطريز', placeholder: 'مثال: ليان', maxLength: 12, fee: Y(1500), extraDays: 2, required: false, help: 'يُطرز الاسم على البطانية' },
       arts: [{ a: 'set', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0' }, { a: 'blanket', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FBF6EE' }],
+      rail: { a: 'onesie-long', c: '#F4C6D0', acc: '#FFFFFF' },
     },
     {
       key: 'hospital-set', type: 'variable', name: 'طقم الخروج من المستشفى', status: 'published', price: Y(9500), trackStock: true,
@@ -146,6 +158,7 @@ async function main() {
       options: [sizeOpt(['0-3 أشهر', '3-6 أشهر'])],
       variants: [{ options: ['0-3 أشهر', null], stock: 5, active: true }, { options: ['3-6 أشهر', null], stock: 3, active: true }],
       arts: [{ a: 'set', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA' }],
+      rail: { a: 'onesie-long', c: '#BFDDF2', acc: '#FFE7A6' },
     },
     {
       key: 'hat', type: 'variable', name: 'قبعة قطنية ناعمة', status: 'published', price: Y(1800), trackStock: true,
@@ -173,6 +186,7 @@ async function main() {
       personalization: { enabled: true, label: 'اسم المولود', placeholder: 'مثال: يوسف', maxLength: 10, fee: Y(800), extraDays: 2, required: false, help: '' },
       prepDaysMin: 1, prepDaysMax: 2,
       arts: [{ a: 'bib', c: '#BFDDF2', acc: '#FFE7A6', bg: '#E8F3FA' }, { a: 'bib', c: '#F4C6D0', acc: '#FFFFFF', bg: '#FCEEF0' }],
+      rail: { a: 'bib', c: '#BFDDF2', acc: '#FFE7A6' },
     },
     {
       key: 'mittens', type: 'simple', name: 'قفازات حماية للمواليد', status: 'published', price: Y(1200), trackStock: true, stock: 2,
@@ -227,6 +241,25 @@ async function main() {
       options: [sizeOpt(['6-12 شهراً', '1-2 سنة'])],
       variants: [{ options: ['6-12 شهراً'], stock: 0, active: true }, { options: ['1-2 سنة'], stock: 0, active: true }],
       arts: [{ a: 'jacket', c: '#CDE8D6', acc: '#FFE7A6', bg: '#EAF5EE' }],
+      rail: { a: 'jacket', c: '#CDE8D6', acc: '#FFE7A6' },
+    },
+    {
+      key: 'dress', type: 'variable', name: 'فستان قطني بكشكش', status: 'published', price: Y(6000), trackStock: true,
+      categoryId: cats['baby-clothes'], tagIds: [tags['age-3-6'], tags['age-6-12'], tags['for-girls'], tags['occ-eid']],
+      shortDescription: 'فستان ناعم بأكمام منفوخة وشريطة على الخصر.',
+      description: 'فستان للمناسبات بكشكش عند الحافة وشريطة خلفية.\n\n> منتج تجريبي لعرض قسم «على الشماعة» مع صورتي الأمام والخلف.',
+      options: [sizeOpt(['3-6 أشهر', '6-12 شهراً'])],
+      variants: [{ options: ['3-6 أشهر'], stock: 4, active: true }, { options: ['6-12 شهراً'], stock: 3, active: true }],
+      arts: [{ a: 'dress', c: '#F7D3DC', acc: '#FFFFFF', bg: '#FCEEF0' }],
+      rail: { a: 'dress', c: '#F7D3DC', acc: '#FFFFFF' },
+    },
+    {
+      key: 'romper', type: 'simple', name: 'أوفرول قصير بحمالات', status: 'published', price: Y(4800), trackStock: true, stock: 6,
+      categoryId: cats['baby-clothes'], tagIds: [tags['age-6-12'], tags['age-12-24'], tags['for-all']],
+      shortDescription: 'أوفرول بجيب أمامي وحمالات متقاطعة من الخلف.',
+      description: 'أوفرول خفيف للعب اليومي.\n\n> منتج تجريبي.',
+      arts: [{ a: 'romper', c: '#F3E2C7', acc: '#F4C6D0', bg: '#FBF6EE' }],
+      rail: { a: 'romper', c: '#F3E2C7', acc: '#F4C6D0' },
     },
     {
       key: 'draft', type: 'simple', name: 'منتج مسودة (لا يظهر في المتجر)', status: 'draft', price: Y(1000), trackStock: true, stock: 5,
@@ -236,10 +269,16 @@ async function main() {
   ]
 
   for (const def of defs) {
-    const images: { mediaId: number; alt: string; optionValue: string | null }[] = []
+    const images: { mediaId: number; alt: string; optionValue: string | null; role?: 'rail' | 'back' }[] = []
     for (const a of def.arts) images.push({ mediaId: await art(a.a, a.c, a.acc, a.bg), alt: def.name, optionValue: a.opt || null })
-    const { key, arts, ...input } = def
+    if (def.rail) {
+      const r = await railArt(def.rail.a, def.rail.c, def.rail.acc)
+      images.push({ mediaId: r.front, alt: def.name, optionValue: null, role: 'rail' })
+      images.push({ mediaId: r.back, alt: `${def.name} — من الخلف`, optionValue: null, role: 'back' })
+    }
+    const { key, arts, rail, ...input } = def
     void arts
+    void rail
     ids[key] = await saveProduct({ ...input, images, isDemo: true }, actor)
   }
 
@@ -278,8 +317,9 @@ async function main() {
   for (const def of bundles) {
     const images: { mediaId: number; alt: string; optionValue: string | null }[] = []
     for (const a of def.arts) images.push({ mediaId: await art(a.a, a.c, a.acc, a.bg), alt: def.name, optionValue: null })
-    const { key, arts, ...input } = def
+    const { key, arts, rail, ...input } = def
     void arts
+    void rail
     ids[key] = await saveProduct({ ...input, images, isDemo: true }, actor)
   }
 
@@ -293,20 +333,19 @@ async function main() {
   await rel.run(ids['pajama'], ids['booties'], 'related', 0)
 
   // صور البنرات ومنتجات مميزة في المظهر المنشور
-  const b1 = await sharp(Buffer.from(bannerSvg('#FCE4EA', '#E3F0F9', '#FFFFFF', 'onesie', '#F4C6D0'))).png().toBuffer()
-  const b2 = await sharp(Buffer.from(bannerSvg('#E3F0F9', '#EAF5EE', '#FFE7A6', 'gift', '#F4C6D0'))).png().toBuffer()
-  const b1id = await saveImage(b1, { purpose: 'banner', isDemo: true, widths: [640, 1080, 1600, 1800] })
-  const b2id = await saveImage(b2, { purpose: 'banner', isDemo: true, widths: [640, 1080, 1600, 1800] })
-  const m1 = await sharp(Buffer.from(bannerSvgMobile('#FCE4EA', '#E3F0F9', '#FFFFFF', 'onesie', '#F4C6D0'))).png().toBuffer()
-  const m2 = await sharp(Buffer.from(bannerSvgMobile('#E3F0F9', '#EAF5EE', '#FFE7A6', 'gift', '#F4C6D0'))).png().toBuffer()
-  const m1id = await saveImage(m1, { purpose: 'banner', isDemo: true, widths: [480, 900] })
-  const m2id = await saveImage(m2, { purpose: 'banner', isDemo: true, widths: [480, 900] })
+  const banner = (svg: string, widths: number[]) => demoMedia(svg, { name: 'banner', purpose: 'banner', widths })
+  const b1id = await banner(bannerSvg('#FCE4EA', '#E3F0F9', '#FFFFFF', 'onesie', '#F4C6D0'), [800, 1400, 1800])
+  const b2id = await banner(bannerSvg('#E3F0F9', '#EAF5EE', '#FFE7A6', 'gift', '#F4C6D0'), [800, 1400, 1800])
+  const m1id = await banner(bannerSvgMobile('#FCE4EA', '#E3F0F9', '#FFFFFF', 'onesie', '#F4C6D0'), [480, 900])
+  const m2id = await banner(bannerSvgMobile('#E3F0F9', '#EAF5EE', '#FFE7A6', 'gift', '#F4C6D0'), [480, 900])
   const a = await getPublishedAppearance()
   const hero = a.home.sections.find((s) => s.type === 'hero')
   if (hero) {
     hero.banners[0] = { ...hero.banners[0], imageDesktopId: b1id, imageMobileId: m1id }
     if (hero.banners[1]) hero.banners[1] = { ...hero.banners[1], imageDesktopId: b2id, imageMobileId: m2id }
   }
+  const railSec = a.home.sections.find((s) => s.type === 'rail')
+  if (railSec) railSec.productIds = ['bodysuit', 'dress', 'pajama', 'romper', 'hospital-set', 'jacket', 'welcome-set', 'bib'].map((k) => ids[k]).filter(Boolean)
   const featured = a.home.sections.find((s) => s.type === 'featured')
   if (featured) featured.productIds = [ids['welcome-set'], ids['blanket'], ids['bear'], ids['pajama'], ids['bib']]
   const age = a.home.sections.find((s) => s.id === 'age')

@@ -196,6 +196,25 @@ export type Personalization = {
 
 export type ImageRef = { id: number; url: string; srcset: string; w: number | null; h: number | null; alt: string; optionValue: string | null }
 
+/** دور الصورة: عادية، أو صورة الشماعة (الأمام بخلفية شفافة، لا تظهر في المعرض)، أو صورة الخلف */
+export type ImageRole = 'rail' | 'back' | null
+
+/** عنصر في قسم «على الشماعة» */
+export type RailItem = {
+  id: number
+  slug: string
+  name: string
+  subtitle: string
+  price: number
+  compareAt: number | null
+  priceFrom: boolean
+  available: boolean
+  front: ImageRef
+  back: ImageRef | null
+  cutout: boolean
+  isDemo: boolean
+}
+
 export type ProductCard = {
   id: number
   slug: string

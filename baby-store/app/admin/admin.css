@@ -186,3 +186,6 @@ a.a-stat:hover { border-color: var(--a-primary); }
 .usage-bar { height: 8px; border-radius: 99px; background: var(--a-border); overflow: hidden; margin: 8px 0; }
 .usage-bar > span { display: block; height: 100%; border-radius: 99px; background: var(--a-primary); }
 .usage-bar > span[data-warn] { background: var(--a-warn); }
+.a-image__role { display: block; width: 100%; font-size: 0.72rem; min-height: 26px; border: 0; border-top: 1px solid var(--a-border); background: #fff; padding: 0 4px; }
+.a-image .main-tag--role { inset-inline-start: auto; inset-inline-end: 6px; background: var(--a-info); }
+.a-image--rail img { object-fit: contain; background: repeating-conic-gradient(#f1edf3 0 25%, #fff 0 50%) 0 0 / 14px 14px; }

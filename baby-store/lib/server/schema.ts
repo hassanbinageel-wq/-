@@ -578,4 +578,8 @@ export const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
   `,
+  /* 2 */ `
+  -- دور الصورة: rail = صورة الشماعة (الأمام، يُفضل بخلفية شفافة، لا تظهر في المعرض)، back = صورة الخلف
+  ALTER TABLE product_images ADD COLUMN role TEXT CHECK (role IN ('rail','back'));
+  `,
 ]

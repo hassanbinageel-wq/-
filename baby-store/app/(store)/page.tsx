@@ -1,12 +1,13 @@
 import Link from 'next/link'
 import { Gift, Truck, Wallet, Sparkles, Heart, Baby } from 'lucide-react'
 import { getStoreContext, visibleCategories } from '@/lib/server/storefront'
-import { listProducts, cardsByIds } from '@/lib/server/catalog'
+import { listProducts, cardsByIds, railItems } from '@/lib/server/catalog'
 import { getMediaMap, imageRef, imageRefById } from '@/lib/server/media'
 import { db } from '@/lib/server/db'
 import { isScheduledActive } from '@/lib/shared/theme'
 import { Markdown } from '@/lib/shared/markdown'
 import { Hero, type HeroSlide } from '@/components/store/Hero'
+import { Rail } from '@/components/store/Rail'
 import { ProductSection, SectionTitle } from '@/components/store/Sections'
 import { RecentlyViewed } from '@/components/store/RecentlyViewed'
 import { Star, Moon, Cloud, Bear, WhatsAppIcon } from '@/components/store/Deco'
@@ -26,6 +27,11 @@ const FEATURE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
 
 async function renderSection(s: HomeSection, decorations: boolean) {
   switch (s.type) {
+    case 'rail': {
+      const items = await railItems(s.productIds, s.limit || 10)
+      if (!items.length) return null
+      return <Rail key={s.id} items={items} kicker={s.title} subtitle={s.subtitle} buttonText={s.buttonText} buttonLink={s.buttonLink} />
+    }
     case 'hero': {
       const active = s.banners.filter((b) => b.enabled && isScheduledActive(b.startsAt, b.endsAt))
       const media = await getMediaMap(active.flatMap((b) => [b.imageDesktopId, b.imageMobileId]))
