@@ -126,6 +126,7 @@ function notes(slide, title, extra) {
   if (parts.length) slide.addNotes(parts.join("\n\n"));
 }
 const NT_OVERRIDE = {
+  "Types of infant formula": "≈2 min. Introduce each type of formula in turn.",
   "Infant & Child Feeding": "≈2 min. Introduce the four parts of the lesson.",
   "NG tube feeding": "≈3 min. Trace the path on the 3D picture: nose → oesophagus → stomach. Point out that the airway sits right in front of the oesophagus.",
   "Bottle-feeding technique": "≈3 min. Compare the two 3D pictures: tilted bottle = nipple full of milk; too flat = air in the nipple.",
