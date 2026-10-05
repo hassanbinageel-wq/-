@@ -422,7 +422,7 @@ export function CheckoutForm(props: CheckoutProps) {
       )}
       <div className="cart-layout">
         <div>
-          <input ref={honeypot} name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
+          <input ref={honeypot} name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none', clipPath: 'inset(50%)' }} />
           {step === 'info' ? (
             <form
               noValidate

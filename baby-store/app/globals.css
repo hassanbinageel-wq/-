@@ -28,6 +28,7 @@
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   margin: 0;
+  overflow-x: clip; /* أمان: أي عنصر يتجاوز العرض لا يُنشئ تمريراً أفقياً (في RTL يتمدد التمرير لليسار) */
   font-family: var(--font-body);
   font-size: var(--base-size);
   line-height: 1.75;
