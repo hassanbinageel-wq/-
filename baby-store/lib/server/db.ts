@@ -31,52 +31,88 @@ export function dataPath(...parts: string[]): string {
 
 // ————— المشغّلات —————
 
-const toNum = (v: string) => (v === null ? null : Number(v))
+/**
+ * خيارات الاتصال من DATABASE_URL. sslmode=require يعني تشفيراً دون التحقق من الشهادة (كما في libpq)،
+ * وverify-full يتحقق منها. بدون sslmode: تشفير لخوادم Supabase فقط.
+ */
+export function pgConfig(url: string) {
+  const u = new URL(url)
+  const mode = u.searchParams.get('sslmode') || (/\.supabase\.(com|co)$/i.test(u.hostname) ? 'require' : 'disable')
+  return {
+    host: u.hostname,
+    port: Number(u.port || 5432),
+    user: decodeURIComponent(u.username),
+    password: decodeURIComponent(u.password),
+    database: decodeURIComponent(u.pathname.slice(1)) || 'postgres',
+    ssl: mode === 'disable' ? false : mode === 'verify-full' || mode === 'verify-ca' ? { rejectUnauthorized: true } : { rejectUnauthorized: false },
+  }
+}
 
 async function postgresDriver(url: string): Promise<Driver> {
-  const { default: postgres } = await import('postgres')
-  const connect = (u: string) =>
-    postgres(u, {
-      prepare: false, // مطلوب مع مجمّع الاتصالات (transaction mode)
+  // node-postgres يرسل كل استعلام دفعة واحدة تنتهي بـ Sync، فيعمل مع مجمّع الاتصالات (transaction mode)
+  // دون جمل مُحضّرة مسماة ودون جولات وصف منفصلة
+  const { default: pg } = await import('pg')
+  const num = (x: string) => Number(x)
+  const types = {
+    getTypeParser: ((oid: number, format?: 'text' | 'binary') =>
+      oid === 20 || oid === 1700 ? num : pg.types.getTypeParser(oid, format as 'text')) as typeof pg.types.getTypeParser,
+  }
+  const connect = (u: string) => {
+    const pool = new pg.Pool({
+      ...pgConfig(u),
       max: Number(process.env.DB_POOL_MAX || 3),
-      idle_timeout: 20,
-      connect_timeout: 15,
-      onnotice: () => {},
-      types: {
-        bigint: { to: 20, from: [20], serialize: (x: number) => String(x), parse: toNum },
-        numeric: { to: 1700, from: [1700], serialize: (x: number) => String(x), parse: toNum },
-      },
+      idleTimeoutMillis: 20_000,
+      connectionTimeoutMillis: 15_000,
+      allowExitOnIdle: true,
+      types,
     })
-  let sql = connect(url)
+    // خطأ في اتصال خامل (انقطاع الشبكة) لا يُسقط العملية؛ يُستبدل الاتصال عند الطلب التالي
+    pool.on('error', () => {})
+    return pool
+  }
+  let pool = connect(url)
   // مجمّع Supabase موزع على عنقودين (aws-0 / aws-1): إن رُفض المستخدم نجرب الآخر
   try {
-    await sql.unsafe('SELECT 1')
+    await pool.query('SELECT 1')
   } catch (e) {
     const m = url.match(/@aws-(\d)-([a-z0-9-]+)\.pooler\.supabase\.com/)
     if (!m || !/tenant or user not found/i.test(String((e as Error).message))) throw e
-    await sql.end({ timeout: 1 })
-    const alt = url.replace(`@aws-${m[1]}-`, `@aws-${m[1] === '0' ? '1' : '0'}-`)
-    sql = connect(alt)
-    await sql.unsafe('SELECT 1')
+    await pool.end().catch(() => {})
+    pool = connect(url.replace(`@aws-${m[1]}-`, `@aws-${m[1] === '0' ? '1' : '0'}-`))
+    await pool.query('SELECT 1')
   }
-  type Q = { unsafe: (q: string, p?: never[]) => Promise<unknown[] & { count?: number }> }
+  type Q = { query: (text: string, values?: unknown[]) => Promise<{ rows: Row[]; rowCount: number | null }> }
   const wrap = (s: Q): Conn => ({
     async query(text, params) {
-      const r = await s.unsafe(text, params as never[])
-      return { rows: r as Row[], count: r.count ?? r.length }
+      const r = await s.query(text, params.length ? params : undefined)
+      return { rows: r.rows, count: r.rowCount ?? r.rows.length }
     },
     async exec(text) {
-      await s.unsafe(text)
+      await s.query(text)
     },
     begin() {
       throw new Error('nested begin')
     },
   })
-  const root = wrap(sql as unknown as Q)
+  const p = pool
   return {
-    ...root,
-    begin: (fn) => sql.begin((t) => fn(wrap(t as unknown as Q))) as never,
-    close: () => sql.end({ timeout: 5 }),
+    ...wrap(p as unknown as Q),
+    async begin(fn) {
+      const client = await p.connect()
+      let broken: Error | undefined
+      try {
+        await client.query('BEGIN')
+        const out = await fn(wrap(client as unknown as Q))
+        await client.query('COMMIT')
+        return out
+      } catch (e) {
+        await client.query('ROLLBACK').catch((err: Error) => (broken = err))
+        throw e
+      } finally {
+        client.release(broken)
+      }
+    },
+    close: () => p.end(),
   }
 }
 

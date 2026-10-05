@@ -24,7 +24,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ['sharp', 'postgres', '@electric-sql/pglite'],
+  serverExternalPackages: ['sharp', 'pg', '@electric-sql/pglite'],
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },
