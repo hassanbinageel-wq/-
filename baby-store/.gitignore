@@ -10,3 +10,4 @@ next-env.d.ts
 # خطوط تجارية لا تُرفع للمستودع العام
 public/fonts/*.ttf
 public/fonts/*.otf
+.netlify

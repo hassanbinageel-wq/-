@@ -154,3 +154,17 @@ test('الصور تُحفظ في قاعدة البيانات وتُخدم بمق
   assert.equal(await m.media.getPublicBlob(`${r.path}.${r.ext}`), null)
   assert.ok(await m.media.getPrivateBlob(r))
 })
+
+test('تكرار قيمة فريدة يُرجع خطأ واضحاً (409) لا خطأ خادم', async () => {
+  const { handleError } = await import('../lib/server/api')
+  await m.db.db().prepare("INSERT INTO coupons(code,type,value) VALUES('DUPTEST','fixed',100)").run()
+  let err: unknown
+  try {
+    await m.db.db().prepare("INSERT INTO coupons(code,type,value) VALUES('duptest','fixed',100)").run()
+  } catch (e) {
+    err = e
+  }
+  assert.ok(err, 'رمز مكرر بحالة أحرف مختلفة مرفوض')
+  const res = handleError(err)
+  assert.equal(res.status, 409)
+})

@@ -55,7 +55,7 @@ export function ProductsTable({ rows, categories }: { rows: Row[]; categories: {
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td><input type="checkbox" aria-label={`تحديد ${r.name}`} checked={sel.includes(r.id)} onChange={() => toggle(r.id)} /></td>
-                  <td>{r.thumb ? <img className="thumb" src={`/media/${r.thumb}`} alt="" /> : <span className="thumb" style={{ display: 'block' }} />}</td>
+                  <td>{r.thumb ? <img className="thumb" src={r.thumb} alt="" /> : <span className="thumb" style={{ display: 'block' }} />}</td>
                   <td>
                     <Link className="rowlink" href={`/admin/products/${r.id}`}>{r.name}</Link>
                     <div className="small muted">

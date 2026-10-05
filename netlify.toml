@@ -2,9 +2,13 @@
 # المتغير المطلوب في إعدادات الموقع على Netlify: DATABASE_URL (رابط قاعدة Supabase)
 [build]
   base = "baby-store"
-  command = "npm run build"
+  command = "npm run build:netlify"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
+
+# محوّل Next.js على Netlify (مثبت بإصدار محدد في package.json)
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

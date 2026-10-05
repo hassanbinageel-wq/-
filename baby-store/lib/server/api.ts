@@ -1,3 +1,4 @@
+import { isUniqueViolation } from './db'
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { SESSION_COOKIE, can, userFromToken, type AdminUser } from './auth'
@@ -22,7 +23,7 @@ function zodMessage(err: z.ZodError): string {
 export function handleError(e: unknown) {
   if (e instanceof ApiError) return json({ ok: false, error: e.message, code: e.code, ...(e.extra || {}) }, e.status)
   if (e instanceof z.ZodError) return json({ ok: false, error: zodMessage(e), code: 'VALIDATION' }, 400)
-  if (e && typeof e === 'object' && 'code' in e && String((e as { code: string }).code).startsWith('SQLITE_CONSTRAINT_UNIQUE')) {
+  if (isUniqueViolation(e)) {
     return json({ ok: false, error: 'القيمة مستخدمة مسبقاً (يجب أن تكون فريدة)', code: 'DUPLICATE' }, 409)
   }
   console.error('[api error]', e)

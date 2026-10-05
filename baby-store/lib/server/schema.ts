@@ -582,4 +582,21 @@ export const MIGRATIONS: string[] = [
   -- دور الصورة: rail = صورة الشماعة (الأمام، يُفضل بخلفية شفافة، لا تظهر في المعرض)، back = صورة الخلف
   ALTER TABLE product_images ADD COLUMN role TEXT CHECK (role IN ('rail','back'));
   `,
+  /* 3 */ `
+  -- تثبيت مسار البحث لدوال التاريخ، وفهارس للمفاتيح الخارجية المستخدمة في صفحات الطلبات والمنتجات
+  ALTER FUNCTION ts_parse(text) SET search_path = store, pg_catalog;
+  ALTER FUNCTION datetime(text) SET search_path = store, pg_catalog;
+  ALTER FUNCTION datetime(text, text) SET search_path = store, pg_catalog;
+  CREATE INDEX IF NOT EXISTS idx_order_attachments_order ON order_attachments(order_id);
+  CREATE INDEX IF NOT EXISTS idx_order_notes_order ON order_notes(order_id);
+  CREATE INDEX IF NOT EXISTS idx_order_returns_order ON order_returns(order_id);
+  CREATE INDEX IF NOT EXISTS idx_refunds_order ON refunds(order_id);
+  CREATE INDEX IF NOT EXISTS idx_stock_lines_item ON order_stock_lines(order_item_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
+  CREATE INDEX IF NOT EXISTS idx_product_images_media ON product_images(media_id);
+  CREATE INDEX IF NOT EXISTS idx_product_tags_tag ON product_tags(tag_id);
+  CREATE INDEX IF NOT EXISTS idx_product_relations_related ON product_relations(related_id);
+  CREATE INDEX IF NOT EXISTS idx_bundle_items_product ON bundle_items(product_id);
+  CREATE INDEX IF NOT EXISTS idx_tags_group ON tags(group_id);
+  `,
 ]

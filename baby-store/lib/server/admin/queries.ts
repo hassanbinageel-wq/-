@@ -141,7 +141,8 @@ export async function listAdminProducts(f: AdminProductFilters) {
         `SELECT p.id, p.type, p.sku, p.name, p.slug, p.status, p.price, p.sale_price, p.track_stock, p.is_demo, p.updated_at,
         c.name AS category_name, ${stockExpr} AS stock_total,
         (SELECT COUNT(*) FROM variants v WHERE v.product_id=p.id) AS variants_count,
-        (SELECT m.path || '-' || (m.sizes::jsonb->>0) || '.' || m.ext FROM product_images pi JOIN media m ON m.id=pi.media_id WHERE pi.product_id=p.id ORDER BY pi.sort LIMIT 1) AS thumb
+        (SELECT (CASE WHEN m.path LIKE 'static/%' THEN '/' || substr(m.path, 8) ELSE '/media/' || m.path END) || '-' || (m.sizes::jsonb->>0) || '.' || m.ext
+          FROM product_images pi JOIN media m ON m.id=pi.media_id WHERE pi.product_id=p.id AND pi.role IS DISTINCT FROM 'rail' ORDER BY pi.sort LIMIT 1) AS thumb
        FROM products p LEFT JOIN categories c ON c.id=p.category_id ${where} ORDER BY p.id DESC LIMIT ? OFFSET ?`,
       )
       .all(...args, perPage, (page - 1) * perPage) as {

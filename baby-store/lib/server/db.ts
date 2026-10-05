@@ -81,7 +81,9 @@ async function postgresDriver(url: string): Promise<Driver> {
 }
 
 async function pgliteDriver(): Promise<Driver> {
-  const { PGlite, types } = await import('@electric-sql/pglite')
+  // استيراد غير مُتتبَّع: PGlite للتطوير المحلي فقط، فلا تُضمَّن في حزمة الخادم السحابية
+  const pkg = '@electric-sql/pglite'
+  const { PGlite, types } = (await import(/* turbopackIgnore: true */ /* webpackIgnore: true */ pkg)) as typeof import('@electric-sql/pglite')
   const dir = process.env.PGLITE_DIR || dataPath('pglite')
   if (dir !== 'memory://') (await import('node:fs')).mkdirSync(dir, { recursive: true })
   const pg = await PGlite.create(dir === 'memory://' ? undefined : dir, {
