@@ -1,0 +1,92 @@
+/* Line icons (48-unit grid, stroke = currentColor) and flat food illustrations (64-unit grid). */
+(function () {
+  var D = "M24 5c7 9 13 16 13 24a13 13 0 0 1-26 0c0-8 6-15 13-24z";
+  var BOTTLE = '<path d="M21 10c0-4 1.3-7 3-7s3 3 3 7"/><path d="M18 10h12v5H18z"/><path class="t" d="M17 15h14l3 5v20a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V20z"/><path d="M17 15h14l3 5v20a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V20zM19 27h5M19 33h5"/>';
+  var STOMACH = '<path d="M20 5v9c-6 2-10 8-10 15 0 9 7 15 15 15 9 0 14-6 14-13 0-6-4-10-10-10-4 0-6 3-6 6"/><path d="M34 40v5"/>';
+  var GUT = '<rect class="t" x="6" y="6" width="36" height="36" rx="12"/><path d="M14 14h20a5 5 0 0 1 0 10H14a5 5 0 0 0 0 10h20"/>';
+
+  window.IFL_ICONS = {
+    drop: '<path class="t" d="' + D + '"/><path d="' + D + '"/><path d="M18 31a6 6 0 0 0 6 6"/>',
+    dropStar: '<path class="t" d="' + D + '"/><path d="' + D + '"/><path d="M24 23l1.9 3.8 4.1.6-3 2.9.7 4.1-3.7-1.9-3.7 1.9.7-4.1-3-2.9 4.1-.6z"/>',
+    stomach: STOMACH,
+    stomachX: STOMACH + '<path d="M35 6l7 7M42 6l-7 7"/>',
+    antibody: '<path d="M24 43V27M24 27 13 15M24 27l11-12"/><circle class="t" cx="11" cy="12" r="4"/><circle cx="11" cy="12" r="4"/><circle class="t" cx="37" cy="12" r="4"/><circle cx="37" cy="12" r="4"/>',
+    shield: '<path class="t" d="M24 5l15 6v11c0 10-7 18-15 21C16 40 9 32 9 22V11z"/><path d="M24 5l15 6v11c0 10-7 18-15 21C16 40 9 32 9 22V11z"/><path d="M17 24l5 5 9-10"/>',
+    growth: '<path d="M7 41h34M7 41V7"/><path d="M13 33l8-8 6 5 12-14"/><path d="M31 16h8v8"/>',
+    scale: '<rect class="t" x="8" y="10" width="32" height="30" rx="7"/><rect x="8" y="10" width="32" height="30" rx="7"/><path d="M17 21a7 7 0 0 1 14 0z"/><path d="M24 21l3-4"/>',
+    contract: '<circle class="t" cx="24" cy="24" r="8"/><circle cx="24" cy="24" r="8"/><path d="M5 24h8M43 24h-8M24 5v8M24 43v-8M10 21l3 3-3 3M38 21l-3 3 3 3M21 10l3 3 3-3M21 38l3-3 3 3"/>',
+    dropDown: '<path class="t" d="M19 6c5 8 10 13 10 20a10 10 0 0 1-20 0c0-7 5-12 10-20z"/><path d="M19 6c5 8 10 13 10 20a10 10 0 0 1-20 0c0-7 5-12 10-20z"/><path d="M38 12v22M32 28l6 6 6-6"/>',
+    heart: '<path class="t" d="M24 41S7 31 7 18a9 9 0 0 1 17-4 9 9 0 0 1 17 4c0 13-17 23-17 23z"/><path d="M24 41S7 31 7 18a9 9 0 0 1 17-4 9 9 0 0 1 17 4c0 13-17 23-17 23z"/>',
+    coin: '<circle class="t" cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="17"/><path d="M29 18c-1-2-3-3-5-3-3 0-5 2-5 4 0 6 11 3 11 9 0 2-2 4-6 4-2 0-4-1-5-3M24 11v4M24 33v4"/>',
+    ban: '<circle class="t" cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="17"/><path d="M12 12l24 24"/>',
+    dropEmpty: '<path d="' + D + '" stroke-dasharray="4 4"/><path d="M20.5 25a3.5 3.5 0 1 1 5 3.2c-1.2.6-1.5 1.2-1.5 2.8M24 36v.4"/>',
+    choice: '<circle class="t" cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="17"/><path d="M16 24l6 6 10-12"/>',
+    medical: '<rect class="t" x="7" y="7" width="34" height="34" rx="9"/><rect x="7" y="7" width="34" height="34" rx="9"/><path d="M24 15v18M15 24h18"/>',
+    soap: '<rect class="t" x="7" y="24" width="28" height="17" rx="6"/><rect x="7" y="24" width="28" height="17" rx="6"/><circle cx="30" cy="13" r="5"/><circle cx="18" cy="12" r="3"/><circle cx="41" cy="22" r="3"/>',
+    bottle: BOTTLE,
+    bottlePlus: '<g transform="translate(-5 0)">' + BOTTLE + '</g><path d="M40 8v12M34 14h12"/>',
+    tap: '<path d="M6 14h18a7 7 0 0 1 7 7v3"/><path d="M6 10v8M18 14V8h-6"/><path class="t" d="M31 30c3 4 5 7 5 9a5 5 0 0 1-10 0c0-2 2-5 5-9z"/><path d="M31 30c3 4 5 7 5 9a5 5 0 0 1-10 0c0-2 2-5 5-9z"/>',
+    label: '<rect class="t" x="11" y="10" width="26" height="32" rx="4"/><rect x="11" y="10" width="26" height="32" rx="4"/><path d="M11 18h26M11 34h26M16 5h16v5H16zM17 26h14"/>',
+    scoop: '<path class="t" d="M5 22h22v5a11 11 0 0 1-22 0z"/><path d="M5 22h22v5a11 11 0 0 1-22 0zM27 24l16-9"/><path d="M3 17h26" stroke-dasharray="3 3"/>',
+    noPlus: '<circle cx="24" cy="24" r="17"/><path d="M24 15v18M15 24h18"/><path d="M12 12l24 24"/>',
+    noDilute: '<path class="t" d="M24 7c6 9 11 15 11 22a11 11 0 0 1-22 0c0-7 5-13 11-22z"/><path d="M24 7c6 9 11 15 11 22a11 11 0 0 1-22 0c0-7 5-13 11-22zM9 9l30 30"/>',
+    fridge: '<rect class="t" x="12" y="5" width="24" height="38" rx="4"/><rect x="12" y="5" width="24" height="38" rx="4"/><path d="M12 19h24M17 11v4M17 24v6"/>',
+    bin: '<path class="t" d="M12 14h24l-2 28H14z"/><path d="M12 14h24l-2 28H14zM8 14h32M19 14V8h10v6M20 21v14M28 21v14"/>',
+    upflow: '<path class="t" d="M12 32c0-7 5-11 12-11s12 4 12 11a12 12 0 0 1-24 0z"/><path d="M12 32c0-7 5-11 12-11s12 4 12 11a12 12 0 0 1-24 0zM24 21V5M18 11l6-6 6 6"/>',
+    gut: GUT + '<path d="M38 36c1.6 2.2 2.6 3.6 2.6 4.6a2.6 2.6 0 0 1-5.2 0c0-1 1-2.4 2.6-4.6z"/>',
+    gutBlock: GUT + '<circle class="s" cx="25" cy="24" r="3.6"/>',
+    microbe: '<circle class="t" cx="24" cy="24" r="11"/><circle cx="24" cy="24" r="11"/><path d="M24 13V6M24 35v7M13 24H6M35 24h7M16 16l-5-5M32 32l5 5M32 16l5-5M16 32l-5 5"/><circle class="s" cx="20" cy="22" r="2"/><circle class="s" cx="27" cy="27" r="2.5"/>',
+    dropAlert: '<path class="t" d="' + D + '"/><path d="' + D + '"/><path d="M24 20v9M24 34v.4"/>',
+    tooth: '<path class="t" d="M15 7c-6 0-8 5-7 11 1 5 3 9 4 15 1 6 2 9 5 9 2 0 3-4 4-9 1-3 2-4 3-4s2 1 3 4c1 5 2 9 4 9 3 0 4-3 5-9 1-6 3-10 4-15 1-6-1-11-7-11-4 0-6 2-9 2s-5-2-9-2z"/><path d="M15 7c-6 0-8 5-7 11 1 5 3 9 4 15 1 6 2 9 5 9 2 0 3-4 4-9 1-3 2-4 3-4s2 1 3 4c1 5 2 9 4 9 3 0 4-3 5-9 1-6 3-10 4-15 1-6-1-11-7-11-4 0-6 2-9 2s-5-2-9-2z"/><circle class="s" cx="31" cy="15" r="2.6"/>',
+    baby: '<circle class="t" cx="24" cy="15" r="8"/><circle cx="24" cy="15" r="8"/><path class="t" d="M13 43c0-9 5-15 11-15s11 6 11 15z"/><path d="M13 43c0-9 5-15 11-15s11 6 11 15z"/>',
+    brain: '<path class="t" d="M24 10c-3-4-12-3-12 4-5 1-6 8-2 11-3 4 0 10 5 10 1 4 7 5 9 1 2 4 8 3 9-1 5 0 8-6 5-10 4-3 3-10-2-11 0-7-9-8-12-4z"/><path d="M24 10c-3-4-12-3-12 4-5 1-6 8-2 11-3 4 0 10 5 10 1 4 7 5 9 1 2 4 8 3 9-1 5 0 8-6 5-10 4-3 3-10-2-11 0-7-9-8-12-4zM24 10v26"/>',
+    zzz: '<path d="M8 16h10L8 28h10M23 24h8l-8 10h8M33 8h7l-7 9h7"/>',
+    battery: '<rect class="t" x="5" y="15" width="33" height="18" rx="4"/><rect x="5" y="15" width="33" height="18" rx="4"/><path d="M42 21v6"/><rect class="s" x="9" y="19" width="6" height="10" rx="1.5"/>',
+    bowlDown: '<path class="t" d="M5 22h28a14 14 0 0 1-28 0z"/><path d="M5 22h28a14 14 0 0 1-28 0z"/><path d="M41 8v22M35 24l6 6 6-6"/>',
+    lungs: '<path d="M24 6v16M24 22l-5 4M24 22l5 4"/><path class="t" d="M19 14c-6 0-11 9-11 20 0 5 2 7 5 7 4 0 6-3 6-7z"/><path d="M19 14c-6 0-11 9-11 20 0 5 2 7 5 7 4 0 6-3 6-7z"/><path class="t" d="M29 14c6 0 11 9 11 20 0 5-2 7-5 7-4 0-6-3-6-7z"/><path d="M29 14c6 0 11 9 11 20 0 5-2 7-5 7-4 0-6-3-6-7z"/>',
+    cough: '<circle class="t" cx="16" cy="24" r="10"/><circle cx="16" cy="24" r="10"/><path d="M30 18c3 2 3 10 0 12M35 14c5 4 5 16 0 20M40 10c7 6 7 22 0 28"/>',
+    blueface: '<circle class="t" cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="17"/><path d="M17 20v2M31 20v2M17 33c4-3 10-3 14 0"/>',
+    tube: '<rect x="4" y="4" width="9" height="9" rx="2"/><path d="M13 9c10 0 9 11 18 11s5 16 12 16"/><circle class="s" cx="43" cy="36" r="3"/>',
+    puzzle: '<path class="t" d="M10 14h9a4 4 0 1 1 8 0h9v9a4 4 0 1 1 0 8v9H27a4 4 0 1 0-8 0h-9z"/><path d="M10 14h9a4 4 0 1 1 8 0h9v9a4 4 0 1 1 0 8v9H27a4 4 0 1 0-8 0h-9z"/>',
+    bolt: '<path class="t" d="M27 4 10 27h12l-3 17 18-24H25z"/><path d="M27 4 10 27h12l-3 17 18-24H25z"/>',
+    chew: '<path class="t" d="M6 20c6-6 30-6 36 0-2 12-10 18-18 18S8 32 6 20z"/><path d="M6 20c6-6 30-6 36 0-2 12-10 18-18 18S8 32 6 20zM14 19v6M20 18v7M26 18v7M32 19v6"/>',
+    cal6: '<rect class="t" x="7" y="10" width="34" height="31" rx="5"/><rect x="7" y="10" width="34" height="31" rx="5"/><path d="M7 19h34M16 6v8M32 6v8"/><text x="24" y="36.5" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">6</text>',
+    spoon: '<ellipse class="t" cx="15" cy="15" rx="8" ry="10.5" transform="rotate(-45 15 15)"/><ellipse cx="15" cy="15" rx="8" ry="10.5" transform="rotate(-45 15 15)"/><path d="M21.5 21.5 41 41"/>',
+    stairs: '<path d="M6 41h9v-8h9v-8h9v-8h9v-8"/>',
+    layers: '<path class="t" d="M24 6l18 9-18 9-18-9z"/><path d="M24 6l18 9-18 9-18-9z"/><path d="M6 24l18 9 18-9M6 33l18 9 18-9"/>',
+    leaf: '<path class="t" d="M40 8C20 8 8 18 8 32c0 4 1 7 3 9 14 0 29-10 29-33z"/><path d="M40 8C20 8 8 18 8 32c0 4 1 7 3 9 14 0 29-10 29-33zM11 41c6-10 14-18 24-24"/>',
+    handStop: '<path class="t" d="M15 27V13a3 3 0 0 1 6 0v9V9a3 3 0 0 1 6 0v13V11a3 3 0 0 1 6 0v12-6a3 3 0 0 1 6 0v12c0 9-6 15-14 15-6 0-9-3-13-8l-5-7a3 3 0 0 1 5-3.5z"/><path d="M15 27V13a3 3 0 0 1 6 0v9V9a3 3 0 0 1 6 0v13V11a3 3 0 0 1 6 0v12-6a3 3 0 0 1 6 0v12c0 9-6 15-14 15-6 0-9-3-13-8l-5-7a3 3 0 0 1 5-3.5z"/>',
+    chair: '<path d="M14 6v18h20V6"/><path class="t" d="M11 24h26v6H11z"/><path d="M11 24h26v6H11zM16 30l-4 14M32 30l4 14M14 38h20"/>',
+    eye: '<path class="t" d="M4 24s7-12 20-12 20 12 20 12-7 12-20 12S4 24 4 24z"/><path d="M4 24s7-12 20-12 20 12 20 12-7 12-20 12S4 24 4 24z"/><circle cx="24" cy="24" r="5"/>',
+    bowl: '<path class="t" d="M6 22h36a18 16 0 0 1-36 0z"/><path d="M6 22h36a18 16 0 0 1-36 0zM14 22c2-4 6-6 10-6s8 2 10 6M17 43h14"/>',
+    knife: '<path class="t" d="M8 40 34 14c4-4 8-4 8 0L16 40z"/><path d="M8 40 34 14c4-4 8-4 8 0L16 40zM8 40l-3 3"/>',
+    aloneX: '<circle cx="18" cy="14" r="6"/><path d="M6 41c0-8 5-14 12-14s12 6 12 14"/><path d="M34 21l9 9M43 21l-9 9"/>',
+    nurse: '<path class="t" d="M12 17c0-7 5-11 12-11s12 4 12 11z"/><path d="M12 17c0-7 5-11 12-11s12 4 12 11zM24 9v5M21.5 11.5h5"/><circle cx="24" cy="25" r="8"/><path d="M8 45c0-9 7-14 16-14s16 5 16 14"/>',
+    glass: '<path class="t" d="M12 8h24l-3 34H15z"/><path d="M12 8h24l-3 34H15zM13 18h22"/>',
+    juice: '<rect class="t" x="12" y="14" width="22" height="30" rx="2"/><rect x="12" y="14" width="22" height="30" rx="2"/><path d="M12 22h22M28 14l4-10h6"/>',
+    check: '<path d="M10 25l9 9 19-20"/>',
+    clip: '<rect class="t" x="9" y="7" width="30" height="36" rx="4"/><rect x="9" y="7" width="30" height="36" rx="4"/><path d="M18 4h12v6H18zM16 21l3 3 5-6M16 32l3 3 5-6M28 21h6M28 32h6"/>'
+  };
+
+  /* Flat illustrations, natural food colours (readable on either theme's card surface). */
+  var OL = 'stroke="rgba(40,24,10,.28)" stroke-width="1.5"';
+  window.IFL_ART = {
+    grains: '<path d="M7 30h50a25 22 0 0 1-50 0z" fill="#d38f52" ' + OL + '/><path d="M11 30c4-9 12-13 21-13s17 4 21 13z" fill="#f8f2e4" ' + OL + '/><g fill="#e8dcc0"><ellipse cx="22" cy="25" rx="2.4" ry="1.3"/><ellipse cx="30" cy="22" rx="2.4" ry="1.3"/><ellipse cx="38" cy="25" rx="2.4" ry="1.3"/><ellipse cx="34" cy="27" rx="2.4" ry="1.3"/><ellipse cx="26" cy="28" rx="2.4" ry="1.3"/></g><path d="M48 18 58 4" stroke="#c99a3a" stroke-width="2" stroke-linecap="round"/><g fill="#e2b04a"><ellipse cx="55" cy="8" rx="2" ry="3.4" transform="rotate(35 55 8)"/><ellipse cx="52" cy="12" rx="2" ry="3.4" transform="rotate(35 52 12)"/><ellipse cx="57.5" cy="11" rx="2" ry="3.4" transform="rotate(-35 57.5 11)"/></g><path d="M18 52h28" stroke="#a8693a" stroke-width="3" stroke-linecap="round"/>',
+    carrot: '<path d="M22 18c11 2 21 12 23 23 1 5-2 7-7 6C27 44 17 33 16 24c0-4 2-6 6-6z" fill="#f08a24" ' + OL + '/><path d="M26 27l5-2M31 34l5-2M37 40l4-2" stroke="#c4650f" stroke-width="2" stroke-linecap="round"/><path d="M21 19c-5-6-4-13 1-15 0 6 2 10-1 15zM21 19c-6-2-13 0-15 5 6 1 11 0 15-5zM23 18c2-6 8-10 13-9-2 5-7 8-13 9z" fill="#4caf50"/><circle cx="48" cy="14" r="8" fill="#5aa64a"/><circle cx="54" cy="19" r="6" fill="#4b9a3c"/><circle cx="43" cy="20" r="6" fill="#62b450"/><path d="M48 22v10" stroke="#8bbf6a" stroke-width="3" stroke-linecap="round"/>',
+    fruit: '<path d="M28 22c-6-4-18-3-20 9-2 12 6 24 13 24 3 0 4-2 7-2s4 2 7 2c7 0 15-12 13-24-2-12-14-13-20-9z" fill="#e5484d" ' + OL + '/><path d="M28 22c0-6 2-10 6-12" stroke="#6b4423" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M31 15c4-6 12-6 14-4-4 6-10 6-14 4z" fill="#4caf50"/><ellipse cx="18" cy="32" rx="3" ry="6" fill="#fff" opacity=".35"/><path d="M42 50c8-2 14-10 15-22 2 0 3 1 3 3-1 13-9 22-19 22z" fill="#f6c945" ' + OL + '/>',
+    egg: '<ellipse cx="25" cy="30" rx="15" ry="19" fill="#fbf1de" ' + OL + '/><ellipse cx="20" cy="24" rx="3" ry="6" fill="#fff"/><circle cx="45" cy="45" r="13" fill="#fffdf6" ' + OL + '/><circle cx="45" cy="45" r="6.5" fill="#f6b62d"/>',
+    meat: '<path d="M5 26c8-11 23-13 32-6l7-7v26l-7-7c-9 7-24 5-32-6z" fill="#7aa6c2" ' + OL + '/><circle cx="14" cy="24" r="2.4" fill="#203040"/><path d="M22 18c2 4 2 11 0 15" stroke="#5a86a2" fill="none" stroke-width="2"/><path d="M34 54c-6-5-5-14 1-17 7-3 14 3 12 10l5 5a3.2 3.2 0 1 1-3.6 3.6l-5-5c-3 2-6 3-9.4 3.4z" fill="#c8823c" ' + OL + '/><circle cx="54" cy="56" r="3" fill="#f3e7d3"/>',
+    legumes: '<path d="M6 42c10-17 30-27 50-27-6 19-27 33-50 27z" fill="#6cbf5a" ' + OL + '/><circle cx="21" cy="35" r="5" fill="#a5e08a"/><circle cx="31" cy="30" r="5" fill="#a5e08a"/><circle cx="41" cy="25" r="5" fill="#a5e08a"/><g fill="#d9853b"><ellipse cx="14" cy="52" rx="4" ry="3"/><ellipse cx="23" cy="55" rx="4" ry="3"/><ellipse cx="32" cy="52" rx="4" ry="3"/><ellipse cx="41" cy="56" rx="4" ry="3"/></g>',
+    dairy: '<path d="M10 10h20l-2 44H12z" fill="#ffffff" stroke="#b9c7cc" stroke-width="2"/><path d="M11 22h18l-1.5 31H12.5z" fill="#f1f5f6"/><path d="M32 50l24-15v20H32z" fill="#f7c948" ' + OL + '/><circle cx="43" cy="49" r="2.6" fill="#e0ad2c"/><circle cx="50" cy="44" r="1.8" fill="#e0ad2c"/>',
+    oil: '<path d="M27 6h8v8l4 6v34a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4V20l4-6z" fill="#cdb33c" ' + OL + '/><rect x="23" y="30" width="16" height="14" rx="2" fill="#fbf6df"/><path d="M27 37h8" stroke="#8a7a2a" stroke-width="2" stroke-linecap="round"/><ellipse cx="50" cy="48" rx="7" ry="5" fill="#6b8e23" transform="rotate(-20 50 48)"/><path d="M50 43c2-5 6-7 9-7-1 4-4 6-9 7z" fill="#7cb342"/>',
+    honey: '<rect x="12" y="22" width="40" height="34" rx="9" fill="#f2a92b" ' + OL + '/><rect x="14" y="12" width="36" height="11" rx="3" fill="#a8742a"/><path d="M12 31c6 4 10-2 20 2s13-2 20 0" stroke="#d98a12" fill="none" stroke-width="2"/><path d="M32 37l6 3.5v7L32 51l-6-3.5v-7z" fill="#ffd36e"/><path d="M22 23v7a2 2 0 0 0 4 0v-7" fill="#f2a92b"/>',
+    nuts: '<g ' + OL + '><path d="M18 50c-9-7-9-24 1-32 9 7 9 25-1 32z" fill="#b5793f"/><path d="M36 54c-9-7-9-24 1-32 9 7 9 25-1 32z" fill="#c68a4c" transform="rotate(20 36 38)"/><ellipse cx="48" cy="22" rx="10" ry="8" fill="#9c6a3a"/></g><path d="M18 22v24M48 15v14" stroke="rgba(60,30,10,.35)" stroke-width="1.5"/>',
+    grapes: '<path d="M34 8c-2 4-2 7 0 10" stroke="#6b4423" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M36 10c6-6 14-4 16 0-6 4-11 4-16 0z" fill="#4caf50"/><g fill="#7b4fa0" ' + OL + '><circle cx="24" cy="24" r="7"/><circle cx="38" cy="24" r="7"/><circle cx="17" cy="35" r="7"/><circle cx="31" cy="35" r="7"/><circle cx="45" cy="35" r="7"/><circle cx="24" cy="46" r="7"/><circle cx="38" cy="46" r="7"/><circle cx="31" cy="56" r="6"/></g><g fill="#fff" opacity=".35"><circle cx="21" cy="21" r="2"/><circle cx="35" cy="21" r="2"/><circle cx="28" cy="32" r="2"/></g>',
+    salt: '<path d="M14 24h18v28a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z" fill="#eceff1" stroke="#9fb0b8" stroke-width="2"/><path d="M14 24c0-9 18-9 18 0z" fill="#9fb0b8"/><g fill="#66767d"><circle cx="20" cy="19" r="1.2"/><circle cx="23" cy="17" r="1.2"/><circle cx="26" cy="19" r="1.2"/></g><g fill="#ffffff" stroke="#b9c7cc" stroke-width="2"><rect x="38" y="42" width="13" height="13" rx="2"/><rect x="44" y="28" width="13" height="13" rx="2"/></g>',
+    raw: '<path d="M24 6h16v9l5 7v32a4 4 0 0 1-4 4H23a4 4 0 0 1-4-4V22l5-7z" fill="#ffffff" stroke="#9fb0b8" stroke-width="2"/><rect x="19" y="30" width="26" height="16" fill="#e8f0f3"/><g fill="#33393c"><ellipse cx="26" cy="35" rx="3" ry="2"/><ellipse cx="36" cy="40" rx="3.5" ry="2.4"/><ellipse cx="40" cy="33" rx="2" ry="1.5"/></g><rect x="22" y="4" width="20" height="5" rx="2" fill="#2c7fb8"/>',
+    dirty: '<ellipse cx="30" cy="44" rx="26" ry="10" fill="#f4f4f2" stroke="#b9c7cc" stroke-width="2"/><path d="M14 42c2-8 10-12 16-12s14 4 16 12z" fill="#c98b5a"/><g fill="#6aa84f"><circle cx="22" cy="38" r="2.4"/><circle cx="34" cy="35" r="1.8"/><circle cx="39" cy="40" r="2.2"/></g><ellipse cx="47" cy="16" rx="5" ry="3.6" fill="#33393c"/><ellipse cx="44" cy="11" rx="5" ry="3" fill="#cfe3ec" opacity=".85"/><ellipse cx="51" cy="11" rx="5" ry="3" fill="#cfe3ec" opacity=".85"/><path d="M40 22c-3 2-3 5 0 7M54 22c3 2 3 5 0 7" stroke="#33393c" stroke-width="1.5" fill="none" stroke-dasharray="2 2"/>',
+    cowmilk: '<path d="M16 8h24l-3 50H19z" fill="#ffffff" stroke="#9fb0b8" stroke-width="2"/><path d="M17 20h22l-2.4 37H19.4z" fill="#f1f5f6"/><path d="M20 30c4-2 8 2 12 0" stroke="#d7e1e5" stroke-width="2" fill="none"/>',
+    banana: '<path d="M10 40c14 10 34 6 44-14 2 0 4 1 4 3-6 22-32 30-50 17z" fill="#f6c945" ' + OL + '/><path d="M54 26l3-6" stroke="#6b4423" stroke-width="3" stroke-linecap="round"/>',
+    juicebox: '<rect x="16" y="16" width="26" height="40" rx="3" fill="#ff9f43" ' + OL + '/><rect x="16" y="28" width="26" height="14" fill="#fff3e3"/><circle cx="29" cy="35" r="5" fill="#ff6b35"/><path d="M34 16l5-12h7" stroke="#e94e77" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
+  };
+})();
