@@ -117,13 +117,24 @@ function eyebrow(slide, part, label) {
   T(slide, (label || ("PART " + part + " · " + PARTS[part])).toUpperCase(), { x: 0.6, y: 0.3, w: 8, h: 0.3, fontSize: 12, bold: true, color: PC[part], charSpacing: 2 });
 }
 function notes(slide, title, extra) {
-  const n = NOTES[title] || { ar: "", nt: "" };
+  const n0 = NOTES[title] || { ar: "", nt: "" };
+  const n = { nt: NT_OVERRIDE[title] || n0.nt, ar: n0.ar.split("\n").filter((l) => !AR_DROP.test(l)).join("\n") };
   const parts = [];
   if (extra) parts.push(extra);
   if (n.nt) parts.push("Teacher notes:\n" + n.nt);
   if (n.ar) parts.push("شرح عربي:\n" + n.ar);
   if (parts.length) slide.addNotes(parts.join("\n\n"));
 }
+const NT_OVERRIDE = {
+  "Infant & Child Feeding": "≈2 min. Introduce the four parts of the lesson.",
+  "NG tube feeding": "≈3 min. Trace the path on the 3D picture: nose → oesophagus → stomach. Point out that the airway sits right in front of the oesophagus.",
+  "Bottle-feeding technique": "≈3 min. Compare the two 3D pictures: tilted bottle = nipple full of milk; too flat = air in the nipple.",
+  "Safe formula preparation": "≈3 min. Ask students to read the steps aloud in order.",
+  "Before NG feeding": "≈3 min. Ask a student to read each check aloud.",
+  "Benefits of breastfeeding": "≈3 min. Ask students to guess each benefit before you reveal it.",
+  "Breastfeeding technique": "≈4 min. Use the latch picture for steps 5 and 6, and the two figures for “head and body in a straight line”."
+};
+const AR_DROP = /اضغط|المجسم|اسحب/;
 let curSection = "";
 function section(title) { pres.addSection({ title }); curSection = title; }
 function content(part, title, eyeLabel) {
