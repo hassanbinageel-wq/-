@@ -4,6 +4,8 @@
   base = "baby-store"
   command = "npm run build:netlify"
   publish = ".next"
+  # لا يُعاد النشر (ولا يُستهلك رصيد) إذا لم يتغير شيء داخل baby-store — مثل تعديلات مجلد brand
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
 
 [build.environment]
   NODE_VERSION = "22"

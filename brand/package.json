@@ -1,0 +1,14 @@
+{
+  "name": "ghayma-brand",
+  "private": true,
+  "type": "module",
+  "description": "مولّد الهوية البصرية لمتجر غيمة: الشعار والعناصر والقوالب والدليل",
+  "scripts": {
+    "build": "node scripts/build-all.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.10",
+    "ag-psd": "^31.0.2",
+    "harfbuzzjs": "^1.6.2"
+  }
+}
