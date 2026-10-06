@@ -1,0 +1,473 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════════════
+//  مؤشر التحليل الكلاسيكي — اتجاه الساعة / 4 ساعات ← دخول على 1 / 5 دقائق
+//  Classic Technical Analysis MTF — 1H / 4H trend → 1m / 5m entries
+//
+//  Pure classical technical analysis (no ICT / SMC concepts):
+//     • Trend      : EMA 50 / EMA 200 structure on 1H and 4H
+//     • Levels     : support & resistance from swing highs / lows (LTF + 1H)
+//     • Setups     : 1) bounce from support / rejection from resistance + candle pattern
+//                    2) breakout + retest of a level
+//                    3) double bottom / double top (neckline break)
+//     • Filters    : RSI (overbought / oversold), volume, trading sessions
+//     • Risk       : SL beyond the level / pattern + ATR buffer, TP in R multiples
+//
+//  Non-repainting: HTF data comes from the previous CLOSED HTF candle and every
+//  signal is evaluated on closed bars only. BUY / SELL labels, TP and SL lines
+//  are never moved or deleted once printed — even if price reverses.
+//
+//  Educational tool — not financial advice.
+// ═══════════════════════════════════════════════════════════════════════════════
+indicator("مؤشر التحليل الكلاسيكي — دخول 1د / 5د", shorttitle = "Classic MTF", overlay = true,
+     max_labels_count = 500, max_lines_count = 500, max_boxes_count = 500)
+
+const string TZ = "America/New_York"
+
+// ───────────────────────────── Option strings ─────────────────────────────
+const string L_STRONG = "قوي (موصى به)"
+const string L_SAFE   = "آمن جداً (إشارات نادرة)"
+const string L_MORE   = "إشارات أكثر"
+const string L_CUSTOM = "مخصص (من الإعدادات تحت)"
+const string B_ANY  = "أي فريم يوافق"
+const string B_BOTH = "الفريمين متفقين"
+const string B_HTF2 = "الفريم الكبير 2 فقط"
+const string B_HTF1 = "الفريم الكبير 1 فقط"
+const string B_NONE = "بدون فلتر اتجاه"
+const string TP_1   = "الهدف 1"
+const string TP_2   = "الهدف 2"
+const string TP_3   = "الهدف 3"
+const string S_TODAY = "اليوم"
+const string S_DAY   = "يوم محدد"
+const string S_RANGE = "فترة من تاريخ إلى تاريخ"
+const string S_ALL   = "كل التاريخ"
+const string P_TR = "أعلى اليمين"
+const string P_TL = "أعلى اليسار"
+const string P_BR = "أسفل اليمين"
+const string P_BL = "أسفل اليسار"
+const string Z_N = "عادي"
+const string Z_L = "كبير"
+const string Z_H = "كبير جداً"
+
+// ───────────────────────────── الإعدادات / Inputs ─────────────────────────────
+preset = input.string(L_STRONG, "⭐ مستوى الإشارات", options = [L_STRONG, L_SAFE, L_MORE, L_CUSTOM],
+     tooltip = "قوي: اتجاه 4 ساعات + فلتر RSI + نجمة توافق واحدة على الأقل.\nآمن جداً: الفريمين متفقين + نجمتين + جلسات لندن ونيويورك فقط.\nإشارات أكثر: بدون فلتر اتجاه.\nمخصص: يستخدم الإعدادات اللي تحت كما هي.")
+
+grpTrend = "① الاتجاه على الفريمات الكبيرة"
+htf1      = input.timeframe("60",  "الفريم الكبير 1", group = grpTrend)
+htf2      = input.timeframe("240", "الفريم الكبير 2", group = grpTrend)
+emaFast   = input.int(50,  "المتوسط السريع EMA", minval = 2, group = grpTrend)
+emaSlow   = input.int(200, "المتوسط البطيء EMA", minval = 3, group = grpTrend)
+biasModeIn = input.string(B_HTF2, "فلتر الاتجاه (مخصص)", options = [B_ANY, B_BOTH, B_HTF2, B_HTF1, B_NONE], group = grpTrend,
+     tooltip = "صاعد: السعر فوق EMA السريع والسريع فوق البطيء.\nهابط: السعر تحت EMA السريع والسريع تحت البطيء.")
+htfLvlLen = input.int(3, "قوة قمم وقيعان الفريم الكبير 1 (مستويات)", minval = 1, group = grpTrend)
+
+grpSet = "② نماذج الدخول الكلاسيكية (1 / 5 دقائق)"
+onlyLTF  = input.bool(true, "الإشارات فقط على فريم 1 و 5 دقائق", group = grpSet)
+useBounce = input.bool(true, "ارتداد من دعم / مقاومة + نموذج شمعة", group = grpSet)
+useBreak  = input.bool(true, "اختراق مستوى ثم إعادة اختبار", group = grpSet)
+useDouble = input.bool(true, "قاع مزدوج / قمة مزدوجة (كسر خط العنق)", group = grpSet)
+lvlLen    = input.int(5, "قوة القمم والقيعان (الدعوم والمقاومات)", minval = 2, group = grpSet,
+     tooltip = "عدد الشموع على كل جهة لتحديد القمة أو القاع. رقم أكبر = مستويات أقوى وإشارات أقل.")
+zoneAtr   = input.float(0.3, "سماحية لمس المستوى (× ATR)", minval = 0, step = 0.05, group = grpSet)
+brkBody   = input.float(0.5, "قوة شمعة الاختراق (جسم × ATR)", minval = 0, step = 0.1, group = grpSet)
+retestWin = input.int(20, "أقصى عدد شموع لإعادة الاختبار", minval = 2, group = grpSet)
+dblTol    = input.float(0.5, "الفرق المسموح بين القاعين / القمتين (× ATR)", minval = 0.05, step = 0.05, group = grpSet)
+dblWin    = input.int(60, "أقصى عدد شموع لكسر خط العنق", minval = 5, group = grpSet)
+
+grpFlt = "③ فلاتر التأكيد"
+useRsi    = input.bool(true, "فلتر RSI", group = grpFlt)
+rsiLen    = input.int(14, "طول RSI", minval = 2, group = grpFlt)
+rsiOB     = input.int(70, "تشبع شرائي (لا شراء فوقه)", minval = 50, maxval = 100, group = grpFlt)
+rsiOS     = input.int(30, "تشبع بيعي (لا بيع تحته)", minval = 0, maxval = 50, group = grpFlt)
+useEmaLtf = input.bool(false, "السعر مع EMA السريع على فريم الدخول", group = grpFlt)
+volLen    = input.int(20, "متوسط الفوليوم (للنجوم)", minval = 2, group = grpFlt)
+useSessIn = input.bool(false, "الإشارات فقط في الجلسات (مخصص)", group = grpFlt)
+sLondon   = input.session("0200-0500", "جلسة لندن (نيويورك)", group = grpFlt)
+sNewYork  = input.session("0800-1200", "جلسة نيويورك", group = grpFlt)
+minScoreIn = input.int(1, "أقل عدد نجوم توافق (مخصص)", minval = 0, maxval = 4, group = grpFlt,
+     tooltip = "★ الفريمين بنفس الاتجاه\n★ الإشارة عند مستوى دعم/مقاومة من فريم الساعة\n★ نموذج شمعة قوي (ابتلاع / مطرقة / شهاب)\n★ فوليوم أعلى من المتوسط")
+
+grpTP = "④ الأهداف ووقف الخسارة"
+slBuf     = input.float(0.2, "مسافة إضافية للستوب (× ATR)", minval = 0, step = 0.05, group = grpTP)
+maxSlIn   = input.float(4.0, "أقصى حجم للستوب (× ATR) (مخصص)", minval = 0.5, step = 0.5, group = grpTP)
+rr1       = input.float(1.0, "الهدف 1 (مضاعف المخاطرة R)", minval = 0.1, step = 0.1, group = grpTP)
+rr2       = input.float(2.0, "الهدف 2 (مضاعف المخاطرة R)", minval = 0.1, step = 0.1, group = grpTP)
+rr3       = input.float(3.0, "الهدف 3 (مضاعف المخاطرة R)", minval = 0.1, step = 0.1, group = grpTP)
+finalTP   = input.string(TP_2, "تُحسب الصفقة رابحة عند", options = [TP_1, TP_2, TP_3], group = grpTP)
+moveBE    = input.bool(true, "نقل الستوب لنقطة الدخول بعد الهدف 1", group = grpTP)
+maxDayIn  = input.int(3, "أقصى عدد صفقات في اليوم (0 = بدون حد) (مخصص)", minval = 0, group = grpTP)
+
+grpSt = "⑤ الإحصائيات"
+showTbl  = input.bool(true, "إظهار جدول الإحصائيات", group = grpSt)
+statMode = input.string(S_TODAY, "حساب الصفقات لـ", options = [S_TODAY, S_DAY, S_RANGE, S_ALL], group = grpSt)
+specDay  = input.time(timestamp("01 Oct 2026 00:00 +0000"), "اليوم المحدد", group = grpSt)
+fromDate = input.time(timestamp("01 Sep 2026 00:00 +0000"), "من تاريخ", group = grpSt)
+toDate   = input.time(timestamp("06 Oct 2026 00:00 +0000"), "إلى تاريخ", group = grpSt)
+tblPosIn = input.string(P_TR, "مكان الجدول", options = [P_TR, P_TL, P_BR, P_BL], group = grpSt)
+
+grpVis = "⑥ الشكل"
+showLevels = input.bool(true, "إظهار خطوط الأهداف (أخضر) والستوب (أحمر)", group = grpVis)
+lineLen    = input.int(15, "طول الخطوط (عدد الشموع)", minval = 3, maxval = 400, group = grpVis)
+showZones  = input.bool(false, "تظليل منطقة الربح والخسارة", group = grpVis)
+showSR     = input.bool(true, "إظهار آخر دعم ومقاومة", group = grpVis)
+showEma    = input.bool(false, "إظهار EMA على فريم الدخول", group = grpVis)
+lblSize    = input.string(Z_L, "حجم كلمة BUY / SELL", options = [Z_N, Z_L, Z_H], group = grpVis)
+colBuy     = input.color(#089981, "لون الشراء والأهداف", group = grpVis)
+colSell    = input.color(#f23645, "لون البيع والستوب", group = grpVis)
+
+// ───────────────────────────── Preset → effective settings ─────────────────────────────
+isCustom  = preset == L_CUSTOM
+biasMode  = isCustom ? biasModeIn : preset == L_SAFE ? B_BOTH : preset == L_STRONG ? B_HTF2 : B_NONE
+minScore  = isCustom ? minScoreIn : preset == L_SAFE ? 2 : preset == L_STRONG ? 1 : 0
+useSess   = isCustom ? useSessIn  : preset == L_SAFE
+maxSlAtr  = isCustom ? maxSlIn    : preset == L_SAFE ? 3.0 : preset == L_STRONG ? 4.0 : 5.0
+maxPerDay = isCustom ? maxDayIn   : preset == L_SAFE ? 2 : preset == L_STRONG ? 3 : 0
+rsiOn     = isCustom ? useRsi     : preset != L_MORE
+
+// ───────────────────────────── Helpers ─────────────────────────────
+f_key(t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
+f_px(x)  => str.tostring(x, format.mintick)
+f_inSess(s) => not na(time(timeframe.period, s, TZ))
+f_tfName(tf) => tf == "60" ? "الساعة" : tf == "240" ? "4 ساعات" : tf == "D" ? "اليومي" : tf
+f_ck(b) => b ? "✓ " : "✗ "
+f_stars(n) => str.repeat("★", n) + str.repeat("☆", 4 - n)
+sigSize = lblSize == Z_H ? size.huge : lblSize == Z_L ? size.large : size.normal
+
+// HTF trend (EMA structure) + last HTF swing levels.
+// Shifted by one HTF bar + lookahead_on = previous CLOSED HTF candle only → no repaint.
+f_htf(fLen, sLen, pLen) =>
+    ef = ta.ema(close, fLen)
+    es = ta.ema(close, sLen)
+    dir = close > ef and ef > es ? 1 : close < ef and ef < es ? -1 : 0
+    hph = ta.pivothigh(high, pLen, pLen)
+    hpl = ta.pivotlow(low, pLen, pLen)
+    var float lvH = na
+    var float lvL = na
+    if not na(hph)
+        lvH := hph
+    if not na(hpl)
+        lvL := hpl
+    [dir[1], lvH[1], lvL[1]]
+
+[trend1, htfRes, htfSup] = request.security(syminfo.tickerid, htf1, f_htf(emaFast, emaSlow, htfLvlLen), lookahead = barmerge.lookahead_on)
+[trend2, _r2, _s2]       = request.security(syminfo.tickerid, htf2, f_htf(emaFast, emaSlow, htfLvlLen), lookahead = barmerge.lookahead_on)
+
+biasLong = switch biasMode
+    B_ANY  => trend1 == 1 or trend2 == 1
+    B_BOTH => trend1 == 1 and trend2 == 1
+    B_HTF2 => trend2 == 1
+    B_HTF1 => trend1 == 1
+    => true
+biasShort = switch biasMode
+    B_ANY  => trend1 == -1 or trend2 == -1
+    B_BOTH => trend1 == -1 and trend2 == -1
+    B_HTF2 => trend2 == -1
+    B_HTF1 => trend1 == -1
+    => true
+
+tfOK   = timeframe.period == "1" or timeframe.period == "5"
+sigOK  = not onlyLTF or tfOK
+inSess = not useSess or f_inSess(sLondon) or f_inSess(sNewYork)
+
+finalIdx = finalTP == TP_1 ? 1 : finalTP == TP_2 ? 2 : 3
+rrFinal  = finalIdx == 1 ? rr1 : finalIdx == 2 ? rr2 : rr3
+
+dayKey = f_key(time)
+var int curDay = na
+var int nToday = 0
+if dayKey != curDay
+    curDay := dayKey
+    nToday := 0
+canTrade = maxPerDay == 0 or nToday < maxPerDay
+
+// ───────────────────────────── LTF indicators ─────────────────────────────
+atr   = ta.atr(14)
+rsi   = ta.rsi(close, rsiLen)
+emaF  = ta.ema(close, emaFast)
+emaS  = ta.ema(close, emaSlow)
+volMA = ta.sma(volume, volLen)
+volHi = not na(volume) and volume > nz(volMA) and nz(volMA) > 0
+zone  = atr * zoneAtr
+
+plot(showEma ? emaF : na, "EMA سريع", color.new(color.orange, 20))
+plot(showEma ? emaS : na, "EMA بطيء", color.new(color.purple, 20))
+
+// Candlestick patterns
+body   = math.abs(close - open)
+rngC   = high - low
+upWick = high - math.max(open, close)
+dnWick = math.min(open, close) - low
+bullEngulf = close > open and close[1] < open[1] and close >= open[1] and open <= close[1]
+bearEngulf = close < open and close[1] > open[1] and close <= open[1] and open >= close[1]
+hammer     = rngC > 0 and dnWick >= 2 * body and upWick <= body and (close - low) / rngC >= 0.6
+shooting   = rngC > 0 and upWick >= 2 * body and dnWick <= body and (high - close) / rngC >= 0.6
+bullCandle = bullEngulf or hammer
+bearCandle = bearEngulf or shooting
+
+// Support / resistance from swing points
+ph = ta.pivothigh(high, lvlLen, lvlLen)
+pl = ta.pivotlow(low, lvlLen, lvlLen)
+var float res = na
+var float sup = na
+if not na(ph)
+    res := ph
+if not na(pl)
+    sup := pl
+plot(showSR ? res : na, "مقاومة", color.new(colSell, 40), 1, plot.style_linebr)
+plot(showSR ? sup : na, "دعم", color.new(colBuy, 40), 1, plot.style_linebr)
+
+// ───────────────────────────── Setups ─────────────────────────────
+// 1) Bounce / rejection
+bounceL = useBounce and not na(sup) and low <= sup + zone and close > sup and bullCandle
+bounceS = useBounce and not na(res) and high >= res - zone and close < res and bearCandle
+
+// 2) Breakout + retest
+var float brkUpLvl = na
+var int   brkUpBar = na
+var float brkDnLvl = na
+var int   brkDnBar = na
+retestL = useBreak and not na(brkUpLvl) and bar_index > brkUpBar and bar_index - brkUpBar <= retestWin and
+     low <= brkUpLvl + zone and close > brkUpLvl and close > open
+retestS = useBreak and not na(brkDnLvl) and bar_index > brkDnBar and bar_index - brkDnBar <= retestWin and
+     high >= brkDnLvl - zone and close < brkDnLvl and close < open
+if not na(brkUpLvl) and (bar_index - brkUpBar > retestWin or close < brkUpLvl - zone)
+    brkUpLvl := na
+if not na(brkDnLvl) and (bar_index - brkDnBar > retestWin or close > brkDnLvl + zone)
+    brkDnLvl := na
+if not na(res) and close > res and close[1] <= res and close - open >= brkBody * atr
+    brkUpLvl := res
+    brkUpBar := bar_index
+if not na(sup) and close < sup and close[1] >= sup and open - close >= brkBody * atr
+    brkDnLvl := sup
+    brkDnBar := bar_index
+
+// 3) Double bottom / double top
+var float prevPL   = na
+var float phSincePL = na
+var float prevPH   = na
+var float plSincePH = na
+var float dbNeck = na
+var float dbLow  = na
+var int   dbBar  = na
+var float dtNeck = na
+var float dtHigh = na
+var int   dtBar  = na
+if not na(pl)
+    if not na(prevPL) and not na(phSincePL) and math.abs(pl - prevPL) <= dblTol * atr
+        dbNeck := phSincePL
+        dbLow  := math.min(pl, prevPL)
+        dbBar  := bar_index
+    prevPL    := pl
+    phSincePL := na
+    plSincePH := na(plSincePH) ? pl : math.min(plSincePH, pl)
+if not na(ph)
+    if not na(prevPH) and not na(plSincePH) and math.abs(ph - prevPH) <= dblTol * atr
+        dtNeck := plSincePH
+        dtHigh := math.max(ph, prevPH)
+        dtBar  := bar_index
+    prevPH    := ph
+    plSincePH := na
+    phSincePL := na(phSincePL) ? ph : math.max(phSincePL, ph)
+doubleL = useDouble and not na(dbNeck) and bar_index - dbBar <= dblWin and close > dbNeck and close[1] <= dbNeck
+doubleS = useDouble and not na(dtNeck) and bar_index - dtBar <= dblWin and close < dtNeck and close[1] >= dtNeck
+if doubleL or (not na(dbNeck) and (bar_index - dbBar > dblWin or close < dbLow))
+    dbNeck := na
+if doubleS or (not na(dtNeck) and (bar_index - dtBar > dblWin or close > dtHigh))
+    dtNeck := na
+
+// ───────────────────────────── Trade state ─────────────────────────────
+var int   tDir    = 0
+var int   tBar    = na
+var int   tTime   = na
+var float tEntry  = na
+var float tSL     = na
+var float tTP1    = na
+var float tFinal  = na
+var bool  tBE     = false
+var bool  tTP1Hit = false
+var int   lastSigTime = na
+var int   lastSigDir  = 0
+
+var array<int>   stTime = array.new<int>()
+var array<int>   stRes  = array.new<int>()     // 1 win, 0 break-even, -1 loss
+var array<float> stR    = array.new<float>()
+
+int    oDir   = 0
+float  oSL    = na
+int    oScore = 0
+string oInfo  = ""
+
+// New signal (closed bars only, one trade at a time)
+if tDir == 0 and canTrade and sigOK and inSess and barstate.isconfirmed
+    longSet  = bounceL or retestL or doubleL
+    shortSet = bounceS or retestS or doubleS
+    rsiL = not rsiOn or rsi < rsiOB
+    rsiS = not rsiOn or rsi > rsiOS
+    emaL = not useEmaLtf or close > emaF
+    emaS2 = not useEmaLtf or close < emaF
+    d = longSet and biasLong and rsiL and emaL ? 1 : shortSet and biasShort and rsiS and emaS2 ? -1 : 0
+    if d != 0
+        isB = d == 1 ? bounceL : bounceS
+        isR = d == 1 ? retestL : retestS
+        setupName = isB ? (d == 1 ? "ارتداد من دعم" : "ارتداد من مقاومة") :
+             isR ? "اختراق وإعادة اختبار" : (d == 1 ? "قاع مزدوج" : "قمة مزدوجة")
+        lvl = isB ? (d == 1 ? sup : res) : isR ? (d == 1 ? brkUpLvl : brkDnLvl) : (d == 1 ? dbLow : dtHigh)
+        stp = d == 1 ? math.min(low, lvl) - slBuf * atr : math.max(high, lvl) + slBuf * atr
+        risk = d * (close - stp)
+        cTrend = d == 1 ? (trend1 == 1 and trend2 == 1) : (trend1 == -1 and trend2 == -1)
+        cHtfLv = (not na(htfSup) and math.abs(lvl - htfSup) <= atr * 1.5) or (not na(htfRes) and math.abs(lvl - htfRes) <= atr * 1.5)
+        cCandle = d == 1 ? bullCandle : bearCandle
+        cVol = volHi
+        score = (cTrend ? 1 : 0) + (cHtfLv ? 1 : 0) + (cCandle ? 1 : 0) + (cVol ? 1 : 0)
+        if risk > 0 and risk <= maxSlAtr * atr and score >= minScore
+            oDir   := d
+            oSL    := stp
+            oScore := score
+            oInfo  := "\nالنموذج: " + setupName + "\n— عوامل التوافق —\n" + f_ck(cTrend) + "الساعة و4 ساعات بنفس الاتجاه\n" +
+                 f_ck(cHtfLv) + "عند مستوى من فريم الساعة\n" + f_ck(cCandle) + "نموذج شمعة قوي\n" + f_ck(cVol) + "فوليوم أعلى من المتوسط" +
+                 "\nRSI: " + str.tostring(rsi, "#.0")
+
+bool buySig  = oDir == 1
+bool sellSig = oDir == -1
+if oDir != 0
+    risk    = math.abs(close - oSL)
+    tDir    := oDir
+    tBar    := bar_index
+    tTime   := time
+    tEntry  := close
+    tSL     := oSL
+    tTP1    := close + oDir * risk * rr1
+    tFinal  := close + oDir * risk * rrFinal
+    tBE     := false
+    tTP1Hit := false
+    nToday  += 1
+    lastSigTime := time
+    lastSigDir  := oDir
+
+    tp2 = close + oDir * risk * rr2
+    tp3 = close + oDir * risk * rr3
+    col = oDir == 1 ? colBuy : colSell
+    word = oDir == 1 ? "BUY" : "SELL"
+    tip = word + "  |  الدخول " + f_px(close) + "\nالستوب " + f_px(oSL) +
+         "\nالهدف 1: " + f_px(tTP1) + " (" + str.tostring(rr1) + "R)" +
+         "\nالهدف 2: " + f_px(tp2) + " (" + str.tostring(rr2) + "R)" +
+         "\nالهدف 3: " + f_px(tp3) + " (" + str.tostring(rr3) + "R)" + oInfo
+    txtSig = word + "\n" + f_px(close) + "\n" + f_stars(oScore)
+    if oDir == 1
+        label.new(bar_index, low - atr * 0.2, txtSig, style = label.style_label_up,
+             color = col, textcolor = color.white, size = sigSize, tooltip = tip)
+    else
+        label.new(bar_index, high + atr * 0.2, txtSig, style = label.style_label_down,
+             color = col, textcolor = color.white, size = sigSize, tooltip = tip)
+
+    x2 = bar_index + lineLen
+    if showZones
+        box.new(bar_index, close, x2, oSL, border_color = color.new(colSell, 100), bgcolor = color.new(colSell, 85))
+        box.new(bar_index, close, x2, tFinal, border_color = color.new(colBuy, 100), bgcolor = color.new(colBuy, 85))
+    if showLevels
+        line.new(bar_index, close, x2, close, color = color.gray, style = line.style_dotted, width = 1)
+        line.new(bar_index, oSL, x2, oSL, color = colSell, width = 2)
+        label.new(x2, oSL, "SL " + f_px(oSL), style = label.style_label_left, color = color.new(colSell, 10), textcolor = color.white, size = size.small)
+        for i = 1 to finalIdx
+            lv = i == 1 ? tTP1 : i == 2 ? tp2 : tp3
+            line.new(bar_index, lv, x2, lv, color = colBuy, width = 2)
+            label.new(x2, lv, "TP" + str.tostring(i) + " " + f_px(lv), style = label.style_label_left, color = color.new(colBuy, 10), textcolor = color.white, size = size.small)
+
+// Manage the open trade (stop checked first → conservative results)
+int   exitRes = na
+float exitPx  = na
+if tDir != 0 and barstate.isconfirmed and bar_index > tBar
+    hitSL = tDir == 1 ? low <= tSL : high >= tSL
+    if hitSL
+        exitRes := tBE ? 0 : -1
+        exitPx  := tSL
+    else
+        if not tTP1Hit and (tDir == 1 ? high >= tTP1 : low <= tTP1)
+            tTP1Hit := true
+            if moveBE and finalIdx > 1
+                tSL := tEntry
+                tBE := true
+        if tDir == 1 ? high >= tFinal : low <= tFinal
+            exitRes := 1
+            exitPx  := tFinal
+
+if not na(exitRes)
+    rVal = exitRes == 1 ? rrFinal : exitRes == 0 ? 0.0 : -1.0
+    txt  = exitRes == 1 ? "✓ TP" + str.tostring(finalIdx) : exitRes == 0 ? "BE" : "✗ SL"
+    col  = exitRes == 1 ? colBuy : exitRes == 0 ? color.gray : colSell
+    label.new(bar_index, exitPx, txt, style = label.style_label_left, color = color.new(col, 15), textcolor = color.white, size = size.small)
+    array.push(stTime, tTime)
+    array.push(stRes, exitRes)
+    array.push(stR, rVal)
+    tDir := 0
+
+// ───────────────────────────── Alerts ─────────────────────────────
+alertcondition(buySig,  "BUY",  "BUY {{ticker}} ({{interval}}) @ {{close}}")
+alertcondition(sellSig, "SELL", "SELL {{ticker}} ({{interval}}) @ {{close}}")
+if buySig or sellSig
+    alert((buySig ? "BUY " : "SELL ") + syminfo.ticker + " | Entry " + f_px(tEntry) + " | SL " + f_px(tSL) +
+         " | TP1 " + f_px(tTP1) + " | TP" + str.tostring(finalIdx) + " " + f_px(tFinal), alert.freq_once_per_bar_close)
+
+// ───────────────────────────── جدول الإحصائيات ─────────────────────────────
+f_trTxt(b) => b == 1 ? "صاعد ▲" : b == -1 ? "هابط ▼" : "عرضي"
+f_trCol(b) => b == 1 ? colBuy : b == -1 ? colSell : color.gray
+
+f_inPeriod(t, todayKey) =>
+    switch statMode
+        S_TODAY => f_key(t) == todayKey
+        S_DAY   => t >= specDay and t < specDay + 86400000
+        S_RANGE => t >= fromDate and t < toDate + 86400000
+        => true
+
+var table tbl = table.new(tblPosIn == P_TR ? position.top_right : tblPosIn == P_TL ? position.top_left :
+     tblPosIn == P_BR ? position.bottom_right : position.bottom_left, 2, 13,
+     bgcolor = color.new(#131722, 10), border_color = color.new(color.gray, 70), border_width = 1)
+
+if barstate.islast and showTbl
+    todayKey = f_key(time)
+    int   w   = 0
+    int   l   = 0
+    int   be  = 0
+    float net = 0.0
+    int n = array.size(stTime)
+    if n > 0
+        for i = 0 to n - 1
+            if f_inPeriod(array.get(stTime, i), todayKey)
+                r = array.get(stRes, i)
+                w   += r == 1 ? 1 : 0
+                l   += r == -1 ? 1 : 0
+                be  += r == 0 ? 1 : 0
+                net += array.get(stR, i)
+    decided = w + l
+    wr = decided > 0 ? 100.0 * w / decided : 0.0
+    period = statMode == S_DAY ? str.format_time(specDay, "yyyy-MM-dd") :
+         statMode == S_RANGE ? str.format_time(fromDate, "yyyy-MM-dd") + " → " + str.format_time(toDate, "yyyy-MM-dd") : statMode
+    white = color.white
+    table.cell(tbl, 0, 0, "التحليل الكلاسيكي", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 0, tfOK ? "فريم " + timeframe.period + " دقيقة ✓" : "⚠ استخدم فريم 1 أو 5 دقائق", text_color = tfOK ? colBuy : color.orange, text_size = size.small)
+    table.cell(tbl, 0, 1, "اتجاه " + f_tfName(htf1), text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 1, f_trTxt(trend1), text_color = f_trCol(trend1), text_size = size.small)
+    table.cell(tbl, 0, 2, "اتجاه " + f_tfName(htf2), text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 2, f_trTxt(trend2), text_color = f_trCol(trend2), text_size = size.small)
+    table.cell(tbl, 0, 3, "الفترة", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 3, period, text_color = white, text_size = size.small)
+    table.cell(tbl, 0, 4, "عدد الصفقات", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 4, str.tostring(w + l + be), text_color = white, text_size = size.small)
+    table.cell(tbl, 0, 5, "الرابحة", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 5, str.tostring(w), text_color = colBuy, text_size = size.small)
+    table.cell(tbl, 0, 6, "الخاسرة", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 6, str.tostring(l), text_color = colSell, text_size = size.small)
+    table.cell(tbl, 0, 7, "تعادل", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 7, str.tostring(be), text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 0, 8, "نسبة النجاح", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 8, str.tostring(wr, "#.#") + "%", text_color = wr >= 50 ? colBuy : colSell, text_size = size.small)
+    table.cell(tbl, 0, 9, "صافي الربح", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 9, str.tostring(net, "#.##") + "R", text_color = net >= 0 ? colBuy : colSell, text_size = size.small)
+    table.cell(tbl, 0, 10, "الصفقة الحالية", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 10, tDir == 1 ? "BUY @ " + f_px(tEntry) : tDir == -1 ? "SELL @ " + f_px(tEntry) : "لا يوجد",
+         text_color = tDir == 1 ? colBuy : tDir == -1 ? colSell : color.gray, text_size = size.small)
+    table.cell(tbl, 0, 11, "آخر إشارة", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 11, na(lastSigTime) ? "لا توجد في الشارت — جرّب مستوى أخف" : (lastSigDir == 1 ? "BUY " : "SELL ") + str.format_time(lastSigTime, "yyyy-MM-dd HH:mm"),
+         text_color = lastSigDir == 1 ? colBuy : lastSigDir == -1 ? colSell : color.orange, text_size = size.small)
+    table.cell(tbl, 0, 12, "مستوى الإشارات", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 12, preset, text_color = white, text_size = size.small)
