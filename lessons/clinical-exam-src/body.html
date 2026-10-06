@@ -1,0 +1,436 @@
+<div class="app">
+
+<header class="topbar">
+  <button class="brand" type="button" data-target="s-1" aria-label="Go to title slide">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3.1A4.6 4.6 0 0 1 20 10c0 5.8-8 11-8 11z"/></svg>
+    <span class="bt">Basic Clinical Examination</span>
+  </button>
+  <nav class="ptabs" aria-label="Lesson sections">
+    <button class="ptab" type="button" data-part="0" data-target="s-gen" style="--pc:var(--p0)"><span class="d"></span><span class="nm">General</span><span class="vh">General examination</span></button>
+    <button class="ptab" type="button" data-part="1" data-target="s-p1" style="--pc:var(--p1)"><span class="d"></span><span class="nm">Cardiovascular</span><span class="vh">Cardiovascular</span></button>
+    <button class="ptab" type="button" data-part="2" data-target="s-p2" style="--pc:var(--p2)"><span class="d"></span><span class="nm">Respiratory</span><span class="vh">Respiratory</span></button>
+    <button class="ptab" type="button" data-part="3" data-target="s-p3" style="--pc:var(--p3)"><span class="d"></span><span class="nm">Abdomen</span><span class="vh">Abdomen</span></button>
+    <button class="ptab" type="button" data-part="4" data-target="s-p4" style="--pc:var(--p4)"><span class="d"></span><span class="nm">Neurological</span><span class="vh">Neurological</span></button>
+  </nav>
+  <div class="timer" role="group" aria-label="Lesson timer">
+    <button id="tBtn" type="button" aria-pressed="false" title="Start or pause the lesson timer (T)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4"/></svg><span id="tVal">00:00</span>
+    </button>
+    <button id="tReset" class="rs" type="button" aria-label="Reset timer" title="Reset timer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<div class="main">
+<main class="deck" id="deck">
+
+<!-- 1 · TITLE -->
+<section class="slide" id="s-1" data-part="0" data-title="Basic Clinical Examination">
+  <div class="wrap">
+    <div class="title-grid">
+      <div class="title-main">
+        <p class="eyebrow f"><span class="dot"></span>Clinical skills</p>
+        <h1 class="f"><span class="ln">Basic Clinical</span><span class="ln acc">Examination</span></h1>
+        <div class="author f"><small>Presented by</small><b>Dr. Ruqaiah Aidaros Alhebshi</b></div>
+        <div class="chips f">
+          <span class="chip">General physical examination</span><span class="chip">Vital signs</span><span class="chip">Systemic examination</span>
+        </div>
+        <div class="title-actions f"><button class="btn primary" type="button" data-go="next">Start →</button></div>
+      </div>
+      <div class="hero-fig f" style="--pc:var(--p0)"><span class="ill" data-ill="steth" role="img" aria-label="Stethoscope"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · GENERAL PHYSICAL EXAMINATION -->
+<section class="slide" id="s-gen" data-part="0" data-kicker="General examination" data-title="General physical examination">
+  <div class="wrap">
+    <header class="sh"><h2>General physical examination</h2></header>
+    <p class="def f"><b>General examination</b> is a quick assessment of the patient’s overall condition before examining individual body systems.</p>
+    <div class="callout f"><span class="lbl">It starts with the vital signs</span></div>
+    <div class="vcards">
+      <div class="vcard f" style="--pc:#d9822b"><span class="ill" data-ill="thermo"></span><h3>Temperature</h3></div>
+      <div class="vcard f" style="--pc:var(--p1)"><span class="ill" data-ill="pulse"></span><h3>Pulse</h3></div>
+      <div class="vcard f" style="--pc:var(--p2)"><span class="ill" data-ill="lungs"></span><h3>Respiratory rate</h3></div>
+      <div class="vcard f" style="--pc:var(--p4)"><span class="ill" data-ill="bp"></span><h3>Blood pressure</h3></div>
+      <div class="vcard f" style="--pc:var(--p0)"><span class="ill" data-ill="spo2"></span><h3>SpO₂</h3></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · VITAL SIGNS SUMMARY -->
+<section class="slide" data-part="0" data-kicker="Vital signs" data-title="Vital signs: normal values">
+  <div class="wrap">
+    <header class="sh"><h2>Vital signs: normal values</h2></header>
+    <div class="vcards">
+      <div class="vcard f"><h3>Temperature</h3><p>36.5–37.5 °C</p><small>Fever ≥38 °C · Hypothermia &lt;35 °C</small></div>
+      <div class="vcard f"><h3>Pulse</h3><p>60–100 /min</p><small>Tachycardia &gt;100 · Bradycardia &lt;60</small></div>
+      <div class="vcard f"><h3>Respiratory rate</h3><p>12–20 /min</p><small>Tachypnea &gt;20 · Bradypnea &lt;12</small></div>
+      <div class="vcard f"><h3>Blood pressure</h3><p>≈ 90/60–120/80 mmHg</p><small>Hypertension ≥140/90 · Hypotension &lt;90/60</small></div>
+      <div class="vcard f"><h3>SpO₂</h3><p>95–100 %</p><small>Low &lt;94 % · Severe hypoxemia &lt;90 %</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · TEMPERATURE -->
+<section class="slide" data-part="0" data-kicker="Vital signs" data-title="Temperature">
+  <div class="wrap">
+    <header class="sh"><h2>Temperature</h2></header>
+    <div class="vital" style="--pc:#d9822b">
+      <figure class="dev f"><span class="ill" data-ill="thermo"></span><figcaption>Digital thermometer</figcaption></figure>
+      <div class="stack">
+        <div class="big-normal f"><small>Normal</small><b>36.5–37.5<span>°C</span></b></div>
+        <div class="range two-row f" style="--to:50%">
+          <span class="lab lo" style="left:12.5%">Hypothermia</span><span class="lab ok" style="left:50%">Normal</span><span class="lab hi" style="left:81.25%">Fever</span>
+          <div class="track"><i class="z lo" style="left:0;width:25%;--i:0"></i><i class="z ok" style="left:43.75%;width:12.5%;--i:1"></i><i class="z hi" style="left:62.5%;width:37.5%;--i:2"></i></div>
+          <span class="pin"></span>
+          <span class="tick" style="left:25%">35</span><span class="tick" style="left:43.75%">36.5</span><span class="tick low" style="left:56.25%">37.5</span><span class="tick" style="left:62.5%">38 °C</span>
+        </div>
+        <div class="vgrid f">
+          <div class="vrow"><span class="dot ok"></span><div><b>Normal:</b> <span>36.5–37.5 °C</span></div></div>
+          <div class="vrow"><span class="dot hi"></span><div><b>Fever:</b> <span>≥38 °C</span></div></div>
+          <div class="vrow"><span class="dot lo"></span><div><b>Hypothermia:</b> <span>&lt;35 °C</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · PULSE -->
+<section class="slide" data-part="0" data-kicker="Vital signs" data-title="Pulse">
+  <div class="wrap">
+    <header class="sh"><h2>Pulse</h2></header>
+    <div class="vital" style="--pc:var(--p1)">
+      <figure class="dev f"><span class="ill" data-ill="pulse"></span><figcaption>Radial pulse</figcaption></figure>
+      <div class="stack">
+        <div class="big-normal f"><small>Normal</small><b>60–100<span>beats/min</span></b></div>
+        <div class="range f" style="--to:41.67%">
+          <span class="lab lo" style="left:12.5%">Bradycardia</span><span class="lab ok" style="left:41.67%">Normal</span><span class="lab hi" style="left:79.17%">Tachycardia</span>
+          <div class="track"><i class="z lo" style="left:0;width:25%;--i:0"></i><i class="z ok" style="left:25%;width:33.33%;--i:1"></i><i class="z hi" style="left:58.33%;width:41.67%;--i:2"></i></div>
+          <span class="pin"></span>
+          <span class="tick" style="left:25%">60</span><span class="tick" style="left:58.33%">100 /min</span>
+        </div>
+        <div class="vgrid f">
+          <div class="vrow"><span class="dot ok"></span><div><b>Normal:</b> <span>60–100 beats/min</span></div></div>
+          <div class="vrow"><span class="dot hi"></span><div><b>Tachycardia:</b> <span>&gt;100 beats/min</span></div></div>
+          <div class="vrow"><span class="dot lo"></span><div><b>Bradycardia:</b> <span>&lt;60 beats/min</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · RESPIRATORY RATE -->
+<section class="slide" data-part="0" data-kicker="Vital signs" data-title="Respiratory rate">
+  <div class="wrap">
+    <header class="sh"><h2>Respiratory rate</h2></header>
+    <div class="vital" style="--pc:var(--p2)">
+      <figure class="dev f"><span class="ill" data-ill="lungs"></span><figcaption>Count breaths per minute</figcaption></figure>
+      <div class="stack">
+        <div class="big-normal f"><small>Normal</small><b>12–20<span>breaths/min</span></b></div>
+        <div class="range f" style="--to:37.5%">
+          <span class="lab lo" style="left:12.5%">Bradypnea</span><span class="lab ok" style="left:37.5%">Normal</span><span class="lab hi" style="left:75%">Tachypnea</span>
+          <div class="track"><i class="z lo" style="left:0;width:25%;--i:0"></i><i class="z ok" style="left:25%;width:25%;--i:1"></i><i class="z hi" style="left:50%;width:50%;--i:2"></i></div>
+          <span class="pin"></span>
+          <span class="tick" style="left:25%">12</span><span class="tick" style="left:50%">20 /min</span>
+        </div>
+        <div class="vgrid f">
+          <div class="vrow"><span class="dot ok"></span><div><b>Normal:</b> <span>12–20 breaths/min</span></div></div>
+          <div class="vrow"><span class="dot hi"></span><div><b>Tachypnea:</b> <span>&gt;20/min</span></div></div>
+          <div class="vrow"><span class="dot lo"></span><div><b>Bradypnea:</b> <span>&lt;12/min</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 · BLOOD PRESSURE -->
+<section class="slide" data-part="0" data-kicker="Vital signs" data-title="Blood pressure">
+  <div class="wrap">
+    <header class="sh"><h2>Blood pressure</h2></header>
+    <div class="vital" style="--pc:var(--p4)">
+      <figure class="dev f"><span class="ill" data-ill="bp"></span><figcaption>Sphygmomanometer</figcaption></figure>
+      <div class="stack">
+        <div class="big-normal f"><small>Normal adult BP · approximately</small><b>90/60–120/80<span>mmHg</span></b></div>
+        <div class="range f" style="--to:31.82%">
+          <span class="lab lo" style="left:9.09%">Hypotension</span><span class="lab ok" style="left:31.82%">Normal</span><span class="lab hi" style="left:81.82%">Hypertension</span>
+          <div class="track"><i class="z lo" style="left:0;width:18.18%;--i:0"></i><i class="z ok" style="left:18.18%;width:27.27%;--i:1"></i><i class="z hi" style="left:63.64%;width:36.36%;--i:2"></i></div>
+          <span class="pin"></span>
+          <span class="tick" style="left:18.18%">90/60</span><span class="tick" style="left:45.45%">120/80</span><span class="tick" style="left:63.64%">140/90</span>
+        </div>
+        <div class="vgrid f">
+          <div class="vrow"><span class="dot ok"></span><div><b>Normal adult BP:</b> <span>approximately 90/60–120/80 mmHg</span></div></div>
+          <div class="vrow"><span class="dot hi"></span><div><b>Hypertension:</b> <span>≥140/90 mmHg</span></div></div>
+          <div class="vrow"><span class="dot lo"></span><div><b>Hypotension:</b> <span>&lt;90/60 mmHg</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 · SpO2 -->
+<section class="slide" data-part="0" data-kicker="Vital signs" data-title="SpO₂">
+  <div class="wrap">
+    <header class="sh"><h2>SpO₂</h2></header>
+    <div class="vital" style="--pc:var(--p0)">
+      <figure class="dev f"><span class="ill" data-ill="spo2"></span><figcaption>Pulse oximeter</figcaption></figure>
+      <div class="stack">
+        <div class="big-normal f"><small>Normal</small><b>95–100<span>%</span></b></div>
+        <div class="range two-row f" style="--to:87.5%">
+          <span class="lab hi" style="left:25%">Severe hypoxemia</span><span class="lab warn" style="left:60%">Low</span><span class="lab ok" style="left:87.5%">Normal</span>
+          <div class="track"><i class="z hi" style="left:0;width:50%;--i:0"></i><i class="z warn" style="left:50%;width:20%;--i:1"></i><i class="z ok" style="left:75%;width:25%;--i:2"></i></div>
+          <span class="pin"></span>
+          <span class="tick" style="left:50%">90</span><span class="tick" style="left:70%">94</span><span class="tick low" style="left:75%">95</span><span class="tick" style="left:100%">100 %</span>
+        </div>
+        <div class="vgrid f">
+          <div class="vrow"><span class="dot ok"></span><div><b>Normal:</b> <span>95–100%</span></div></div>
+          <div class="vrow"><span class="dot warn"></span><div><b>Low:</b> <span>&lt;94%</span></div></div>
+          <div class="vrow"><span class="dot hi"></span><div><b>Severe hypoxemia:</b> <span>&lt;90%</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · SYSTEMIC EXAMINATION -->
+<section class="slide" data-part="0" data-kicker="Systemic examination" data-title="Basic systemic examination">
+  <div class="wrap">
+    <header class="sh"><h2>Basic systemic examination</h2></header>
+    <p class="def f"><b>Basic systemic examination</b> is a focused physical examination of a specific body system to identify abnormal signs.</p>
+    <h3 class="f">Main systems</h3>
+    <div class="systems">
+      <div class="sys f" style="--pc:var(--p1)"><span class="ill" data-ill="heart"></span><b>Cardiovascular system</b></div>
+      <div class="sys f" style="--pc:var(--p2)"><span class="ill" data-ill="lungs"></span><b>Respiratory system</b></div>
+      <div class="sys f" style="--pc:var(--p3)"><span class="ill" data-ill="abdomen"></span><b>Abdomen / Gastrointestinal system</b></div>
+      <div class="sys f" style="--pc:var(--p4)"><span class="ill" data-ill="brain"></span><b>Neurological system</b></div>
+      <div class="sys f" style="--pc:var(--p0)"><span class="ill" data-ill="bone"></span><b>Musculoskeletal system</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · SEQUENCE -->
+<section class="slide" data-part="0" data-kicker="Systemic examination" data-title="Basic examination sequence">
+  <div class="wrap">
+    <header class="sh"><h2>Basic examination sequence</h2><p class="muted">For most systems:</p></header>
+    <div class="ippa">
+      <div class="st f" style="--sc:var(--p0);--pc:var(--p0)"><span class="circ"><span class="ill" data-ill="eye"></span></span><span class="n">STEP 1</span><b>Inspection</b></div>
+      <div class="st f" style="--sc:var(--p1);--pc:var(--p1)"><span class="circ"><span class="ill" data-ill="hand"></span></span><span class="n">STEP 2</span><b>Palpation</b></div>
+      <div class="st f" style="--sc:var(--p3);--pc:var(--p3)"><span class="circ"><span class="ill" data-ill="percuss"></span></span><span class="n">STEP 3</span><b>Percussion</b></div>
+      <div class="st f" style="--sc:var(--p2);--pc:var(--p2)"><span class="circ"><span class="ill" data-ill="ausc"></span></span><span class="n">STEP 4</span><b>Auscultation</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 · CVS DIVIDER -->
+<section class="slide divider" id="s-p1" data-part="1" data-title="Cardiovascular system">
+  <div class="wrap">
+    <div class="dv">
+      <div>
+        <p class="dv-k f">System 1</p>
+        <h2 class="f">Cardiovascular System</h2>
+        <div class="dv-list f"><span>Inspection</span><span>Palpation</span><span>Percussion</span><span>Auscultation</span></div>
+      </div>
+      <div class="dev f" style="background:#fff;border:0;--pc:var(--p1)"><span class="ill" data-ill="heart"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 · CVS I & P -->
+<section class="slide" data-part="1" data-title="Cardiovascular: inspection & palpation">
+  <div class="wrap">
+    <header class="sh"><h2>Cardiovascular system</h2></header>
+    <div class="exam">
+      <div class="ecard f" style="--sc:var(--p0)"><h3><span class="tag" data-tag="eye"></span>Inspection</h3>
+        <ul class="ticks"><li>Pallor</li><li>Cyanosis</li><li>Edema</li><li>JVP</li><li>Precordial pulsations</li></ul></div>
+      <div class="ecard f" style="--sc:var(--p1)"><h3><span class="tag" data-tag="hand"></span>Palpation</h3>
+        <ul class="ticks"><li>Pulse: rate, rhythm, volume</li><li>Peripheral pulses</li><li>Capillary refill</li><li>Apex beat</li><li>Edema</li></ul></div>
+      <figure class="dev f" style="--pc:var(--p1)"><span class="ill" data-ill="pulse"></span><figcaption>Pulse: rate, rhythm, volume</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 13 · CVS P & A -->
+<section class="slide" data-part="1" data-title="Cardiovascular: percussion & auscultation">
+  <div class="wrap">
+    <header class="sh"><h2>Cardiovascular system</h2></header>
+    <div class="exam">
+      <div class="ecard f" style="--sc:var(--p3)"><h3><span class="tag" data-tag="tap"></span>Percussion</h3>
+        <ul class="ticks"><li>Usually not routinely performed</li><li>May help estimate cardiac borders</li></ul></div>
+      <div class="ecard f" style="--sc:var(--p2)"><h3><span class="tag" data-tag="steth"></span>Auscultation</h3>
+        <ul class="ticks"><li>S1 and S2</li><li>S3 / S4</li><li>Murmurs</li><li>Main valve areas</li></ul></div>
+      <figure class="dev f" style="--pc:var(--p1)"><span class="ill" data-ill="valves"></span><figcaption>Main valve areas</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 14 · RESP DIVIDER -->
+<section class="slide divider" id="s-p2" data-part="2" data-title="Respiratory system">
+  <div class="wrap">
+    <div class="dv">
+      <div>
+        <p class="dv-k f">System 2</p>
+        <h2 class="f">Respiratory System</h2>
+        <div class="dv-list f"><span>Inspection</span><span>Palpation</span><span>Percussion</span><span>Auscultation</span></div>
+      </div>
+      <div class="dev f" style="background:#fff;border:0;--pc:var(--p2)"><span class="ill" data-ill="lungs"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 · RESP I & P -->
+<section class="slide" data-part="2" data-title="Respiratory: inspection & palpation">
+  <div class="wrap">
+    <header class="sh"><h2>Respiratory system</h2></header>
+    <div class="exam">
+      <div class="ecard f" style="--sc:var(--p0)"><h3><span class="tag" data-tag="eye"></span>Inspection</h3>
+        <ul class="ticks"><li>Respiratory rate</li><li>Pattern</li><li>Chest shape</li><li>Chest movement</li><li>Accessory muscle use</li><li>Cyanosis</li></ul></div>
+      <div class="ecard f" style="--sc:var(--p1)"><h3><span class="tag" data-tag="hand"></span>Palpation</h3>
+        <ul class="ticks"><li>Chest expansion</li><li>Tracheal position</li><li>Tactile vocal fremitus</li></ul></div>
+      <figure class="dev f" style="--pc:var(--p2)"><span class="ill" data-ill="lungs"></span><figcaption>Chest movement &amp; expansion</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 16 · RESP P & A -->
+<section class="slide" data-part="2" data-title="Respiratory: percussion & auscultation">
+  <div class="wrap">
+    <header class="sh"><h2>Respiratory system</h2></header>
+    <div class="exam two">
+      <div class="ecard f" style="--sc:var(--p3)"><h3><span class="tag" data-tag="tap"></span>Percussion</h3>
+        <div class="perc">
+          <div class="row" style="--i:0"><b style="color:var(--ok)">Resonant</b><svg viewBox="0 0 200 32" aria-hidden="true"><path class="w" pathLength="1" style="stroke:var(--ok)" d="M2 16q12-12 24 0t24 0 24 0 24 0 24 0 24 0 24 0 24 0"/></svg><span>Normal</span></div>
+          <div class="row" style="--i:1"><b style="color:var(--warn)">Dull</b><svg viewBox="0 0 200 32" aria-hidden="true"><path class="w" pathLength="1" style="stroke:var(--warn)" d="M2 16q8-6 16 0t16 0H198"/></svg><span>Consolidation / effusion</span></div>
+          <div class="row" style="--i:2"><b style="color:var(--bad)">Hyper-resonant</b><svg viewBox="0 0 200 32" aria-hidden="true"><path class="w" pathLength="1" style="stroke:var(--bad)" d="M2 16q12-15 24 0t24 0 24 0 24 0 24 0 24 0 24 0 24 0"/></svg><span>Pneumothorax</span></div>
+        </div>
+        <div class="note"><span class="ill" data-ill="percuss" style="width:4.5rem;--pc:var(--p3)"></span>Resonant → normal · Dull → consolidation/effusion · Hyperresonant → pneumothorax</div>
+      </div>
+      <div class="ecard f" style="--sc:var(--p2)"><h3><span class="tag" data-tag="steth"></span>Auscultation</h3>
+        <ul class="ticks"><li>Breath sounds</li><li>Wheeze</li><li>Crackles</li><li>Bronchial breathing</li><li>Reduced / absent sounds</li></ul>
+        <figure class="dev sm" style="--pc:var(--p2);margin:0"><span class="ill" data-ill="ausc"></span></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 · ABDOMEN DIVIDER -->
+<section class="slide divider" id="s-p3" data-part="3" data-title="Abdomen">
+  <div class="wrap">
+    <div class="dv">
+      <div>
+        <p class="dv-k f">System 3</p>
+        <h2 class="f">Abdomen</h2>
+        <div class="dv-list f"><span>Inspection</span><span>Palpation</span><span>Percussion</span><span>Auscultation</span></div>
+      </div>
+      <div class="dev f" style="background:#fff;border:0;--pc:var(--p3)"><span class="ill" data-ill="abdomen"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 · ABDOMEN I & P -->
+<section class="slide" data-part="3" data-title="Abdomen: inspection & palpation">
+  <div class="wrap">
+    <header class="sh"><h2>Abdomen</h2></header>
+    <div class="exam">
+      <div class="ecard f" style="--sc:var(--p0)"><h3><span class="tag" data-tag="eye"></span>Inspection</h3>
+        <ul class="ticks"><li>Distension</li><li>Scars</li><li>Masses</li><li>Visible veins</li><li>Umbilicus</li></ul></div>
+      <div class="ecard f" style="--sc:var(--p1)"><h3><span class="tag" data-tag="hand"></span>Palpation</h3>
+        <ul class="ticks"><li>Tenderness</li><li>Guarding / rigidity</li><li>Masses</li><li>Liver</li><li>Spleen</li><li>Kidneys</li></ul></div>
+      <figure class="dev f" style="--pc:var(--p3)"><span class="ill" data-ill="abdmap"></span><figcaption>Liver · Spleen · Kidneys</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 19 · ABDOMEN P & A -->
+<section class="slide" data-part="3" data-title="Abdomen: percussion & auscultation">
+  <div class="wrap">
+    <header class="sh"><h2>Abdomen</h2></header>
+    <div class="exam">
+      <div class="ecard f" style="--sc:var(--p3)"><h3><span class="tag" data-tag="tap"></span>Percussion</h3>
+        <ul class="ticks"><li>Liver</li><li>Spleen</li><li>Ascites</li></ul>
+        <figure class="dev sm" style="--pc:var(--p3);margin:0"><span class="ill" data-ill="percuss"></span></figure></div>
+      <div class="ecard f" style="--sc:var(--p2)"><h3><span class="tag" data-tag="steth"></span>Auscultation</h3>
+        <ul class="ticks"><li>Bowel sounds</li><li>Bruits when indicated</li></ul>
+        <figure class="dev sm" style="--pc:var(--p2);margin:0"><span class="ill" data-ill="ausc"></span></figure></div>
+      <figure class="dev f" style="--pc:var(--p3)"><span class="ill" data-ill="abdomen"></span><figcaption>Abdomen / GI system</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 20 · NEURO DIVIDER -->
+<section class="slide divider" id="s-p4" data-part="4" data-title="Neurological system">
+  <div class="wrap">
+    <div class="dv">
+      <div>
+        <p class="dv-k f">System 4</p>
+        <h2 class="f">Neurological System</h2>
+        <div class="dv-list f"><span>Inspection</span><span>Assessment</span><span>Reflexes</span></div>
+      </div>
+      <div class="dev f" style="background:#fff;border:0;--pc:var(--p4)"><span class="ill" data-ill="brain"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 21 · NEURO -->
+<section class="slide" data-part="4" data-title="Neurological: inspection & assessment">
+  <div class="wrap">
+    <header class="sh"><h2>Neurological system</h2></header>
+    <div class="exam">
+      <div class="ecard f" style="--sc:var(--p0)"><h3><span class="tag" data-tag="eye"></span>Inspection</h3>
+        <ul class="ticks"><li>Level of consciousness</li><li>Speech</li><li>Posture</li><li>Gait</li><li>Involuntary movements</li></ul>
+        <figure class="dev sm" style="--pc:var(--p4);margin:0"><span class="ill" data-ill="gait"></span><figcaption>Gait</figcaption></figure></div>
+      <div class="ecard f" style="--sc:var(--p4)"><h3><span class="tag" data-tag="brain"></span>Assessment</h3>
+        <ul class="ticks"><li>Cranial nerves</li><li>Muscle power</li><li>Muscle tone</li><li>Sensation</li><li>Coordination</li><li>Reflexes: <b>deep tendon reflexes</b></li></ul></div>
+      <figure class="dev f" style="--pc:var(--p4)"><span class="ill" data-ill="reflex"></span><figcaption>Deep tendon reflex · reflex hammer</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- 22 · END -->
+<section class="slide" data-part="0" data-kicker="Close" data-title="Thank you">
+  <div class="wrap">
+    <div class="title-grid">
+      <div class="title-main">
+        <h1 class="f"><span class="ln">Thank</span><span class="ln acc">you</span></h1>
+        <div class="author f"><small>Basic Clinical Examination</small><b>Dr. Ruqaiah Aidaros Alhebshi</b></div>
+        <div class="title-actions f"><button class="btn ghost" type="button" data-target="s-1">↺ Back to the start</button></div>
+      </div>
+      <div class="hero-fig f" style="--pc:var(--p0)"><span class="ill" data-ill="steth"></span></div>
+    </div>
+  </div>
+</section>
+
+<canvas id="ink" aria-hidden="true"></canvas>
+</main>
+</div>
+
+<footer class="dock">
+  <div class="nav">
+    <button class="navb" type="button" id="prevBtn" aria-label="Previous slide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <span class="count" id="count">1 / 22</span>
+    <button class="navb" type="button" id="nextBtn" aria-label="Next slide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+  <span class="stitle" id="stitle"></span>
+  <div class="tools" role="toolbar" aria-label="Presenter tools">
+    <button class="ib" type="button" id="buildBtn" aria-pressed="false" title="Build mode: reveal points one by one (B)" aria-label="Build mode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></button>
+    <button class="ib" type="button" id="ovBtn" title="Slide overview (G)" aria-label="Slide overview"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg></button>
+    <span class="tsep" aria-hidden="true"></span>
+    <button class="ib" type="button" id="laserBtn" aria-pressed="false" title="Laser pointer (L)" aria-label="Laser pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+    <button class="ib" type="button" id="penBtn" aria-pressed="false" title="Draw on slide (D)" aria-label="Draw on slide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg></button>
+    <button class="ib" type="button" id="clearBtn" title="Clear drawing (C)" aria-label="Clear drawing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+    <span class="tsep" aria-hidden="true"></span>
+    <button class="ib" type="button" id="themeBtn" title="Light / dark" aria-label="Toggle light or dark theme"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+    <button class="ib" type="button" id="fsBtn" title="Fullscreen (F)" aria-label="Fullscreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+</footer>
+</div>
+
+<div id="laser" aria-hidden="true"></div>
+<div class="toast off" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="ovDlg" aria-labelledby="ovTitle">
+  <div class="dlg-h"><h3 id="ovTitle">All slides</h3><button class="ib" type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="dlg-b"><div class="ovgrid" id="ovGrid"></div></div>
+</dialog>

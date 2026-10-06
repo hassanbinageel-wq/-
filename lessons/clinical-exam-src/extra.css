@@ -1,0 +1,156 @@
+/* ---------- Clinical examination lesson ---------- */
+.slide[data-part="5"]{--pc:var(--p0);--pcd:var(--p0-deep)}
+.author{display:grid;gap:.15rem;padding:.9rem 1.1rem;border-radius:14px;background:var(--surface);border:1px solid var(--line);justify-self:start}
+.author small{font:600 .66rem/1.2 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.author b{font:700 1.35rem/1.2 var(--f-display);color:var(--p0)}
+.hero-fig{display:grid;place-items:center}
+.hero-fig svg{width:100%;max-width:30rem;height:auto;overflow:visible}
+
+/* Device illustration frames */
+.dev{display:grid;place-items:center;padding:1rem;border-radius:18px;background:radial-gradient(90% 80% at 50% 45%,color-mix(in srgb,var(--pc) 12%,var(--surface)) 0%,var(--surface) 70%);border:1px solid color-mix(in srgb,var(--pc) 22%,var(--line))}
+.dev svg{width:100%;max-width:19rem;height:auto;overflow:visible}
+.dev figcaption{font:600 .72rem/1.2 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:.4rem}
+.dev.sm svg{max-width:8rem}
+
+/* Vital-sign range scale */
+.vital{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:1.4rem 2.4rem;align-items:center}
+.big-normal{display:grid;gap:.2rem}
+.big-normal small{font:600 .7rem/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ok)}
+.big-normal b{font:800 3.4rem/1 var(--f-display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.big-normal b span{font-size:1.3rem;font-weight:700;color:var(--muted);margin-left:.2rem}
+.range{position:relative;padding-top:2.1rem;padding-bottom:2.4rem}
+.range .track{position:relative;height:1.2rem;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.range .z{position:absolute;top:0;bottom:0;transform-origin:left}
+.range .z.lo{background:color-mix(in srgb,#3b82f6 70%,var(--surface))}
+.range .z.ok{background:var(--ok)}
+.range .z.hi{background:var(--bad)}
+.range .z.warn{background:var(--warn)}
+.slide.play .range .z{animation:grow-x .9s var(--ease) both;animation-delay:calc(var(--i,0) * 160ms + 450ms)}
+@keyframes grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.range .tick{position:absolute;top:3.45rem;transform:translateX(-50%);font:600 .74rem/1 var(--f-mono);color:var(--muted);white-space:nowrap}
+.range .tick::before{content:"";position:absolute;left:50%;top:-.45rem;width:1px;height:.35rem;background:var(--muted)}
+.range .lab{position:absolute;top:0;transform:translateX(-50%);font:700 .82rem/1.15 var(--f-display);white-space:nowrap;text-align:center}
+.range .lab.lo{color:#2f6fd6} .range .lab.ok{color:var(--ok)} .range .lab.hi{color:var(--bad)} .range .lab.warn{color:var(--warn)}
+.range .pin{position:absolute;top:1.55rem;width:0;height:0;margin-left:-.55rem;border:.55rem solid transparent;border-bottom:0;border-top:.75rem solid var(--ink);left:var(--to)}
+.slide.play .range .pin{animation:pin 1.6s var(--ease) both .9s}
+@keyframes pin{from{left:0;opacity:0}20%{opacity:1}to{left:var(--to)}}
+.vgrid{display:grid;gap:.7rem}
+.vrow{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.9rem;align-items:center;padding:.65rem .9rem;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.vrow .dot{width:.85rem;height:.85rem;border-radius:50%}
+.vrow b{font:700 1.02rem/1.25 var(--f-display)}
+.vrow span{color:var(--muted)}
+.dot.lo{background:#3b82f6} .dot.ok{background:var(--ok)} .dot.hi{background:var(--bad)} .dot.warn{background:var(--warn)}
+
+/* Vital signs overview cards */
+.vcards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.8rem}
+.vcard{display:grid;gap:.5rem;justify-items:center;text-align:center;padding:.9rem .7rem 1rem;border-radius:16px;background:var(--surface);border:1px solid var(--line);transition:transform .35s var(--ease),box-shadow .35s}
+.vcard:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.vcard svg{width:100%;max-width:7.5rem;height:auto;overflow:visible}
+.vcard h3{font-size:1rem}
+.vcard p{font:700 1.05rem/1.2 var(--f-display);color:var(--ok);font-variant-numeric:tabular-nums}
+.vcard small{font-size:.76rem;color:var(--muted)}
+
+/* Systems grid */
+.systems{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.8rem}
+.sys{display:grid;gap:.55rem;justify-items:center;text-align:center;padding:1rem .6rem;border-radius:16px;background:var(--surface);border:1px solid var(--line);transition:transform .35s var(--ease),box-shadow .35s}
+.sys:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.sys svg{width:100%;max-width:6.5rem;height:auto;overflow:visible}
+.sys b{font:700 .98rem/1.2 var(--f-display)}
+
+/* IPPA sequence */
+.ippa{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.6rem;position:relative}
+.ippa .st{display:grid;justify-items:center;gap:.6rem;text-align:center;position:relative}
+.ippa .st:not(:last-child)::after{content:"";position:absolute;top:3.9rem;right:-1.25rem;width:.9rem;height:.9rem;border-top:3px solid var(--p0);border-right:3px solid var(--p0);transform:rotate(45deg)}
+.ippa .circ{width:7.8rem;height:7.8rem;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--sc) 12%,var(--surface));border:2px solid color-mix(in srgb,var(--sc) 45%,var(--line))}
+.ippa .circ svg{width:72%;height:auto;overflow:visible}
+.ippa b{font:800 1.25rem/1.1 var(--f-display);color:var(--sc)}
+.ippa .n{font:600 .7rem var(--f-mono);letter-spacing:.12em;color:var(--muted)}
+
+/* IPPA content cards per system */
+.exam{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.95fr);gap:1rem 1.3rem;align-items:stretch}
+.exam.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.ecard{display:grid;gap:.7rem;align-content:start;padding:1rem 1.15rem;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.ecard h3{display:flex;align-items:center;gap:.6rem;font-size:1.25rem}
+.ecard h3 .tag{display:grid;place-items:center;width:2.3rem;height:2.3rem;border-radius:10px;background:color-mix(in srgb,var(--sc) 15%,var(--surface));color:var(--sc)}
+.ecard h3 .tag svg{width:1.5rem;height:1.5rem;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ecard .ticks{gap:.5rem}
+.ecard .ticks li{font-size:1.02rem}
+.ecard .ticks li::before{background:var(--sc)}
+.ecard .sub{color:var(--sc)}
+.ecard.wide{grid-column:1 / -1}
+.note{display:flex;gap:.6rem;align-items:center;font-size:.92rem;color:var(--muted)}
+.perc{display:grid;gap:.6rem}
+.perc .row{display:grid;grid-template-columns:5.8rem minmax(0,1fr) auto;gap:.8rem;align-items:center;padding:.55rem .75rem;border-radius:12px;background:var(--surface-2)}
+.perc svg{width:100%;height:2rem;overflow:visible}
+.perc .w{fill:none;stroke-width:3;stroke-linecap:round}
+.perc b{font:700 1rem var(--f-display)}
+.perc span{font-size:.92rem;color:var(--muted);text-align:right}
+.slide.play .perc .w{stroke-dasharray:1;animation:draw 1.4s var(--ease-io) both;animation-delay:calc(var(--i,0) * 250ms + 600ms)}
+
+/* ---------- Illustration animation ---------- */
+.ill .skin{fill:#f2c6a0;stroke:#c48e6a;stroke-width:2}
+.ill .skin2{fill:#e9b48b;stroke:#c48e6a;stroke-width:2}
+.ill .metal{fill:#c9d3d8;stroke:#8fa1a9;stroke-width:2}
+.ill .dark{fill:#1d2a30}
+.ill .white{fill:#f7fafb;stroke:#9fb3bd;stroke-width:2}
+.ill .lcd{fill:#7ef0b0;font:700 14px "IBM Plex Mono",ui-monospace,monospace}
+.ill .lcd-s{fill:#7ef0b0;font:600 8px "IBM Plex Mono",ui-monospace,monospace}
+.ill .lbl{fill:var(--ink);font:600 11px var(--f-body)}
+.ill .lbl-s{fill:var(--muted);font:600 9px var(--f-mono)}
+.ill .wave{fill:none;stroke:var(--pc);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.ill .ring{fill:none;stroke:var(--pc);stroke-width:2.5;transform-box:fill-box;transform-origin:center}
+.ill .organ{transform-box:fill-box;transform-origin:center}
+.slide.play .ill .ring{animation:ripple 1.6s ease-out infinite}
+.slide.play .ill .ring.r2{animation-delay:.8s}
+@keyframes ripple{from{transform:scale(.4);opacity:1}to{transform:scale(1.6);opacity:0}}
+.slide.play .ill .beat{animation:beat 1s ease-in-out infinite}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.09)}24%{transform:scale(.98)}36%{transform:scale(1.05)}}
+.slide.play .ill .breathe{animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(.94)}50%{transform:scale(1.06)}}
+.slide.play .ill .ecg{stroke-dasharray:1;animation:ecg 2.2s linear infinite}
+@keyframes ecg{from{stroke-dashoffset:1}to{stroke-dashoffset:-1}}
+.ill .needle{transform-box:view-box}
+.slide.play .ill .needle{animation:needle 4.5s var(--ease-io) infinite}
+@keyframes needle{0%{transform:rotate(-125deg)}35%{transform:rotate(95deg)}100%{transform:rotate(-20deg)}}
+.slide.play .ill .bulb{animation:squeeze 1.1s ease-in-out 3;transform-box:fill-box;transform-origin:center}
+@keyframes squeeze{50%{transform:scale(.88,.94)}}
+.slide.play .ill .tap{animation:tap .9s ease-in infinite;transform-box:fill-box;transform-origin:center}
+@keyframes tap{0%,100%{transform:translateY(-12px)}40%{transform:translateY(0)}55%{transform:translateY(-3px)}}
+.slide.play .ill .press{animation:press 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes press{0%,100%{transform:translateY(-6px)}50%{transform:translateY(2px)}}
+.slide.play .ill .scan{animation:scan 3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes scan{0%,100%{transform:translateX(-5px)}50%{transform:translateX(5px)}}
+.slide.play .ill .swing{animation:swing 2.2s var(--ease-io) infinite;transform-box:view-box}
+@keyframes swing{0%,100%{transform:rotate(-34deg)}38%{transform:rotate(4deg)}46%{transform:rotate(-2deg)}}
+.slide.play .ill .kick{animation:kick 2.2s var(--ease-io) infinite;transform-box:view-box}
+@keyframes kick{0%,38%{transform:rotate(0)}52%{transform:rotate(-24deg)}75%,100%{transform:rotate(0)}}
+.slide.play .ill .pulse-dot{animation:popIn 1s var(--ease) both;transform-box:fill-box;transform-origin:center}
+.slide.play .ill .glow{animation:glow 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes glow{0%,100%{transform:scale(1);opacity:.25}50%{transform:scale(1.9);opacity:0}}
+.slide.play .ill .snd{animation:waves 1.2s ease-out infinite;transform-box:fill-box;transform-origin:left center}
+.slide.play .ill .snd.s2{animation-delay:.4s}
+.slide.play .ill .float{animation:floaty 5s ease-in-out infinite}
+
+@media (max-width:1100px){
+  .vcards,.systems{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:860px){
+  .vital,.exam,.exam.two{grid-template-columns:minmax(0,1fr)}
+  .ippa{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ippa .st:nth-child(2)::after{display:none}
+}
+@media (max-width:640px){
+  .vcards,.systems{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .big-normal b{font-size:2.6rem}
+  .range .lab{font-size:.68rem}
+}
+.slide.play .ill .legA{animation:legA 1.3s ease-in-out infinite;transform-box:view-box}
+.slide.play .ill .legB{animation:legA 1.3s ease-in-out infinite reverse;transform-box:view-box}
+@keyframes legA{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}
+.range .tick.low{top:4.55rem}
+.range.two-row{padding-bottom:3.4rem}
+.exam{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr)}
+.exam .dev svg{max-width:22rem}
+.exam .dev.sm{padding:.5rem}
+.exam .dev.sm svg{max-width:6rem}
+.ill .lbl{font-size:12.5px}
