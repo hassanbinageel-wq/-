@@ -1,0 +1,1309 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════════════
+// Hasan Gold — هارمونيك + SMC + كلاسيكي + تحليل زمني
+// مؤشر دراسة ودخول يدوي. لا ينفذ أوامر ولا يتصل بأي وسيط.
+// كل الأوزان والحدود العددية في قسم الثوابت قرارات تصميم تحتاج اختبارًا سوقيًا،
+// وليست حقائق مثبتة. درجة التوافق ليست احتمال ربح.
+// ═══════════════════════════════════════════════════════════════════════════════
+indicator("Hasan Gold — هارمونيك + SMC + كلاسيكي + تحليل زمني", shorttitle = "Hasan Gold", overlay = true, max_labels_count = 500, max_lines_count = 500, max_boxes_count = 200, max_bars_back = 500)
+
+// ═══ 1) الثوابت (قرارات تصميم — غيّرها هنا فقط عند الاختبار) ═══════════════════
+int    PIV          = 5       // طول تأكيد القمة/القاع على فريم الدخول (5 شموع يمين + 5 يسار)
+int    HTF_PIV      = 3       // طول تأكيد القمة/القاع على H1 وH4
+int    HTF_EMA      = 50      // متوسط فلتر الاتجاه على H1 وH4
+int    ATR_LEN      = 14
+float  LEVEL_W      = 0.25    // نصف عرض منطقة الدعم/المقاومة بوحدة ATR
+float  SL_BUF       = 0.25    // هامش الوقف خلف مستوى الإبطال بوحدة ATR
+float  MIN_RISK_ATR = 0.6     // أقل مسافة وقف (تجنب ضجيج الشمعة)
+float  MAX_RISK_ATR = 2.5     // أبعد مسافة وقف مقبولة، وإلا تُرفض الفرصة
+float  TGT_BUF      = 0.10    // يوضع الهدف قبل العائق بهذا الهامش
+float  CLUSTER_ATR  = 0.30    // العوائق الأقرب من هذا تُعامل كعائق واحد
+float  MAX_TGT_ATR  = 12.0    // لا أهداف أبعد من هذا
+float  CHASE_ATR    = 0.60    // أقصى ابتعاد للإغلاق عن حافة المنطقة
+float  IMPULSE_ATR  = 2.2     // شمعة أكبر من هذا = اندفاع مبالغ فيه
+float  FVG_MIN_ATR  = 0.20    // أقل حجم لفجوة FVG
+float  DISP_ATR     = 1.30    // شمعة اندفاع مطلوبة لاعتماد Order Block
+int    OB_LOOK      = 30      // بحث أصل الحركة قبل الكسر
+int    OB_AGE       = 300     // انتهاء صلاحية OB (شموع)
+int    FVG_AGE      = 200     // انتهاء صلاحية FVG (شموع)
+int    RETEST_AGE   = 150     // صلاحية إعادة اختبار مستوى مكسور
+int    LEVEL_AGE    = 1500    // أقصى عمر لقمة/قاع يُستخدم كمستوى
+int    SWEEP_AGE    = 300     // أقصى عمر لقاع/قمة يمكن سحب سيولتها
+int    WIN          = 30      // نافذة صلاحية بعد سحب السيولة أو CHoCH (شموع)
+int    HARM_WIN     = 30      // نافذة صلاحية النموذج بعد اكتشافه (شموع)
+float  HARM_TOL     = 0.03    // سماح مطلق حول نسب XA/AB
+float  HARM_TOL_P   = 0.05    // سماح حول نطاق إسقاط BC
+float  HARM_MIN_XA  = 3.0     // أقل طول لضلع XA بوحدة ATR
+int    COOLDOWN     = 5       // أقل عدد شموع بين إشارتين بنفس الاتجاه
+int    MAX_TRACK    = 3000    // أقصى متابعة لصفقة قبل اعتبارها «توقفت المتابعة»
+int    MAX_KEEP     = 2000    // حد الاحتفاظ بسجل الصفقات
+int    MAX_SW       = 40
+int    MAX_ZONES    = 40
+int    MAX_KEYS     = 300
+int    MAX_MARKS    = 20
+int    WARN_GAP     = 15
+int    WARN_MAX     = 3
+int    OLD_N        = 10
+string TZ           = "Asia/Aden"
+
+color C_BUY  = #1B9E4B
+color C_SELL = #D32F2F
+color C_WARN = #FF9800
+color C_AMB  = #8E8E8E
+color C_TXT  = #FFFFFF
+color C_BG   = #161A25
+
+// ═══ 2) المدخلات (مختصرة) ══════════════════════════════════════════════════════
+string G1 = "① الإشارات"
+int   iMinScore = input.int(6, "أدنى درجة توافق للإشارة (من 10)", minval = 4, maxval = 10, group = G1)
+float iMinRR    = input.float(1.2, "أدنى عائد/مخاطرة حتى TP1", minval = 0.5, step = 0.1, group = G1)
+float iCost     = input.float(0.0, "تكلفة تقديرية لكل صفقة (بوحدة السعر)", minval = 0.0, step = 0.01, group = G1, tooltip = "سبريد + عمولة + انزلاق مقدّر بوحدة سعر الرمز (مثال: 0.30 = 30 سنتًا للأونصة). تقدير منك وليس تكلفة حسابك الحقيقية. تدخل في شرط العائد/المخاطرة وفي «صافي R بعد التكلفة».")
+
+string G2 = "② النتائج والإحصاء (توقيت Asia/Aden UTC+3)"
+string S_TP1 = "TP1"
+string S_TP2 = "TP2"
+string iSuccess = input.string(S_TP1, "النجاح محسوب على", options = [S_TP1, S_TP2], group = G2)
+string P_TODAY = "اليوم"
+string P_DAY   = "يوم أختاره"
+string P_RANGE = "من تاريخ إلى تاريخ"
+string P_ALL   = "كل التاريخ المحمل"
+string iPMode = input.string(P_TODAY, "الفترة", options = [P_TODAY, P_DAY, P_RANGE, P_ALL], group = G2)
+int    iPDay  = input.time(timestamp("06 Oct 2026 00:00 +0300"), "اليوم المختار", group = G2)
+int    iPFrom = input.time(timestamp("01 Oct 2026 00:00 +0300"), "من (مشمول)", group = G2)
+int    iPTo   = input.time(timestamp("07 Oct 2026 00:00 +0300"), "إلى (غير مشمول)", group = G2)
+
+string G3 = "③ العرض"
+int  iSel      = input.int(0, "رقم الإشارة المعروضة (0 = الأحدث)", minval = 0, group = G3)
+bool iShowBox  = input.bool(true, "صندوق الصفقة LONG/SHORT", group = G3)
+bool iShowOld  = input.bool(false, "أسعار SL/TP للإشارات القديمة (آخر 10)", group = G3)
+bool iShowAna  = input.bool(false, "رسومات التحليل (زر رئيسي)", group = G3)
+bool iShowHarm = input.bool(true, "   ↳ الهارمونيك", group = G3)
+bool iShowSMC  = input.bool(true, "   ↳ SMC والمستويات الكلاسيكية", group = G3)
+bool iShowTime = input.bool(true, "   ↳ النافذة الزمنية", group = G3)
+
+string G4 = "④ البطاقة"
+string M_FIXED = "ثابتة في زاوية"
+string M_MOVE  = "متحركة (نقطة على الشارت)"
+string M_HIDE  = "مخفية"
+string iCardMode = input.string(M_FIXED, "نوع البطاقة", options = [M_FIXED, M_MOVE, M_HIDE], group = G4)
+string iCardPos  = input.string("أعلى يمين", "موضع البطاقة الثابتة", options = ["أعلى يمين", "أعلى يسار", "أسفل يمين", "أسفل يسار", "وسط يمين", "وسط يسار"], group = G4)
+string iCardSize = input.string("صغير", "حجم الكتابة", options = ["صغير جدًا", "صغير", "عادي", "كبير"], group = G4)
+int    iCardT    = input.time(timestamp("01 Jan 2020 00:00 +0300"), "نقطة البطاقة المتحركة", inline = "card", group = G4, confirm = true)
+float  iCardP    = input.price(0.0, "", inline = "card", group = G4, confirm = true)
+
+string G5 = "⑤ التنبيهات"
+string A_BOTH  = "الدخول والانعكاس"
+string A_ENTRY = "الدخول فقط"
+string A_WARN  = "الانعكاس فقط"
+string A_OFF   = "إيقاف"
+string iAlert = input.string(A_BOTH, "رسائل التنبيه", options = [A_BOTH, A_ENTRY, A_WARN, A_OFF], group = G5)
+
+// ═══ 3) الأنواع ═══════════════════════════════════════════════════════════════
+type Swing
+    float price
+    int   bar
+    int   t
+    bool  broken    = false
+    int   brokenBar = -1
+    bool  swept     = false
+
+type Zone
+    int    kind          // 1 = Order Block, 2 = FVG
+    int    dir           // 1 طلب (شراء) ، -1 عرض (بيع)
+    float  top
+    float  bot
+    int    born
+    int    bornT
+    int    known
+    bool   alive = true
+    string key
+
+type Harm
+    string name
+    int    dir
+    float  x
+    float  a
+    float  b
+    float  c
+    float  d
+    int    xt
+    int    at
+    int    bt
+    int    ct
+    int    dt
+    int    db
+    int    det
+    int    detT
+    bool   alive  = true
+    int    winEndT = 0
+    float  tRatio
+
+type Mark
+    int   kind     // 1 BOS ، 2 CHoCH ، 3 سحب سيولة
+    int   dir
+    float level
+    int   fromT
+    int   atT
+
+type Cand
+    bool   ok      = false
+    int    dir     = 0
+    int    score   = 0
+    float  entry   = na
+    float  sl      = na
+    float  tp1     = na
+    float  tp2     = na
+    bool   tp2Same = false
+    float  rr1     = na
+    float  rr2     = na
+    string reason  = ""
+    string keys    = ""
+    string info    = ""
+
+type Trade
+    int    id
+    int    dir
+    int    bar
+    int    tOpen
+    int    tClose
+    float  entry
+    float  sl
+    float  tp1
+    float  tp2
+    bool   tp2Same
+    float  risk
+    int    score
+    string info
+    bool   tp1Hit  = false
+    int    tp1T    = 0
+    int    tp1TC   = 0
+    float  tp1Exec = na
+    bool   tp2Hit  = false
+    int    tp2T    = 0
+    int    tp2TC   = 0
+    float  tp2Exec = na
+    bool   slHit   = false
+    int    slT     = 0
+    int    slTC    = 0
+    float  slExec  = na
+    bool   amb1    = false
+    bool   amb2    = false
+    bool   closed  = false
+    bool   expired = false
+    int    closeT  = 0
+    int    warnCount   = 0
+    int    lastWarnBar = -100000
+
+// ═══ 4) بيانات الأطر الأعلى (شموع مكتملة فقط، شموع عادية) ═══════════════════════
+// الدالة تُحسب داخل سياق H1/H4 وتُعيد قيم الشمعة المكتملة السابقة [1]،
+// ومع lookahead_on تصبح القيمة ثابتة تاريخيًا ولحظيًا (لا تسريب للمستقبل).
+f_htf() =>
+    var float lastH = na
+    var float lastL = na
+    var int   st    = 0
+    float hph = ta.pivothigh(high, HTF_PIV, HTF_PIV)
+    float hpl = ta.pivotlow(low, HTF_PIV, HTF_PIV)
+    if not na(hph)
+        lastH := hph
+    if not na(hpl)
+        lastL := hpl
+    if not na(lastH) and close > lastH
+        st := 1
+    else if not na(lastL) and close < lastL
+        st := -1
+    float e  = ta.ema(close, HTF_EMA)
+    int   tr = st == 1 and close > e ? 1 : st == -1 and close < e ? -1 : 0
+    [tr[1], lastH[1], lastL[1]]
+
+string tickStd = ticker.standard(syminfo.tickerid)
+[h1Tr, h1H, h1L] = request.security(tickStd, "60", f_htf(), lookahead = barmerge.lookahead_on)
+[h4Tr, h4H, h4L] = request.security(tickStd, "240", f_htf(), lookahead = barmerge.lookahead_on)
+[pdh, pdl]       = request.security(tickStd, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+
+int  htfDir   = h1Tr == 1 and h4Tr == 1 ? 1 : h1Tr == -1 and h4Tr == -1 ? -1 : 0
+bool h1FlipUp = h1Tr == 1 and nz(h1Tr[1]) != 1
+bool h1FlipDn = h1Tr == -1 and nz(h1Tr[1]) != -1
+
+// ═══ 5) حسابات فريم الدخول (كل شمعة) ═══════════════════════════════════════════
+float atr      = ta.atr(ATR_LEN)
+float ph       = ta.pivothigh(high, PIV, PIV)
+float pl       = ta.pivotlow(low, PIV, PIV)
+float prevHigh = high[1]
+float prevLow  = low[1]
+int   tfMs     = timeframe.in_seconds() * 1000
+bool  okChart  = chart.is_standard
+bool  okTF     = timeframe.in_seconds() < 3600
+bool  okData   = not na(atr) and atr > 0
+
+// ═══ 6) الحالة المخزنة ═════════════════════════════════════════════════════════
+var array<Swing>  swH     = array.new<Swing>()
+var array<Swing>  swL     = array.new<Swing>()
+var array<Zone>   zones   = array.new<Zone>()
+var array<Harm>   harms   = array.new<Harm>()
+var array<Mark>   marks   = array.new<Mark>()
+var array<Trade>  trades  = array.new<Trade>()
+var array<Trade>  openTr  = array.new<Trade>()
+var array<string> usedKeys = array.new<string>()
+var array<float>  zzP     = array.new<float>()
+var array<int>    zzB     = array.new<int>()
+var array<int>    zzTm    = array.new<int>()
+var array<int>    zzT     = array.new<int>()
+
+var int    ltfTrend       = 0
+var int    sweepBullBar   = -1
+var int    sweepBearBar   = -1
+var int    sweepBullT     = 0
+var int    sweepBearT     = 0
+var int    sweepBullEndT  = 0
+var int    sweepBearEndT  = 0
+var int    chochUpBar     = -1
+var int    chochDnBar     = -1
+var int    breakUpBar     = -1
+var int    breakDnBar     = -1
+var int    lastBullFvgBar = -1
+var int    lastBearFvgBar = -1
+var int    tradeSeq       = 0
+var int    dropped        = 0
+var int    lastSigBarL    = -100000
+var int    lastSigBarS    = -100000
+var int    lastSigBar     = -1
+var int    firstBarTime   = time
+var int    curScore       = 0
+var string curReason      = ""
+var bool   hBullActive    = false
+var bool   hBearActive    = false
+
+bool chUpNow  = false
+bool chDnNow  = false
+bool hBullNow = false
+bool hBearNow = false
+bool evTP1    = false
+bool evTP2    = false
+bool evSL     = false
+bool evAmb    = false
+bool sigBuy   = false
+bool sigSell  = false
+bool warnNow  = false
+
+// ═══ 7) دوال مساعدة ═══════════════════════════════════════════════════════════
+f_tickDn(float x) => math.floor(x / syminfo.mintick + 1e-6) * syminfo.mintick
+f_tickUp(float x) => math.ceil(x / syminfo.mintick - 1e-6) * syminfo.mintick
+f_px(float x) => na(x) ? "—" : str.tostring(x, format.mintick)
+f_dirTxt(int d) => d == 1 ? "شراء" : d == -1 ? "بيع" : "انتظار"
+f_tm(int t) => t > 0 ? str.format_time(t, "yyyy-MM-dd HH:mm", TZ) : "—"
+f_hm(int t) => t > 0 ? str.format_time(t, "MM-dd HH:mm", TZ) : "—"
+f_r(float r) => na(r) ? "—" : (r >= 0 ? "+" : "") + str.tostring(r, "#.##") + "R"
+f_used(string k) => array.includes(usedKeys, k)
+
+f_tfTxt() =>
+    timeframe.isminutes ? timeframe.period + "m" : timeframe.isseconds ? timeframe.period : timeframe.period
+
+f_touch(int d, float L, float w) =>
+    bool r = false
+    if not na(L)
+        r := d == 1 ? (low <= L + w and close > L) : (high >= L - w and close < L)
+    r
+
+f_hasZoneKey(string k) =>
+    bool r = false
+    for z in zones
+        if z.key == k
+            r := true
+            break
+    r
+
+f_size(string s) =>
+    switch s
+        "صغير جدًا" => size.tiny
+        "صغير"      => size.small
+        "كبير"      => size.large
+        => size.normal
+
+f_pos(string s) =>
+    switch s
+        "أعلى يسار" => position.top_left
+        "أسفل يمين" => position.bottom_right
+        "أسفل يسار" => position.bottom_left
+        "وسط يمين"  => position.middle_right
+        "وسط يسار"  => position.middle_left
+        => position.top_right
+
+// ── الزيجزاج من القمم والقيعان المؤكدة فقط
+f_zzAdd(float p, int b, int t, int tp) =>
+    bool changed = false
+    int n = array.size(zzP)
+    if n == 0
+        array.push(zzP, p)
+        array.push(zzB, b)
+        array.push(zzTm, t)
+        array.push(zzT, tp)
+        changed := true
+    else
+        int lastT = array.get(zzT, n - 1)
+        if lastT == tp
+            float lp = array.get(zzP, n - 1)
+            if (tp == 1 and p > lp) or (tp == -1 and p < lp)
+                array.set(zzP, n - 1, p)
+                array.set(zzB, n - 1, b)
+                array.set(zzTm, n - 1, t)
+                changed := true
+        else
+            array.push(zzP, p)
+            array.push(zzB, b)
+            array.push(zzTm, t)
+            array.push(zzT, tp)
+            changed := true
+            if array.size(zzP) > 12
+                array.shift(zzP)
+                array.shift(zzB)
+                array.shift(zzTm)
+                array.shift(zzT)
+    changed
+
+// ── فحص Gartley / Bat على آخر خمس نقاط X A B C D (D مؤكدة)
+f_harmCheck() =>
+    Harm h = na
+    int n = array.size(zzP)
+    if n >= 5
+        float x  = array.get(zzP, n - 5)
+        float a  = array.get(zzP, n - 4)
+        float b  = array.get(zzP, n - 3)
+        float c  = array.get(zzP, n - 2)
+        float d  = array.get(zzP, n - 1)
+        int   dir = array.get(zzT, n - 1) == -1 ? 1 : -1
+        float xa = math.abs(a - x)
+        float ab = math.abs(a - b)
+        float bc = math.abs(c - b)
+        float cd = math.abs(c - d)
+        bool shapeOK = dir == 1 ? (a > x and b < a and b > x and c > b and c < a and d < c and d > x) : (a < x and b > a and b < x and c < b and c > a and d > c and d < x)
+        if shapeOK and xa >= HARM_MIN_XA * atr and ab > 0 and bc > 0
+            float rB = ab / xa
+            float rC = bc / ab
+            float rD = math.abs(a - d) / xa
+            float rP = cd / bc
+            bool cOK  = rC >= 0.382 - HARM_TOL and rC <= 0.886 + HARM_TOL
+            bool gart = math.abs(rB - 0.618) <= HARM_TOL and cOK and math.abs(rD - 0.786) <= HARM_TOL and rP >= 1.13 - HARM_TOL_P and rP <= 1.618 + HARM_TOL_P
+            bool bat  = rB >= 0.382 - HARM_TOL and rB <= 0.50 + HARM_TOL and cOK and math.abs(rD - 0.886) <= HARM_TOL and rP >= 1.618 - HARM_TOL_P and rP <= 2.618 + HARM_TOL_P
+            if gart or bat
+                int   barA = array.get(zzB, n - 4)
+                int   barB = array.get(zzB, n - 3)
+                int   barC = array.get(zzB, n - 2)
+                int   barD = array.get(zzB, n - 1)
+                float tAB  = math.max(barB - barA, 1)
+                float tCD  = math.max(barD - barC, 1)
+                h := Harm.new(name = gart ? "Gartley" : "Bat", dir = dir, x = x, a = a, b = b, c = c, d = d, xt = array.get(zzTm, n - 5), at = array.get(zzTm, n - 4), bt = array.get(zzTm, n - 3), ct = array.get(zzTm, n - 2), dt = array.get(zzTm, n - 1), db = barD, det = bar_index, detT = time_close, tRatio = tCD / tAB)
+    h
+
+// ── متابعة نتيجة صفقة على الشمعة الحالية (تبدأ من الشمعة التالية للدخول)
+// تعيد: [TP1, TP2, SL, غير محسوم, توقفت المتابعة]
+f_track(Trade t) =>
+    bool e1 = false
+    bool e2 = false
+    bool e4 = false
+    bool e8 = false
+    bool e16 = false
+    if not t.closed and bar_index > t.bar
+        bool L = t.dir == 1
+        bool gapSL = L ? open <= t.sl : open >= t.sl
+        if gapSL
+            // فجوة تجاوزت الوقف: الوقف أولًا، والتنفيذ المحتمل عند الافتتاح (أسوأ)
+            t.slHit  := true
+            t.slT    := time
+            t.slTC   := time_close
+            t.slExec := open
+            e4 := true
+        else
+            if not t.tp1Hit and (L ? open >= t.tp1 : open <= t.tp1)
+                t.tp1Hit  := true
+                t.tp1T    := time
+                t.tp1TC   := time_close
+                t.tp1Exec := open
+                e1 := true
+            if not t.tp2Hit and (L ? open >= t.tp2 : open <= t.tp2)
+                t.tp2Hit  := true
+                t.tp2T    := time
+                t.tp2TC   := time_close
+                t.tp2Exec := open
+                e2 := true
+            if not t.tp2Hit
+                bool sT  = L ? low <= t.sl : high >= t.sl
+                bool t1T = not t.tp1Hit and (L ? high >= t.tp1 : low <= t.tp1)
+                bool t2T = not t.tp2Hit and (L ? high >= t.tp2 : low <= t.tp2)
+                if sT and (t1T or t2T)
+                    // الهدف والوقف في الشمعة نفسها والترتيب غير معروف: لا نفترض الهدف أولًا
+                    t.amb1   := t1T
+                    t.amb2   := t2T
+                    t.slHit  := true
+                    t.slT    := time
+                    t.slTC   := time_close
+                    t.slExec := t.sl
+                    e8 := true
+                else
+                    if t1T
+                        t.tp1Hit  := true
+                        t.tp1T    := time
+                        t.tp1TC   := time_close
+                        t.tp1Exec := t.tp1
+                        e1 := true
+                    if t2T
+                        t.tp2Hit  := true
+                        t.tp2T    := time
+                        t.tp2TC   := time_close
+                        t.tp2Exec := t.tp2
+                        e2 := true
+                    if sT
+                        t.slHit  := true
+                        t.slT    := time
+                        t.slTC   := time_close
+                        t.slExec := t.sl
+                        e4 := true
+        if t.tp2Hit or t.slHit
+            t.closed := true
+            t.closeT := time
+        if not t.closed and bar_index - t.bar >= MAX_TRACK
+            t.expired := true
+            t.closed  := true
+            t.closeT  := time
+            e16 := true
+    [e1, e2, e4, e8, e16]
+
+// ── نتيجة الصفقة وفق تعريف النجاح: 1 ناجحة، -1 خاسرة، 2 غير محسومة، 3 توقفت المتابعة، 0 معلقة
+f_result(Trade t, bool onTP2) =>
+    int r = 0
+    if onTP2
+        r := t.tp2Hit ? 1 : t.amb2 ? 2 : t.slHit ? -1 : t.expired ? 3 : 0
+    else
+        r := t.tp1Hit ? 1 : t.amb1 ? 2 : t.slHit ? -1 : t.expired ? 3 : 0
+    r
+
+f_resName(int r) =>
+    r == 1 ? "ناجحة ✓" : r == -1 ? "خاسرة ✗" : r == 2 ? "غير محسومة ؟" : r == 3 ? "توقفت المتابعة ⌛" : "معلقة ⏳"
+
+f_findTrade(int id) =>
+    Trade r = na
+    int n = array.size(trades)
+    if n > 0 and id > 0
+        int idx = id - array.get(trades, 0).id
+        if idx >= 0 and idx < n
+            r := array.get(trades, idx)
+    r
+
+f_evLabel(Trade t, string kind) =>
+    bool  L   = t.dir == 1
+    float lvl = kind == "TP1" ? t.tp1 : kind == "TP2" ? t.tp2 : t.sl
+    string txt = ""
+    color  col = C_AMB
+    if kind == "TP1" or kind == "TP2"
+        float ex = kind == "TP1" ? t.tp1Exec : t.tp2Exec
+        txt := kind + " #" + str.tostring(t.id) + "\n" + f_px(lvl) + (ex != lvl ? "\nتنفيذ محتمل " + f_px(ex) + " (فجوة)" : "")
+        col := C_BUY
+    else if kind == "SL"
+        txt := "SL #" + str.tostring(t.id) + "\n" + f_px(lvl) + (t.slExec != t.sl ? "\nتنفيذ محتمل " + f_px(t.slExec) + " (فجوة)" : "")
+        col := C_SELL
+    else if kind == "AMB"
+        txt := "؟ #" + str.tostring(t.id) + " هدف ووقف بنفس الشمعة\n" + (t.amb1 ? "TP1" : "TP2") + "/SL غير محسوم"
+        col := C_AMB
+    else
+        txt := "⌛ #" + str.tostring(t.id) + " توقفت المتابعة"
+        col := C_AMB
+        lvl := close
+    label.new(bar_index, lvl, txt, color = color.new(col, 15), textcolor = C_TXT, style = label.style_label_left, size = size.tiny, tooltip = "حدث لاحق للإشارة #" + str.tostring(t.id) + " — " + f_tm(time_close) + "\nالمستوى المرجعي: " + f_px(lvl) + "\nالتحديد على مستوى الشمعة فقط؛ لا تتوفر الثانية الدقيقة داخلها.")
+
+// ═══ 8) محرك تقييم فرصة الدخول (لا يرسم ولا يعدل الحالة) ══════════════════════
+f_eval(int d) =>
+    Cand c = Cand.new()
+    c.dir   := d
+    float e = close
+    c.entry := e
+    float w = LEVEL_W * atr
+    bool htfOK = d == 1 ? (h1Tr == 1 and h4Tr == 1) : (h1Tr == -1 and h4Tr == -1)
+    array<string> keys = array.new<string>()
+    array<float>  hl   = array.from(h1H, h1L, h4H, h4L, pdh, pdl)
+    array<string> hn   = array.from("H1 قمة", "H1 قاع", "H4 قمة", "H4 قاع", "قمة أمس", "قاع أمس")
+    array<Swing>  same = d == 1 ? swL : swH
+    array<Swing>  opp  = d == 1 ? swH : swL
+
+    // ── موقع SMC: Order Block أو FVG صالح غير مستخدم
+    bool   smcHit  = false
+    float  smcEdge = na
+    float  smcInv  = na
+    string smcName = ""
+    int    smcAge  = 0
+    int zN = array.size(zones)
+    if zN > 0
+        for i = zN - 1 to 0
+            Zone z = array.get(zones, i)
+            if z.alive and z.dir == d and z.known < bar_index and not f_used(z.key)
+                bool tch = d == 1 ? (low <= z.top and close >= z.bot) : (high >= z.bot and close <= z.top)
+                if tch
+                    smcHit  := true
+                    smcEdge := d == 1 ? z.top : z.bot
+                    smcInv  := d == 1 ? z.bot : z.top
+                    smcName := z.kind == 1 ? "OB" : "FVG"
+                    smcAge  := bar_index - z.born
+                    array.push(keys, z.key)
+                    break
+
+    // ── موقع كلاسيكي: دعم/مقاومة من قمة/قاع مؤكد، كسر وإعادة اختبار، H1/H4، اليوم السابق
+    bool   clsHit  = false
+    float  clsLvl  = na
+    string clsName = ""
+    int ns = array.size(same)
+    if ns > 0
+        for i = ns - 1 to 0
+            Swing s = array.get(same, i)
+            if not s.broken and bar_index - s.bar <= LEVEL_AGE
+                string k = "SW|" + str.tostring(s.bar)
+                if f_touch(d, s.price, w) and not f_used(k)
+                    clsHit  := true
+                    clsLvl  := s.price
+                    clsName := d == 1 ? "دعم" : "مقاومة"
+                    array.push(keys, k)
+                    break
+    if not clsHit
+        int no = array.size(opp)
+        if no > 0
+            for i = no - 1 to 0
+                Swing s = array.get(opp, i)
+                if s.broken and s.brokenBar < bar_index and bar_index - s.brokenBar <= RETEST_AGE
+                    string k = "RT|" + str.tostring(s.bar)
+                    if f_touch(d, s.price, w) and not f_used(k)
+                        clsHit  := true
+                        clsLvl  := s.price
+                        clsName := "كسر وإعادة اختبار"
+                        array.push(keys, k)
+                        break
+    if not clsHit
+        for i = 0 to 5
+            float  L = array.get(hl, i)
+            string k = "HL|" + str.tostring(i) + "|" + str.tostring(L)
+            if not na(L) and f_touch(d, L, w) and not f_used(k)
+                clsHit  := true
+                clsLvl  := L
+                clsName := array.get(hn, i)
+                array.push(keys, k)
+                break
+
+    // ── هارمونيك مكتمل ضمن نافذته الزمنية
+    bool   hrmSame = false
+    bool   hrmLoc  = false
+    bool   oppHarm = false
+    float  hD      = na
+    float  hA      = na
+    string hName   = ""
+    int nh = array.size(harms)
+    if nh > 0
+        for i = nh - 1 to 0
+            Harm h = array.get(harms, i)
+            if h.alive and bar_index - h.det <= HARM_WIN
+                if h.dir == d
+                    if not hrmSame
+                        hrmSame := true
+                        hName   := h.name
+                    string k = "HM|" + str.tostring(h.db)
+                    bool tch = d == 1 ? (low <= h.d + 0.5 * atr and close > h.d) : (high >= h.d - 0.5 * atr and close < h.d)
+                    if tch and not hrmLoc and not f_used(k)
+                        hrmLoc := true
+                        hD     := h.d
+                        hA     := h.a
+                        hName  := h.name
+                        array.push(keys, k)
+                else
+                    oppHarm := true
+
+    bool  hasLoc = smcHit or clsHit or hrmLoc
+    float edge   = na
+    float inv    = na
+    if smcHit
+        edge := smcEdge
+        inv  := smcInv
+    else if hrmLoc
+        edge := hD + d * 0.5 * atr
+        inv  := hD
+    else if clsHit
+        edge := clsLvl + d * w
+        inv  := clsLvl - d * w
+
+    // ── تأكيد الشمعة والبنية المحلية
+    float rng = high - low
+    float cp  = rng > 0 ? (close - low) / rng : 0.5
+    bool conf = rng > 0 and (d == 1 ? (close > open and cp >= 0.6 and (close > prevHigh or (math.min(open, close) - low) >= 0.4 * rng)) : (close < open and cp <= 0.4 and (close < prevLow or (high - math.max(open, close)) >= 0.4 * rng)))
+    bool strong = d == 1 ? (close > open and close > prevHigh and cp >= 0.7) : (close < open and close < prevLow and cp <= 0.3)
+    bool ltfOK  = ltfTrend == d
+    int  lsw    = d == 1 ? sweepBullBar : sweepBearBar
+    bool sweepOK = lsw >= 0 and bar_index - lsw <= WIN
+    int  lch    = d == 1 ? chochUpBar : chochDnBar
+    bool chOK   = lch >= 0 and bar_index - lch <= WIN
+    bool localOK = ltfOK or sweepOK or chOK
+    bool discOK = false
+    if not na(h1H) and not na(h1L) and h1H > h1L
+        float eq = (h1H + h1L) / 2
+        discOK := d == 1 ? close < eq : close > eq
+
+    // ── الوقف: خلف الإبطال + هامش ATR، مع الاستفادة من القاع/القمة المؤكدة ونقطة D
+    float risk = na
+    if hasLoc
+        float slRaw = d == 1 ? math.min(inv, low) - SL_BUF * atr : math.max(inv, high) + SL_BUF * atr
+        if ns > 0
+            for i = ns - 1 to 0
+                Swing s = array.get(same, i)
+                if not s.broken and bar_index - s.bar <= 100
+                    bool near = d == 1 ? (s.price < slRaw + SL_BUF * atr and s.price > slRaw - atr) : (s.price > slRaw - SL_BUF * atr and s.price < slRaw + atr)
+                    if near
+                        slRaw := d == 1 ? math.min(slRaw, s.price - SL_BUF * atr) : math.max(slRaw, s.price + SL_BUF * atr)
+                    break
+        if hrmLoc
+            float hs = hD - d * SL_BUF * atr
+            if (d == 1 ? hs < slRaw : hs > slRaw) and math.abs(hs - slRaw) <= atr
+                slRaw := hs
+        if math.abs(e - slRaw) < MIN_RISK_ATR * atr
+            slRaw := e - d * MIN_RISK_ATR * atr
+        c.sl := d == 1 ? f_tickDn(slRaw) : f_tickUp(slRaw)
+        risk := math.abs(e - c.sl)
+
+        // ── الأهداف: أقرب العوائق الحقيقية أمام الصفقة، دون تجاوز القريب
+        array<float> obs = array.new<float>()
+        for s in opp
+            if not s.broken and bar_index - s.bar <= LEVEL_AGE and (d == 1 ? s.price > e : s.price < e)
+                array.push(obs, s.price)
+        for s in same
+            if s.broken and bar_index - s.bar <= LEVEL_AGE and (d == 1 ? s.price > e : s.price < e)
+                array.push(obs, s.price)
+        for L in hl
+            if not na(L) and (d == 1 ? L > e : L < e)
+                array.push(obs, L)
+        for z in zones
+            if z.alive and z.dir == -d and z.known < bar_index
+                float ed = d == 1 ? z.bot : z.top
+                if d == 1 ? ed > e : ed < e
+                    array.push(obs, ed)
+        if array.size(obs) > 0
+            array.sort(obs, d == 1 ? order.ascending : order.descending)
+            float o1 = array.get(obs, 0)
+            if math.abs(o1 - e) <= MAX_TGT_ATR * atr
+                float t1 = d == 1 ? f_tickDn(o1 - TGT_BUF * atr) : f_tickUp(o1 + TGT_BUF * atr)
+                float o2 = na
+                if array.size(obs) > 1
+                    for i = 1 to array.size(obs) - 1
+                        float v = array.get(obs, i)
+                        if math.abs(v - o1) > CLUSTER_ATR * atr
+                            if math.abs(v - e) <= MAX_TGT_ATR * atr
+                                o2 := v
+                            break
+                float t2 = na
+                if not na(o2)
+                    t2 := d == 1 ? f_tickDn(o2 - TGT_BUF * atr) : f_tickUp(o2 + TGT_BUF * atr)
+                else if hrmLoc
+                    float ht = hD + 0.618 * (hA - hD)
+                    if (d == 1 ? ht > t1 + 0.5 * atr : ht < t1 - 0.5 * atr) and math.abs(ht - e) <= MAX_TGT_ATR * atr
+                        t2 := d == 1 ? f_tickDn(ht) : f_tickUp(ht)
+                c.tp2Same := na(t2)
+                c.tp1 := t1
+                c.tp2 := na(t2) ? t1 : t2
+                if risk > 0
+                    c.rr1 := ((c.tp1 - e) * d - iCost) / (risk + iCost)
+                    c.rr2 := ((c.tp2 - e) * d - iCost) / (risk + iCost)
+
+    // ── درجة التوافق (كل نقطة = شرط برمجي واحد، دون تكرار المفهوم)
+    int sc = 0
+    sc += htfOK ? 2 : 0                                  // H1 وH4 متوافقان (شرط أساسي أيضًا)
+    sc += ltfOK ? 1 : 0                                  // بنية فريم الدخول بنفس الاتجاه
+    sc += sweepOK ? 1 : 0                                // سحب سيولة حديث بنفس الاتجاه
+    sc += smcHit ? 1 : 0                                 // ارتداد من OB أو FVG
+    sc += clsHit ? 1 : 0                                 // ارتداد من مستوى كلاسيكي
+    sc += discOK ? 1 : 0                                 // خصم/علاوة نسبة لمدى H1
+    sc += strong ? 1 : 0                                 // شمعة تأكيد قوية
+    sc += hrmSame ? 1 : 0                                // هارمونيك مطابق ضمن نافذته
+    sc += (not na(c.rr2) and c.rr2 >= 2.0) ? 1 : 0       // TP2 يعطي 2R أو أكثر
+    c.score := sc
+
+    bool impulse = rng > IMPULSE_ATR * atr
+    bool chase   = hasLoc and (d == 1 ? close - edge > CHASE_ATR * atr : edge - close > CHASE_ATR * atr)
+    string rs = ""
+    if not htfOK
+        rs := "H1/H4 غير متوافقين لهذا الاتجاه"
+    else if not hasLoc
+        rs := "بانتظار موقع دخول (منطقة)"
+    else if not localOK
+        rs := "لا تأكيد بنية محلية (CHoCH/سحب/اتجاه)"
+    else if not conf
+        rs := "عند منطقة — بانتظار شمعة تأكيد"
+    else if impulse
+        rs := "مرفوض: شمعة اندفاع مبالغ فيها"
+    else if chase
+        rs := "مرفوض: السعر ابتعد عن المنطقة"
+    else if oppHarm
+        rs := "مرفوض: هارمونيك معاكس نشط"
+    else if risk > MAX_RISK_ATR * atr
+        rs := "مرفوض: الوقف بعيد"
+    else if na(c.tp1)
+        rs := "مرفوض: لا هدف هيكلي صالح"
+    else if c.rr1 < iMinRR
+        rs := "مرفوض: مساحة غير كافية قبل العائق"
+    else if sc < iMinScore
+        rs := "مرفوض: الدرجة " + str.tostring(sc) + "/10 أقل من الحد"
+    c.reason := rs
+    c.ok     := rs == ""
+    c.keys   := array.join(keys, ";")
+    string loc = smcName + (smcHit and (clsHit or hrmLoc) ? " + " : "") + (clsHit ? clsName : "") + (hrmLoc ? (clsHit ? " + " : "") + "PRZ " + hName : "")
+    int lbrk = d == 1 ? breakUpBar : breakDnBar
+    c.info := "الموقع: " + loc + (smcHit ? " | عمر المنطقة: " + str.tostring(smcAge) + " شمعة" : "") + (lbrk >= 0 ? " | منذ آخر كسر بنية: " + str.tostring(bar_index - lbrk) + " شمعة" : "") + (sweepOK ? " | منذ سحب السيولة: " + str.tostring(bar_index - lsw) + " شمعة" : "") + (hrmSame ? " | هارمونيك: " + hName : "")
+    c
+
+// ═══ 9) تحديث التحليل على الشموع المكتملة فقط ═════════════════════════════════
+if barstate.isconfirmed and okData
+    // 9.1 متابعة الصفقات المفتوحة (الصفقة الجديدة تبدأ متابعتها من الشمعة التالية)
+    int nOpen = array.size(openTr)
+    if nOpen > 0
+        for i = nOpen - 1 to 0
+            Trade t = array.get(openTr, i)
+            [b1, b2, b4, b8, b16] = f_track(t)
+            if b1
+                f_evLabel(t, "TP1")
+                evTP1 := true
+            if b2 and not t.tp2Same
+                f_evLabel(t, "TP2")
+                evTP2 := true
+            if b4
+                f_evLabel(t, "SL")
+                evSL := true
+            if b8
+                f_evLabel(t, "AMB")
+                evAmb := true
+            if b16
+                f_evLabel(t, "EXP")
+            if t.closed
+                array.remove(openTr, i)
+
+    // 9.2 قمم وقيعان مؤكدة (تُسجل عند وقت تأكيدها الحقيقي، لا عند الشمعة الأصلية)
+    bool zzChanged = false
+    if not na(ph)
+        array.push(swH, Swing.new(price = ph, bar = bar_index - PIV, t = time[PIV]))
+        if array.size(swH) > MAX_SW
+            array.shift(swH)
+        zzChanged := f_zzAdd(ph, bar_index - PIV, time[PIV], 1) or zzChanged
+    if not na(pl)
+        array.push(swL, Swing.new(price = pl, bar = bar_index - PIV, t = time[PIV]))
+        if array.size(swL) > MAX_SW
+            array.shift(swL)
+        zzChanged := f_zzAdd(pl, bar_index - PIV, time[PIV], -1) or zzChanged
+
+    // 9.3 هارمونيك: يُفحص فقط عند تغير نقطة مؤكدة
+    if zzChanged
+        Harm h = f_harmCheck()
+        if not na(h)
+            bool dup = false
+            for g in harms
+                if g.xt == h.xt and g.at == h.at and g.bt == h.bt and g.ct == h.ct
+                    dup := true
+                    break
+            if not dup
+                array.push(harms, h)
+                if array.size(harms) > 6
+                    array.shift(harms)
+                if h.dir == 1
+                    hBullNow := true
+                else
+                    hBearNow := true
+
+    // 9.4 FVG: فجوة بين الشمعة 1 والشمعة 3 مع شمعة وسطى اندفاعية وحجم أدنى
+    if low > high[2] and (low - high[2]) >= FVG_MIN_ATR * atr and close[1] > open[1] and (high[1] - low[1]) >= atr
+        array.push(zones, Zone.new(kind = 2, dir = 1, top = low, bot = high[2], born = bar_index - 1, bornT = time[1], known = bar_index, key = "FVG|" + str.tostring(bar_index - 1)))
+        lastBullFvgBar := bar_index
+    if high < low[2] and (low[2] - high) >= FVG_MIN_ATR * atr and close[1] < open[1] and (high[1] - low[1]) >= atr
+        array.push(zones, Zone.new(kind = 2, dir = -1, top = low[2], bot = high, born = bar_index - 1, bornT = time[1], known = bar_index, key = "FVG|" + str.tostring(bar_index - 1)))
+        lastBearFvgBar := bar_index
+
+    // 9.5 BOS / CHoCH بالإغلاق خلف قمة/قاع مؤكد + إنشاء Order Block مشروط
+    int   upFrom = -1
+    int   upFromT = 0
+    float upLvl = na
+    for s in swH
+        if not s.broken and close > s.price
+            s.broken    := true
+            s.brokenBar := bar_index
+            if s.bar > upFrom
+                upFrom  := s.bar
+                upFromT := s.t
+                upLvl   := s.price
+    if upFrom >= 0
+        bool isCh = ltfTrend == -1
+        array.push(marks, Mark.new(kind = isCh ? 2 : 1, dir = 1, level = upLvl, fromT = upFromT, atT = time))
+        if isCh
+            chochUpBar := bar_index
+            chUpNow    := true
+        breakUpBar := bar_index
+        ltfTrend   := 1
+        // OB صاعد: آخر شمعة هابطة عند أصل الحركة التي كسرت البنية، بشرط وجود اندفاع
+        int   k  = 0
+        float lo = low
+        for j = 0 to OB_LOOK - 1
+            if low[j] < lo
+                lo := low[j]
+                k  := j
+        int obj = -1
+        for j = math.max(k, 1) to k + 5
+            if close[j] < open[j]
+                obj := j
+                break
+        float maxR = 0.0
+        for j = 0 to math.max(k, 1)
+            maxR := math.max(maxR, high[j] - low[j])
+        bool disp = maxR >= DISP_ATR * atr or (lastBullFvgBar >= 0 and lastBullFvgBar >= bar_index - k - 1)
+        if obj > 0 and disp
+            string key = "OB|" + str.tostring(bar_index - obj)
+            if not f_hasZoneKey(key)
+                array.push(zones, Zone.new(kind = 1, dir = 1, top = high[obj], bot = low[obj], born = bar_index - obj, bornT = time[obj], known = bar_index, key = key))
+
+    int   dnFrom = -1
+    int   dnFromT = 0
+    float dnLvl = na
+    for s in swL
+        if not s.broken and close < s.price
+            s.broken    := true
+            s.brokenBar := bar_index
+            if s.bar > dnFrom
+                dnFrom  := s.bar
+                dnFromT := s.t
+                dnLvl   := s.price
+    if dnFrom >= 0
+        bool isCh = ltfTrend == 1
+        array.push(marks, Mark.new(kind = isCh ? 2 : 1, dir = -1, level = dnLvl, fromT = dnFromT, atT = time))
+        if isCh
+            chochDnBar := bar_index
+            chDnNow    := true
+        breakDnBar := bar_index
+        ltfTrend   := -1
+        int   k  = 0
+        float hi = high
+        for j = 0 to OB_LOOK - 1
+            if high[j] > hi
+                hi := high[j]
+                k  := j
+        int obj = -1
+        for j = math.max(k, 1) to k + 5
+            if close[j] > open[j]
+                obj := j
+                break
+        float maxR = 0.0
+        for j = 0 to math.max(k, 1)
+            maxR := math.max(maxR, high[j] - low[j])
+        bool disp = maxR >= DISP_ATR * atr or (lastBearFvgBar >= 0 and lastBearFvgBar >= bar_index - k - 1)
+        if obj > 0 and disp
+            string key = "OB|" + str.tostring(bar_index - obj)
+            if not f_hasZoneKey(key)
+                array.push(zones, Zone.new(kind = 1, dir = -1, top = high[obj], bot = low[obj], born = bar_index - obj, bornT = time[obj], known = bar_index, key = key))
+
+    // 9.6 سحب السيولة: ذيل يتجاوز قمة/قاعًا مؤكدًا ثم إغلاق داخله
+    for s in swL
+        if not s.broken and not s.swept and bar_index - s.bar <= SWEEP_AGE and low < s.price and close > s.price
+            s.swept      := true
+            sweepBullBar := bar_index
+            sweepBullT   := time
+            array.push(marks, Mark.new(kind = 3, dir = 1, level = s.price, fromT = s.t, atT = time))
+    for s in swH
+        if not s.broken and not s.swept and bar_index - s.bar <= SWEEP_AGE and high > s.price and close < s.price
+            s.swept      := true
+            sweepBearBar := bar_index
+            sweepBearT   := time
+            array.push(marks, Mark.new(kind = 3, dir = -1, level = s.price, fromT = s.t, atT = time))
+    if sweepBullBar >= 0 and bar_index - sweepBullBar == WIN
+        sweepBullEndT := time_close
+    if sweepBearBar >= 0 and bar_index - sweepBearBar == WIN
+        sweepBearEndT := time_close
+    while array.size(marks) > MAX_MARKS
+        array.shift(marks)
+
+    // 9.7 إبطال المناطق: إغلاق خلف الحافة البعيدة، أو انتهاء العمر
+    for z in zones
+        if z.alive
+            bool brokenZ = z.dir == 1 ? close < z.bot : close > z.top
+            int  maxAge  = z.kind == 1 ? OB_AGE : FVG_AGE
+            if brokenZ or bar_index - z.born > maxAge
+                z.alive := false
+    while array.size(zones) > MAX_ZONES
+        array.shift(zones)
+
+    // 9.8 إبطال الهارمونيك: إغلاق خلف X ، وتسجيل نهاية النافذة الفعلية
+    hBullActive := false
+    hBearActive := false
+    for h in harms
+        if h.alive
+            if (h.dir == 1 and close < h.x) or (h.dir == -1 and close > h.x)
+                h.alive := false
+            if bar_index - h.det == HARM_WIN
+                h.winEndT := time_close
+            if h.alive and bar_index - h.det <= HARM_WIN
+                if h.dir == 1
+                    hBullActive := true
+                else
+                    hBearActive := true
+
+// ═══ 10) قرار الدخول (بعد إغلاق الشمعة) ═══════════════════════════════════════
+Cand cL = f_eval(1)
+Cand cS = f_eval(-1)
+
+if barstate.isconfirmed and okData
+    bool canL = okChart and okTF and cL.ok and bar_index - lastSigBarL > COOLDOWN
+    bool canS = okChart and okTF and cS.ok and bar_index - lastSigBarS > COOLDOWN
+    Cand cc = htfDir == -1 ? cS : htfDir == 1 ? cL : (cL.score >= cS.score ? cL : cS)
+    curScore  := cc.score
+    curReason := cc.reason
+    if canL and canS
+        curReason := "تعارض شراء/بيع على الشمعة نفسها — لا إشارة"
+    else if canL or canS
+        Cand c = canL ? cL : cS
+        sigBuy  := canL
+        sigSell := canS
+        tradeSeq += 1
+        Trade t = Trade.new(id = tradeSeq, dir = c.dir, bar = bar_index, tOpen = time, tClose = time_close, entry = c.entry, sl = c.sl, tp1 = c.tp1, tp2 = c.tp2, tp2Same = c.tp2Same, risk = math.abs(c.entry - c.sl), score = c.score, info = c.info)
+        array.push(trades, t)
+        array.push(openTr, t)
+        if array.size(trades) > MAX_KEEP
+            array.shift(trades)
+            dropped += 1
+        for k in str.split(c.keys, ";")
+            if str.length(k) > 0
+                array.push(usedKeys, k)
+        while array.size(usedKeys) > MAX_KEYS
+            array.shift(usedKeys)
+        lastSigBar := bar_index
+        if c.dir == 1
+            lastSigBarL := bar_index
+        else
+            lastSigBarS := bar_index
+        string side = c.dir == 1 ? "BUY" : "SELL"
+        string tip = side + " #" + str.tostring(t.id) + " — " + f_tm(time_close) + " (UTC+3)\nدخول مرجعي (إغلاق الشمعة): " + f_px(t.entry) + "\nSL: " + f_px(t.sl) + "\nTP1: " + f_px(t.tp1) + "  (" + str.tostring(c.rr1, "#.##") + "R صافي)\nTP2: " + f_px(t.tp2) + (t.tp2Same ? " (لا مستوى ثانٍ = TP1)" : "") + "  (" + str.tostring(c.rr2, "#.##") + "R صافي)\nالتوافق: " + str.tostring(t.score) + "/10 (ليس احتمال ربح)\n" + t.info
+        label.new(bar_index, c.dir == 1 ? low : high, side + " #" + str.tostring(t.id) + "\n" + f_px(t.entry) + " | " + str.tostring(t.score) + "/10", yloc = c.dir == 1 ? yloc.belowbar : yloc.abovebar, color = c.dir == 1 ? C_BUY : C_SELL, textcolor = C_TXT, style = c.dir == 1 ? label.style_label_up : label.style_label_down, size = size.small, tooltip = tip)
+        curReason := "إشارة جديدة #" + str.tostring(t.id)
+        if iAlert == A_BOTH or iAlert == A_ENTRY
+            alert(side + " | " + syminfo.ticker + " | " + f_tfTxt() + " | #" + str.tostring(t.id) + " | دخول " + f_px(t.entry) + " | SL " + f_px(t.sl) + " | TP1 " + f_px(t.tp1) + " | TP2 " + f_px(t.tp2) + " | توافق " + str.tostring(t.score) + "/10 | " + f_tm(time_close) + " UTC+3", alert.freq_once_per_bar_close)
+
+    // ═══ 11) تحذير الانعكاس للصفقة المراقبة (لا يغير الإشارة ولا SL/TP ولا الإحصاء) ═══
+    Trade mt = f_findTrade(iSel == 0 ? tradeSeq : iSel)
+    if not na(mt)
+        if not mt.closed and bar_index > mt.bar and mt.warnCount < WARN_MAX and bar_index - mt.lastWarnBar >= WARN_GAP
+            int  od       = -mt.dir
+            bool oppCh    = od == 1 ? chUpNow : chDnNow
+            int  oswb     = od == 1 ? sweepBullBar : sweepBearBar
+            bool oppSweep = oswb >= 0 and bar_index - oswb <= WIN
+            int  ofvg     = od == 1 ? lastBullFvgBar : lastBearFvgBar
+            bool oppFvg   = ofvg >= 0 and bar_index - ofvg <= WIN
+            bool oppHAct  = od == 1 ? hBullActive : hBearActive
+            bool oppHNow  = od == 1 ? hBullNow : hBearNow
+            bool oppFlip  = od == 1 ? h1FlipUp : h1FlipDn
+            string why = ""
+            if oppCh and (oppSweep or oppFvg or oppHAct)
+                why := "CHoCH معاكس" + (oppSweep ? " + سحب سيولة" : "") + (oppFvg ? " + FVG معاكس" : "") + (oppHAct ? " + هارمونيك معاكس" : "")
+            else if oppHNow and ltfTrend == od
+                why := "هارمونيك معاكس مكتمل + بنية محلية معاكسة"
+            else if oppFlip and ltfTrend == od
+                why := "انقلاب اتجاه H1 + بنية محلية معاكسة"
+            if why != ""
+                warnNow := true
+                mt.warnCount   := mt.warnCount + 1
+                mt.lastWarnBar := bar_index
+                bool inProfit = (close - mt.entry) * mt.dir > 0.05 * mt.risk
+                string wtxt = inProfit ? "احتمال تراجع الربح — انعكاس ضد الصفقة" : "خطر استمرار الخسارة — انعكاس ضد الصفقة"
+                label.new(bar_index, close, "⚠ #" + str.tostring(mt.id) + "\n" + wtxt, yloc = mt.dir == 1 ? yloc.abovebar : yloc.belowbar, color = color.new(C_WARN, 10), textcolor = color.black, style = mt.dir == 1 ? label.style_label_down : label.style_label_up, size = size.tiny, tooltip = "تحذير للإشارة #" + str.tostring(mt.id) + " — " + f_tm(time_close) + "\nالسبب: " + why + "\nتحذير تحليلي فقط: لا يغلق صفقة، لا يغير SL/TP، ولا يسجل نتيجة. قد لا يسبق كل خسارة.")
+                if iAlert == A_BOTH or iAlert == A_WARN
+                    alert("تحذير انعكاس | " + syminfo.ticker + " | " + f_tfTxt() + " | #" + str.tostring(mt.id) + (mt.dir == 1 ? " BUY" : " SELL") + " | " + wtxt + " | " + why + " | السعر " + f_px(close) + " | " + f_tm(time_close) + " UTC+3", alert.freq_once_per_bar_close)
+
+// علامات صغيرة أسفل/أعلى اللوحة تبقى على كل التاريخ حتى لو حُذفت أقدم الملصقات بسبب حد 500
+plotshape(sigBuy, "BUY (علامة تاريخية)", shape.triangleup, location.bottom, C_BUY, size = size.tiny)
+plotshape(sigSell, "SELL (علامة تاريخية)", shape.triangledown, location.top, C_SELL, size = size.tiny)
+plotshape(warnNow, "تحذير انعكاس", shape.diamond, location.top, C_WARN, size = size.tiny)
+
+// ═══ 12) الرسم والبطاقة (آخر شمعة فقط — لا يؤثر في الإشارات أو النتائج) ═══════
+var array<line>  dLines  = array.new<line>()
+var array<box>   dBoxes  = array.new<box>()
+var array<label> dLabels = array.new<label>()
+var table        tbl     = na
+var label        cardLbl = na
+
+f_clearDraw() =>
+    for l in dLines
+        line.delete(l)
+    for b in dBoxes
+        box.delete(b)
+    for l in dLabels
+        label.delete(l)
+    array.clear(dLines)
+    array.clear(dBoxes)
+    array.clear(dLabels)
+
+f_ln(int x1, float y1, int x2, float y2, color c, string st, int w) =>
+    array.push(dLines, line.new(x1, y1, x2, y2, xloc = xloc.bar_time, color = c, style = st, width = w))
+
+f_bx(int x1, float y1, int x2, float y2, color c, string txt) =>
+    array.push(dBoxes, box.new(x1, math.max(y1, y2), x2, math.min(y1, y2), xloc = xloc.bar_time, border_color = color.new(c, 60), bgcolor = color.new(c, 85), text = txt, text_size = size.tiny, text_color = color.new(c, 20), text_halign = text.align_left, text_valign = text.align_top))
+
+f_lb(int x, float y, string txt, color bg, color tc, string st, string tip) =>
+    array.push(dLabels, label.new(x, y, txt, xloc = xloc.bar_time, color = bg, textcolor = tc, style = st, size = size.tiny, tooltip = tip))
+
+if barstate.islast
+    f_clearDraw()
+    int futT = time + 6 * tfMs
+    bool onTP2 = iSuccess == S_TP2
+
+    // 12.1 صندوق الصفقة المختارة (افتراضيًا الأحدث)
+    int   selId = iSel == 0 ? tradeSeq : iSel
+    Trade st = f_findTrade(selId)
+    if iShowBox and not na(st)
+        bool  L  = st.dir == 1
+        int   x1 = st.tOpen
+        int   x2 = st.closed ? math.max(st.closeT, st.tOpen + 5 * tfMs) : futT
+        color cR = color.new(C_SELL, 0)
+        color cG = color.new(C_BUY, 0)
+        f_bx(x1, st.entry, x2, st.tp2, cG, "")
+        f_bx(x1, st.entry, x2, st.sl, cR, "")
+        f_ln(x1, st.entry, x2, st.entry, color.gray, line.style_solid, 2)
+        f_ln(x1, st.tp1, x2, st.tp1, cG, line.style_dashed, 1)
+        f_ln(x1, st.tp2, x2, st.tp2, cG, line.style_solid, 1)
+        f_ln(x1, st.sl, x2, st.sl, cR, line.style_solid, 1)
+        float rr1 = math.abs(st.tp1 - st.entry) / st.risk
+        float rr2 = math.abs(st.tp2 - st.entry) / st.risk
+        f_lb(x2, st.tp2, "TP2 " + f_px(st.tp2) + " (" + str.tostring(rr2, "#.#") + "R)" + (st.tp2Same ? " =TP1" : ""), color.new(C_BUY, 20), C_TXT, label.style_label_left, "")
+        if not st.tp2Same
+            f_lb(x2, st.tp1, "TP1 " + f_px(st.tp1) + " (" + str.tostring(rr1, "#.#") + "R)", color.new(C_BUY, 40), C_TXT, label.style_label_left, "")
+        f_lb(x2, st.entry, "دخول " + f_px(st.entry), color.new(color.gray, 20), C_TXT, label.style_label_left, "")
+        f_lb(x2, st.sl, "SL " + f_px(st.sl), color.new(C_SELL, 20), C_TXT, label.style_label_left, "")
+        f_lb(x1, st.tp2, (L ? "LONG #" : "SHORT #") + str.tostring(st.id) + " | R:R " + str.tostring(rr1, "#.#") + " / " + str.tostring(rr2, "#.#") + " | " + str.tostring(st.score) + "/10", color.new(L ? C_BUY : C_SELL, 0), C_TXT, L ? label.style_label_lower_left : label.style_label_upper_left, "رسم مرجعي فقط — ليس صفقة منفذة.\n" + st.info)
+        // اتصال بصري من الدخول إلى أماكن الأحداث اللاحقة
+        if st.tp1Hit
+            f_ln(x1, st.entry, st.tp1T, st.tp1, C_BUY, line.style_dotted, 2)
+            f_lb(st.tp1T, st.tp1, "TP1 ✓ #" + str.tostring(st.id) + " " + f_hm(st.tp1TC), color.new(C_BUY, 0), C_TXT, L ? label.style_label_down : label.style_label_up, "")
+        if st.tp2Hit and not st.tp2Same
+            f_ln(x1, st.entry, st.tp2T, st.tp2, C_BUY, line.style_dotted, 2)
+            f_lb(st.tp2T, st.tp2, "TP2 ✓ #" + str.tostring(st.id) + " " + f_hm(st.tp2TC), color.new(C_BUY, 0), C_TXT, L ? label.style_label_down : label.style_label_up, "")
+        if st.slHit
+            bool amb = st.amb1 or st.amb2
+            f_ln(x1, st.entry, st.slT, st.sl, amb ? C_AMB : C_SELL, line.style_dotted, 2)
+            f_lb(st.slT, st.sl, (amb ? "؟ غير محسوم #" : "SL ✗ #") + str.tostring(st.id) + " " + f_hm(st.slTC), color.new(amb ? C_AMB : C_SELL, 0), C_TXT, L ? label.style_label_up : label.style_label_down, "")
+
+    // 12.2 مستويات الإشارات القديمة (اختياري، آخر 10 بصرف النظر عن نتيجتها)
+    if iShowOld
+        int n = array.size(trades)
+        int cnt = 0
+        if n > 0
+            for i = n - 1 to 0
+                Trade t = array.get(trades, i)
+                if t.id != selId
+                    int xe = t.closed ? math.max(t.closeT, t.tOpen + 3 * tfMs) : futT
+                    f_ln(t.tOpen, t.sl, xe, t.sl, color.new(C_SELL, 40), line.style_dotted, 1)
+                    f_ln(t.tOpen, t.tp1, xe, t.tp1, color.new(C_BUY, 40), line.style_dotted, 1)
+                    if not t.tp2Same
+                        f_ln(t.tOpen, t.tp2, xe, t.tp2, color.new(C_BUY, 40), line.style_dotted, 1)
+                    f_lb(xe, t.sl, "SL#" + str.tostring(t.id) + " " + f_px(t.sl), color.new(C_SELL, 60), C_TXT, label.style_label_left, "")
+                    f_lb(xe, t.tp1, "TP1#" + str.tostring(t.id) + " " + f_px(t.tp1), color.new(C_BUY, 60), C_TXT, label.style_label_left, "")
+                    if not t.tp2Same
+                        f_lb(xe, t.tp2, "TP2#" + str.tostring(t.id) + " " + f_px(t.tp2), color.new(C_BUY, 60), C_TXT, label.style_label_left, "")
+                    cnt += 1
+                if cnt >= OLD_N
+                    break
+
+    // 12.3 رسومات SMC والمستويات الكلاسيكية
+    if iShowAna and iShowSMC
+        int zc = 0
+        int zN = array.size(zones)
+        if zN > 0
+            for i = zN - 1 to 0
+                Zone z = array.get(zones, i)
+                if z.alive
+                    color zc0 = z.dir == 1 ? (z.kind == 1 ? #2962FF : #26A69A) : (z.kind == 1 ? #FF6D00 : #EF5350)
+                    f_bx(z.bornT, z.top, futT, z.bot, zc0, (z.kind == 1 ? "OB" : "FVG") + (z.dir == 1 ? " طلب" : " عرض") + (f_used(z.key) ? " (مستخدمة)" : ""))
+                    zc += 1
+                if zc >= 8
+                    break
+        for m in marks
+            color mc = m.dir == 1 ? C_BUY : C_SELL
+            if m.kind == 3
+                f_lb(m.atT, m.level, "سحب سيولة", color.new(mc, 70), C_TXT, m.dir == 1 ? label.style_label_up : label.style_label_down, "ذيل تجاوز قمة/قاعًا مؤكدًا ثم أغلق داخله")
+            else
+                f_ln(m.fromT, m.level, m.atT, m.level, mc, line.style_dashed, 1)
+                f_lb(m.atT, m.level, m.kind == 2 ? "CHoCH" : "BOS", color.new(mc, 100), mc, m.dir == 1 ? label.style_label_down : label.style_label_up, "إغلاق خلف قمة/قاع مؤكد")
+        // أقرب مقاومة ودعم غير مكسورين + مستويات H1/H4/أمس (خطوط قصيرة)
+        float nr = na
+        float ns0 = na
+        for s in swH
+            if not s.broken and s.price > close and (na(nr) or s.price < nr)
+                nr := s.price
+        for s in swL
+            if not s.broken and s.price < close and (na(ns0) or s.price > ns0)
+                ns0 := s.price
+        int xs = time - 40 * tfMs
+        float w = LEVEL_W * atr
+        if not na(nr)
+            f_bx(xs, nr + w, futT, nr - w, C_SELL, "مقاومة")
+        if not na(ns0)
+            f_bx(xs, ns0 + w, futT, ns0 - w, C_BUY, "دعم")
+        array<float>  hl = array.from(h1H, h1L, h4H, h4L, pdh, pdl)
+        array<string> hn = array.from("H1 قمة", "H1 قاع", "H4 قمة", "H4 قاع", "قمة أمس", "قاع أمس")
+        for i = 0 to 5
+            float v = array.get(hl, i)
+            if not na(v) and math.abs(v - close) <= 15 * atr
+                f_ln(xs, v, futT, v, color.new(color.silver, 30), line.style_dotted, 1)
+                f_lb(futT, v, array.get(hn, i) + " " + f_px(v), color.new(color.silver, 100), color.silver, label.style_label_left, "")
+
+    // 12.4 رسومات الهارمونيك (آخر نموذجين خلال آخر 500 شمعة)
+    if iShowAna and iShowHarm
+        int hc = 0
+        int nh = array.size(harms)
+        if nh > 0
+            for i = nh - 1 to 0
+                Harm h = array.get(harms, i)
+                if bar_index - h.det <= 500
+                    color hcol = h.alive ? (h.dir == 1 ? #00BCD4 : #E040FB) : color.gray
+                    f_ln(h.xt, h.x, h.at, h.a, hcol, line.style_solid, 2)
+                    f_ln(h.at, h.a, h.bt, h.b, hcol, line.style_solid, 2)
+                    f_ln(h.bt, h.b, h.ct, h.c, hcol, line.style_solid, 2)
+                    f_ln(h.ct, h.c, h.dt, h.d, hcol, line.style_solid, 2)
+                    f_ln(h.xt, h.x, h.bt, h.b, hcol, line.style_dotted, 1)
+                    f_ln(h.bt, h.b, h.dt, h.d, hcol, line.style_dotted, 1)
+                    f_lb(h.xt, h.x, "X", color.new(hcol, 100), hcol, h.dir == 1 ? label.style_label_up : label.style_label_down, "")
+                    f_lb(h.at, h.a, "A", color.new(hcol, 100), hcol, h.dir == 1 ? label.style_label_down : label.style_label_up, "")
+                    f_lb(h.bt, h.b, "B", color.new(hcol, 100), hcol, h.dir == 1 ? label.style_label_up : label.style_label_down, "")
+                    f_lb(h.ct, h.c, "C", color.new(hcol, 100), hcol, h.dir == 1 ? label.style_label_down : label.style_label_up, "")
+                    string hs = h.name + (h.dir == 1 ? " صاعد" : " هابط") + (h.alive ? "" : " (مُبطل)") + "\nD مؤكدة واكتُشف: " + f_hm(h.detT)
+                    string htip = "اكتشاف النموذج عند تأكيد D بعد " + str.tostring(PIV) + " شموع، وليس عند تكوّن D.\nزمن CD/AB = " + str.tostring(h.tRatio, "#.##") + (h.tRatio >= 0.5 and h.tRatio <= 2.0 ? " (ضمن 0.5–2.0)" : " (خارج 0.5–2.0)") + "\nالإبطال: إغلاق خلف X = " + f_px(h.x)
+                    f_lb(h.dt, h.d, "D " + hs, color.new(hcol, 20), C_TXT, h.dir == 1 ? label.style_label_up : label.style_label_down, htip)
+                    hc += 1
+                if hc >= 2
+                    break
+
+    // 12.5 النافذة الزمنية: نهاية تقديرية مستقبلية أو نهاية فعلية مكتملة
+    if iShowAna and iShowTime
+        int nh = array.size(harms)
+        if nh > 0
+            Harm h = array.get(harms, nh - 1)
+            if bar_index - h.det <= 500
+                bool past = h.winEndT > 0
+                int  xe   = past ? h.winEndT : h.detT + HARM_WIN * tfMs
+                float top = math.max(h.d, h.c) + atr
+                float bot = math.min(h.d, h.c) - atr
+                f_bx(h.detT, top, xe, bot, #FFC107, past ? "نافذة " + h.name + ": انتهت فعليًا " + f_hm(h.winEndT) : "نافذة " + h.name + ": نهاية تقديرية ~" + f_hm(xe))
+        int sb = htfDir == -1 ? sweepBearBar : sweepBullBar
+        int sT = htfDir == -1 ? sweepBearT : sweepBullT
+        int sE = htfDir == -1 ? sweepBearEndT : sweepBullEndT
+        if htfDir != 0 and sb >= 0 and bar_index - sb <= 300
+            bool past = bar_index - sb >= WIN and sE > 0
+            int  xe   = past ? sE : sT + WIN * tfMs
+            f_bx(sT, high + atr, xe, low - atr, #9C27B0, past ? "نافذة السحب: انتهت فعليًا " + f_hm(sE) : "نافذة السحب: نهاية تقديرية ~" + f_hm(xe))
+
+    // 12.6 الإحصاء للفترة (انتماء الصفقة بوقت إغلاق شمعة الدخول: البداية مشمولة والنهاية غير مشمولة)
+    int pS = 0
+    int pE = 0
+    string pTxt = ""
+    if iPMode == P_TODAY
+        pS := timestamp(TZ, year(timenow, TZ), month(timenow, TZ), dayofmonth(timenow, TZ), 0, 0)
+        pE := pS + 86400000
+        pTxt := "اليوم " + str.format_time(pS, "yyyy-MM-dd", TZ)
+    else if iPMode == P_DAY
+        pS := timestamp(TZ, year(iPDay, TZ), month(iPDay, TZ), dayofmonth(iPDay, TZ), 0, 0)
+        pE := pS + 86400000
+        pTxt := "يوم " + str.format_time(pS, "yyyy-MM-dd", TZ)
+    else if iPMode == P_RANGE
+        pS := iPFrom
+        pE := iPTo
+        pTxt := f_hm(pS) + " ← " + f_hm(pE)
+    else
+        pS := 0
+        pE := timenow + 86400000
+        pTxt := "كل المحمل منذ " + f_hm(firstBarTime)
+    int nW = 0
+    int nLs = 0
+    int nP = 0
+    int nA = 0
+    int nE = 0
+    float rG = 0.0
+    float rN = 0.0
+    for t in trades
+        if t.tClose >= pS and t.tClose < pE
+            int r = f_result(t, onTP2)
+            if r == 1
+                nW += 1
+                float rr = math.abs((onTP2 ? t.tp2 : t.tp1) - t.entry) / t.risk
+                rG += rr
+                rN += rr - iCost / t.risk
+            else if r == -1
+                nLs += 1
+                float rr = (t.slExec - t.entry) * t.dir / t.risk
+                rG += rr
+                rN += rr - iCost / t.risk
+            else if r == 2
+                nA += 1
+            else if r == 3
+                nE += 1
+            else
+                nP += 1
+    string cov = ""
+    if iPMode != P_ALL and pS < firstBarTime
+        cov := "⚠ الفترة تبدأ قبل أول بيانات محملة (" + f_hm(firstBarTime) + ")"
+    if dropped > 0 and array.size(trades) > 0 and pS < array.get(trades, 0).tClose
+        cov := cov + (cov != "" ? "\n" : "") + "⚠ " + str.tostring(dropped) + " إشارة أقدم خارج حد الاحتفاظ (" + str.tostring(MAX_KEEP) + ")"
+    if iPMode == P_RANGE and pE <= pS
+        cov := cov + (cov != "" ? "\n" : "") + "⚠ نهاية الفترة قبل بدايتها"
+
+    // 12.7 محتوى البطاقة
+    array<string> ks = array.new<string>()
+    array<string> vs = array.new<string>()
+    array.push(ks, "Hasan Gold")
+    array.push(vs, syminfo.ticker + " " + f_tfTxt() + " | Asia/Aden UTC+3" + (timeframe.period == "1" or timeframe.period == "5" ? "" : " | المصمم: 1m/5m"))
+    array.push(ks, "H1 / H4")
+    array.push(vs, f_dirTxt(h1Tr) + " / " + f_dirTxt(h4Tr) + "  ⇐ " + f_dirTxt(htfDir))
+    string stTxt = not okChart ? "الشموع ليست عادية — الإشارات معطلة" : not okTF ? "الفريم ≥ ساعة — استخدم 1m أو 5m" : htfDir == 0 ? (h1Tr != 0 and h4Tr != 0 and h1Tr != h4Tr ? "انتظار — تعارض H1/H4" : "انتظار — اتجاه أعلى غير مؤكد") : curReason
+    array.push(ks, "الحالة الآن")
+    array.push(vs, stTxt)
+    array.push(ks, "التوافق الحالي")
+    array.push(vs, str.tostring(curScore) + "/10 (لحظي — يتغير)")
+    if not na(st)
+        int rSel = f_result(st, onTP2)
+        array.push(ks, "الإشارة المختارة")
+        array.push(vs, "#" + str.tostring(st.id) + (st.dir == 1 ? " BUY " : " SELL ") + f_tm(st.tClose))
+        array.push(ks, "دخول / SL")
+        array.push(vs, f_px(st.entry) + " / " + f_px(st.sl))
+        array.push(ks, "TP1 / TP2")
+        array.push(vs, f_px(st.tp1) + " / " + f_px(st.tp2) + (st.tp2Same ? " (=TP1)" : ""))
+        array.push(ks, "درجتها (مثبتة)")
+        array.push(vs, str.tostring(st.score) + "/10 — توافق " + str.tostring(st.score * 10) + "%")
+        string evs = (st.tp1Hit ? "TP1✓ " + f_hm(st.tp1TC) + " " : "") + (st.tp2Hit and not st.tp2Same ? "TP2✓ " + f_hm(st.tp2TC) + " " : "") + (st.slHit ? ((st.amb1 or st.amb2) ? "؟هدف/SL " : "SL✗ ") + f_hm(st.slTC) : "")
+        array.push(ks, "نتيجتها (" + iSuccess + ")")
+        array.push(vs, f_resName(rSel) + (evs != "" ? " | " + evs : ""))
+    else
+        array.push(ks, "الإشارة المختارة")
+        array.push(vs, iSel > 0 ? "الرقم " + str.tostring(iSel) + " غير موجود في التاريخ المحمل" : "لا إشارات في التاريخ المحمل")
+    array.push(ks, "الفترة")
+    array.push(vs, pTxt + " | النجاح: " + iSuccess)
+    array.push(ks, "✓ / ✗ / ⏳ / ؟ / ⌛")
+    array.push(vs, str.tostring(nW) + " / " + str.tostring(nLs) + " / " + str.tostring(nP) + " / " + str.tostring(nA) + " / " + str.tostring(nE))
+    array.push(ks, "صافي R")
+    array.push(vs, f_r(rG) + " قبل التكلفة" + (iCost > 0 ? " | " + f_r(rN) + " بعدها" : ""))
+    if cov != ""
+        array.push(ks, "تنبيه")
+        array.push(vs, cov)
+
+    // 12.8 عرض البطاقة: ثابتة (جدول) أو متحركة (ملصق مرتبط بالوقت والسعر) أو مخفية
+    string tsz = f_size(iCardSize)
+    if not na(cardLbl)
+        label.delete(cardLbl)
+        cardLbl := na
+    if iCardMode == M_FIXED
+        if na(tbl)
+            tbl := table.new(f_pos(iCardPos), 2, 16, bgcolor = color.new(C_BG, 10), border_color = color.new(color.gray, 70), border_width = 1, frame_color = color.new(color.gray, 50), frame_width = 1)
+        table.clear(tbl, 0, 0, 1, 15)
+        for i = 0 to array.size(ks) - 1
+            color kc = i == 0 ? C_WARN : color.silver
+            table.cell(tbl, 0, i, array.get(ks, i), text_color = kc, text_size = tsz, text_halign = text.align_right)
+            table.cell(tbl, 1, i, array.get(vs, i), text_color = C_TXT, text_size = tsz, text_halign = text.align_left)
+    else
+        if not na(tbl)
+            table.delete(tbl)
+            tbl := na
+        if iCardMode == M_MOVE
+            string txt = ""
+            for i = 0 to array.size(ks) - 1
+                txt := txt + (i > 0 ? "\n" : "") + array.get(ks, i) + ": " + array.get(vs, i)
+            bool auto = iCardP <= 0 or iCardT < firstBarTime
+            int   cx = auto ? futT : iCardT
+            float cy = auto ? close : iCardP
+            cardLbl := label.new(cx, cy, txt, xloc = xloc.bar_time, color = color.new(C_BG, 10), textcolor = C_TXT, style = label.style_label_left, size = tsz, textalign = text.align_left)
