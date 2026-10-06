@@ -75,6 +75,7 @@ int    iPTo   = input.time(timestamp("07 Oct 2026 00:00 +0300"), "إلى (غير
 string G3 = "③ العرض"
 int  iSel      = input.int(0, "رقم الإشارة المعروضة (0 = الأحدث)", minval = 0, group = G3)
 bool iShowBox  = input.bool(true, "صندوق الصفقة LONG/SHORT", group = G3)
+bool iLblLv    = input.bool(true, "كتابة الدخول وTP1 وTP2 وSL على ملصق BUY/SELL", group = G3)
 bool iShowOld  = input.bool(false, "أسعار SL/TP للإشارات القديمة (آخر 10)", group = G3)
 bool iShowAna  = input.bool(false, "رسومات التحليل (زر رئيسي)", group = G3)
 bool iShowHarm = input.bool(true, "   ↳ الهارمونيك", group = G3)
@@ -215,10 +216,21 @@ f_htf() =>
     int   tr = st == 1 and close > e ? 1 : st == -1 and close < e ? -1 : 0
     [tr[1], lastH[1], lastL[1]]
 
+// خريطة الأطر حسب فريم الشارت:
+//   1m أو 5m (أي فريم أقل من ساعة) ← تحليل أعلى H1 + H4 ، ومستويات اليوم السابق
+//   يومي 1D                       ← تحليل أعلى أسبوعي W + شهري M ، ومستويات الأسبوع السابق
+bool   isDay   = timeframe.isdaily
+string TF_A    = isDay ? "W" : "60"
+string TF_B    = isDay ? "M" : "240"
+string TF_P    = isDay ? "W" : "D"
+string NM_A    = isDay ? "W" : "H1"
+string NM_B    = isDay ? "M" : "H4"
+string NM_PH   = isDay ? "قمة الأسبوع السابق" : "قمة أمس"
+string NM_PL   = isDay ? "قاع الأسبوع السابق" : "قاع أمس"
 string tickStd = ticker.standard(syminfo.tickerid)
-[h1Tr, h1H, h1L] = request.security(tickStd, "60", f_htf(), lookahead = barmerge.lookahead_on)
-[h4Tr, h4H, h4L] = request.security(tickStd, "240", f_htf(), lookahead = barmerge.lookahead_on)
-[pdh, pdl]       = request.security(tickStd, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[h1Tr, h1H, h1L] = request.security(tickStd, TF_A, f_htf(), lookahead = barmerge.lookahead_on)
+[h4Tr, h4H, h4L] = request.security(tickStd, TF_B, f_htf(), lookahead = barmerge.lookahead_on)
+[pdh, pdl]       = request.security(tickStd, TF_P, [high[1], low[1]], lookahead = barmerge.lookahead_on)
 
 int  htfDir   = h1Tr == 1 and h4Tr == 1 ? 1 : h1Tr == -1 and h4Tr == -1 ? -1 : 0
 bool h1FlipUp = h1Tr == 1 and nz(h1Tr[1]) != 1
@@ -232,7 +244,7 @@ float prevHigh = high[1]
 float prevLow  = low[1]
 int   tfMs     = timeframe.in_seconds() * 1000
 bool  okChart  = chart.is_standard
-bool  okTF     = timeframe.in_seconds() < 3600
+bool  okTF     = timeframe.in_seconds() < 3600 or (isDay and timeframe.multiplier == 1)
 bool  okData   = not na(atr) and atr > 0
 
 // ═══ 6) الحالة المخزنة ═════════════════════════════════════════════════════════
@@ -296,7 +308,7 @@ f_r(float r) => na(r) ? "—" : (r >= 0 ? "+" : "") + str.tostring(r, "#.##") + 
 f_used(string k) => array.includes(usedKeys, k)
 
 f_tfTxt() =>
-    timeframe.isminutes ? timeframe.period + "m" : timeframe.isseconds ? timeframe.period : timeframe.period
+    timeframe.isminutes ? timeframe.period + "m" : timeframe.isdaily ? str.tostring(timeframe.multiplier) + "D" : timeframe.period
 
 f_touch(int d, float L, float w) =>
     bool r = false
@@ -519,7 +531,7 @@ f_eval(int d) =>
     bool htfOK = d == 1 ? (h1Tr == 1 and h4Tr == 1) : (h1Tr == -1 and h4Tr == -1)
     array<string> keys = array.new<string>()
     array<float>  hl   = array.from(h1H, h1L, h4H, h4L, pdh, pdl)
-    array<string> hn   = array.from("H1 قمة", "H1 قاع", "H4 قمة", "H4 قاع", "قمة أمس", "قاع أمس")
+    array<string> hn   = array.from(NM_A + " قمة", NM_A + " قاع", NM_B + " قمة", NM_B + " قاع", NM_PH, NM_PL)
     array<Swing>  same = d == 1 ? swL : swH
     array<Swing>  opp  = d == 1 ? swH : swL
 
@@ -721,7 +733,7 @@ f_eval(int d) =>
     bool chase   = hasLoc and (d == 1 ? close - edge > CHASE_ATR * atr : edge - close > CHASE_ATR * atr)
     string rs = ""
     if not htfOK
-        rs := "H1/H4 غير متوافقين لهذا الاتجاه"
+        rs := NM_A + "/" + NM_B + " غير متوافقين لهذا الاتجاه"
     else if not hasLoc
         rs := "بانتظار موقع دخول (منطقة)"
     else if not localOK
@@ -974,7 +986,10 @@ if barstate.isconfirmed and okData
             lastSigBarS := bar_index
         string side = c.dir == 1 ? "BUY" : "SELL"
         string tip = side + " #" + str.tostring(t.id) + " — " + f_tm(time_close) + " (UTC+3)\nدخول مرجعي (إغلاق الشمعة): " + f_px(t.entry) + "\nSL: " + f_px(t.sl) + "\nTP1: " + f_px(t.tp1) + "  (" + str.tostring(c.rr1, "#.##") + "R صافي)\nTP2: " + f_px(t.tp2) + (t.tp2Same ? " (لا مستوى ثانٍ = TP1)" : "") + "  (" + str.tostring(c.rr2, "#.##") + "R صافي)\nالتوافق: " + str.tostring(t.score) + "/10 (ليس احتمال ربح)\n" + t.info
-        label.new(bar_index, c.dir == 1 ? low : high, side + " #" + str.tostring(t.id) + "\n" + f_px(t.entry) + " | " + str.tostring(t.score) + "/10", yloc = c.dir == 1 ? yloc.belowbar : yloc.abovebar, color = c.dir == 1 ? C_BUY : C_SELL, textcolor = C_TXT, style = c.dir == 1 ? label.style_label_up : label.style_label_down, size = size.small, tooltip = tip)
+        string ltxt = side + " #" + str.tostring(t.id) + " | " + str.tostring(t.score) + "/10\nدخول " + f_px(t.entry)
+        if iLblLv
+            ltxt := ltxt + "\nTP1 " + f_px(t.tp1) + (t.tp2Same ? "" : "\nTP2 " + f_px(t.tp2)) + "\nSL " + f_px(t.sl)
+        label.new(bar_index, c.dir == 1 ? low : high, ltxt, yloc = c.dir == 1 ? yloc.belowbar : yloc.abovebar, color = c.dir == 1 ? C_BUY : C_SELL, textcolor = C_TXT, style = c.dir == 1 ? label.style_label_up : label.style_label_down, size = size.small, tooltip = tip)
         curReason := "إشارة جديدة #" + str.tostring(t.id)
         if iAlert == A_BOTH or iAlert == A_ENTRY
             alert(side + " | " + syminfo.ticker + " | " + f_tfTxt() + " | #" + str.tostring(t.id) + " | دخول " + f_px(t.entry) + " | SL " + f_px(t.sl) + " | TP1 " + f_px(t.tp1) + " | TP2 " + f_px(t.tp2) + " | توافق " + str.tostring(t.score) + "/10 | " + f_tm(time_close) + " UTC+3", alert.freq_once_per_bar_close)
@@ -998,7 +1013,7 @@ if barstate.isconfirmed and okData
             else if oppHNow and ltfTrend == od
                 why := "هارمونيك معاكس مكتمل + بنية محلية معاكسة"
             else if oppFlip and ltfTrend == od
-                why := "انقلاب اتجاه H1 + بنية محلية معاكسة"
+                why := "انقلاب اتجاه " + NM_A + " + بنية محلية معاكسة"
             if why != ""
                 warnNow := true
                 mt.warnCount   := mt.warnCount + 1
@@ -1138,7 +1153,7 @@ if barstate.islast
         if not na(ns0)
             f_bx(xs, ns0 + w, futT, ns0 - w, C_BUY, "دعم")
         array<float>  hl = array.from(h1H, h1L, h4H, h4L, pdh, pdl)
-        array<string> hn = array.from("H1 قمة", "H1 قاع", "H4 قمة", "H4 قاع", "قمة أمس", "قاع أمس")
+        array<string> hn = array.from(NM_A + " قمة", NM_A + " قاع", NM_B + " قمة", NM_B + " قاع", NM_PH, NM_PL)
         for i = 0 to 5
             float v = array.get(hl, i)
             if not na(v) and math.abs(v - close) <= 15 * atr
@@ -1248,10 +1263,10 @@ if barstate.islast
     array<string> ks = array.new<string>()
     array<string> vs = array.new<string>()
     array.push(ks, "Hasan Gold")
-    array.push(vs, syminfo.ticker + " " + f_tfTxt() + " | Asia/Aden UTC+3" + (timeframe.period == "1" or timeframe.period == "5" ? "" : " | المصمم: 1m/5m"))
-    array.push(ks, "H1 / H4")
+    array.push(vs, syminfo.ticker + " " + f_tfTxt() + " | Asia/Aden UTC+3" + ((timeframe.isminutes and (timeframe.multiplier == 1 or timeframe.multiplier == 5)) or (isDay and timeframe.multiplier == 1) ? "" : " | المصمم: 1m / 5m / 1D"))
+    array.push(ks, NM_A + " / " + NM_B)
     array.push(vs, f_dirTxt(h1Tr) + " / " + f_dirTxt(h4Tr) + "  ⇐ " + f_dirTxt(htfDir))
-    string stTxt = not okChart ? "الشموع ليست عادية — الإشارات معطلة" : not okTF ? "الفريم ≥ ساعة — استخدم 1m أو 5m" : htfDir == 0 ? (h1Tr != 0 and h4Tr != 0 and h1Tr != h4Tr ? "انتظار — تعارض H1/H4" : "انتظار — اتجاه أعلى غير مؤكد") : curReason
+    string stTxt = not okChart ? "الشموع ليست عادية — الإشارات معطلة" : not okTF ? "فريم غير مدعوم — استخدم 1m أو 5m أو 1D" : htfDir == 0 ? (h1Tr != 0 and h4Tr != 0 and h1Tr != h4Tr ? "انتظار — تعارض " + NM_A + "/" + NM_B : "انتظار — اتجاه أعلى غير مؤكد") : curReason
     array.push(ks, "الحالة الآن")
     array.push(vs, stTxt)
     array.push(ks, "التوافق الحالي")
