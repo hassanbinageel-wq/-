@@ -28,6 +28,7 @@ const string B_HTF1 = "الفريم الكبير 1 فقط"
 const string B_NONE = "بدون فلتر اتجاه"
 const string M_FAST = "سريع: الدخول عند كسر الهيكل MSS"
 const string M_FVG  = "دقيق: الدخول عند الرجوع للـ FVG"
+const string M_OTE  = "OTE: الدخول عند تصحيح 62–79% (فيبوناتشي)"
 const string E_EDGE = "حافة الـ FVG"
 const string E_CE   = "منتصف الـ FVG (CE)"
 const string TP_1   = "الهدف 1"
@@ -65,7 +66,7 @@ pdLen    = input.int(24, "طول النطاق (شموع الفريم الكبي�
 
 grpEntry = "② نموذج الدخول (1 / 5 دقائق) — بعضها يشتغل في وضع مخصص"
 onlyLTF   = input.bool(true, "الإشارات فقط على فريم 1 و 5 دقائق", group = grpEntry)
-modelIn = input.string(M_FVG, "طريقة الدخول", options = [M_FAST, M_FVG], group = grpEntry)
+modelIn = input.string(M_FVG, "طريقة الدخول", options = [M_FAST, M_FVG, M_OTE], group = grpEntry)
 ltfLenIn = input.int(3, "قوة القمم والقيعان (نقاط السيولة)", minval = 1, group = grpEntry,
      tooltip = "رقم أصغر = إشارات أكثر وأسرع. رقم أكبر = إشارات أقل وأقوى.")
 sweepWin  = input.int(30, "أقصى عدد شموع بين سحب السيولة وكسر الهيكل", minval = 3, group = grpEntry)
@@ -112,6 +113,18 @@ lblSize    = input.string(Z_L, "حجم كلمة BUY / SELL", options = [Z_N, Z_L
 colBuy     = input.color(#089981, "لون الشراء والأهداف", group = grpVis)
 colSell    = input.color(#f23645, "لون البيع والستوب", group = grpVis)
 
+grpStu = "⑦ مفاهيم من كتب ومذكرات تلاميذ ICT"
+minScoreIn = input.int(1, "أقل عدد عوامل توافق (★) — وضع مخصص", minval = 0, maxval = 5, group = grpStu,
+     tooltip = "كل إشارة تأخذ نجمة ★ لكل عامل يتحقق:\n1) Order Block يتداخل مع الـ FVG\n2) الدخول داخل منطقة OTE ‏62–79%\n3) Power of 3: الشراء تحت افتتاح منتصف الليل والبيع فوقه\n4) سحب سيولة مهمة: قمة/قاع الجلسة الآسيوية أو اليوم السابق ثم الرجوع\n5) SMT Divergence مع رمز مرتبط (اختياري)")
+useSMT   = input.bool(false, "تفعيل SMT Divergence", group = grpStu)
+smtSym   = input.symbol("OANDA:XAGUSD", "الرمز المرتبط (الفضة للذهب، EURUSD لـ GBPUSD...)", group = grpStu)
+smtInv   = input.bool(false, "علاقة عكسية (مثل DXY مع الذهب)", group = grpStu)
+smtLen   = input.int(20, "مدى مقارنة الـ SMT (شموع)", minval = 5, group = grpStu)
+sAsia    = input.session("2000-0000", "الجلسة الآسيوية (نيويورك)", group = grpStu)
+showMO   = input.bool(true, "إظهار خط افتتاح منتصف الليل (Midnight Open)", group = grpStu)
+showAsia = input.bool(false, "إظهار قمة وقاع الجلسة الآسيوية", group = grpStu)
+showPD   = input.bool(false, "إظهار قمة وقاع اليوم السابق (PDH / PDL)", group = grpStu)
+
 // ───────────────────────────── Preset → effective settings ─────────────────────────────
 isCustom  = preset == L_CUSTOM
 biasMode  = isCustom ? biasModeIn : preset == L_SAFE ? B_BOTH : preset == L_STRONG ? B_HTF2 : B_ANY
@@ -123,6 +136,7 @@ needFvg   = isCustom ? needFvgIn  : preset != L_MORE
 maxSlAtr  = isCustom ? maxSlAtrIn : preset == L_SAFE ? 3.0 : preset == L_STRONG ? 4.0 : 5.0
 maxPerDay = isCustom ? maxPerDayIn : preset == L_SAFE ? 2 : preset == L_STRONG ? 3 : 0
 useKZ     = isCustom ? useKZIn    : preset == L_SAFE
+minScore  = isCustom ? minScoreIn : preset == L_SAFE ? 2 : preset == L_STRONG ? 1 : 0
 
 // ───────────────────────────── Helpers ─────────────────────────────
 f_key(t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
@@ -205,13 +219,23 @@ var int   sslBar  = na   // bar of the last sell-side liquidity sweep
 var float sslLow  = na   // extreme low after that sweep
 var int   bslBar  = na   // bar of the last buy-side liquidity sweep
 var float bslHigh = na
+var float sslLegHi = na  // highest high after the sell-side sweep low (for OTE)
+var float bslLegLo = na  // lowest low after the buy-side sweep high
 
 sslOn = not na(sslBar) and bar_index - sslBar <= sweepWin
 bslOn = not na(bslBar) and bar_index - bslBar <= sweepWin
 if sslOn
-    sslLow := math.min(sslLow, low)
+    if low < sslLow
+        sslLow   := low
+        sslLegHi := high
+    else
+        sslLegHi := math.max(sslLegHi, high)
 if bslOn
-    bslHigh := math.max(bslHigh, high)
+    if high > bslHigh
+        bslHigh  := high
+        bslLegLo := low
+    else
+        bslLegLo := math.min(bslLegLo, low)
 
 body   = close - open
 dispUp = body >= dispMult * atr or body[1] >= dispMult * atr[1]
@@ -226,6 +250,61 @@ fvgReq   = model == M_FVG or needFvg
 mssLong  = sslOn and not na(swH) and close > swH and body > 0 and dispUp and (not fvgReq or bullFvg0 or bullFvg1)
 mssShort = bslOn and not na(swL) and close < swL and body < 0 and dispDn and (not fvgReq or bearFvg0 or bearFvg1)
 
+// ───────────────────────────── مفاهيم تلاميذ ICT ─────────────────────────────
+// Power of 3 / Judas swing reference: New York midnight open (true day open)
+var float midOpen = na
+if dayKey != dayKey[1]
+    midOpen := open
+
+// Asian range (liquidity pool usually raided in London / New York)
+inAsia = f_inSess(sAsia)
+var float asH  = na
+var float asL  = na
+var float curAH = na
+var float curAL = na
+if inAsia and not inAsia[1]
+    curAH := high
+    curAL := low
+else if inAsia
+    curAH := math.max(curAH, high)
+    curAL := math.min(curAL, low)
+if not inAsia and inAsia[1]
+    asH := curAH
+    asL := curAL
+
+// Previous day high / low (closed daily candle → no repaint)
+[pdH, pdL] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+
+// SMT divergence with a correlated symbol
+[cH, cL] = request.security(smtSym, timeframe.period, [high, low])
+ourLL  = ta.lowest(low, 5) < ta.lowest(low, smtLen)[5]
+ourHH  = ta.highest(high, 5) > ta.highest(high, smtLen)[5]
+compLL = ta.lowest(cL, 5) < ta.lowest(cL, smtLen)[5]
+compHH = ta.highest(cH, 5) > ta.highest(cH, smtLen)[5]
+smtBull = useSMT and ourLL and not (smtInv ? compHH : compLL)
+smtBear = useSMT and ourHH and not (smtInv ? compLL : compHH)
+
+// Last opposite candle before the displacement = Order Block
+f_ob(d) =>
+    float obH = na
+    float obL = na
+    for i = 1 to 10
+        if (d == 1 and close[i] < open[i]) or (d == -1 and close[i] > open[i])
+            obH := high[i]
+            obL := low[i]
+            break
+    [obH, obL]
+
+maxScore = useSMT ? 5 : 4
+f_stars(n) => str.repeat("★", n) + str.repeat("☆", maxScore - n)
+f_ck(b) => b ? "✓ " : "✗ "
+
+plot(showMO ? midOpen : na, "Midnight Open", color.new(color.gray, 30), 1, plot.style_linebr)
+plot(showAsia ? asH : na, "Asia High", color.new(color.orange, 30), 1, plot.style_linebr)
+plot(showAsia ? asL : na, "Asia Low", color.new(color.orange, 30), 1, plot.style_linebr)
+plot(showPD ? pdH : na, "PDH", color.new(color.blue, 30), 1, plot.style_linebr)
+plot(showPD ? pdL : na, "PDL", color.new(color.blue, 30), 1, plot.style_linebr)
+
 // ───────────────────────────── Trade state ─────────────────────────────
 var int   pDir   = 0      // pending FVG setup direction
 var int   pBar   = na
@@ -233,6 +312,8 @@ var float pEntry = na
 var float pSL    = na
 var float pFinal = na
 var box   pBox   = na
+var int    pScore = 0
+var string pInfo  = ""
 
 var int   tDir    = 0     // open trade direction
 var int   tBar    = na
@@ -253,6 +334,8 @@ int   oDir   = 0          // trade to open on this bar
 float oEntry = na
 float oSL    = na
 bool  oLimit = false
+int    oScore = 0
+string oInfo  = ""
 
 // Everything below runs on CLOSED bars only, so printed labels and lines never change.
 // 1) FVG model: pending setup → fill on retrace
@@ -267,54 +350,63 @@ if pDir != 0 and bar_index > pBar and barstate.isconfirmed
         oEntry := pEntry
         oSL    := pSL
         oLimit := true
+        oScore := pScore
+        oInfo  := pInfo
         pDir   := 0
     if pDir == 0 and not na(pBox)
         box.set_right(pBox, bar_index)
 
 // 2) New setups (only when flat and nothing pending)
 if tDir == 0 and pDir == 0 and oDir == 0 and canTrade and sigOK and inKZ and barstate.isconfirmed
-    if mssLong and biasLong
-        stp = sslLow - slBuf * atr
-        if model == M_FAST
-            risk = close - stp
-            if risk > 0 and risk <= maxSlAtr * atr and (not usePD or close <= eq1)
-                oDir   := 1
-                oEntry := close
+    d = mssLong and biasLong ? 1 : mssShort and biasShort ? -1 : 0
+    if d != 0
+        f0     = d == 1 ? bullFvg0 : bearFvg0
+        hasFvg = d == 1 ? (bullFvg0 or bullFvg1) : (bearFvg0 or bearFvg1)
+        fvgA   = d == 1 ? (f0 ? low : low[1]) : (f0 ? high : high[1])          // FVG edge nearest price
+        fvgB   = d == 1 ? (f0 ? high[2] : high[3]) : (f0 ? low[2] : low[3])    // far edge
+        ext    = d == 1 ? sslLow : bslHigh                                     // swept liquidity
+        legEnd = d == 1 ? sslLegHi : bslLegLo
+        rng    = math.abs(legEnd - ext)
+        ote62  = legEnd - d * 0.62 * rng
+        ote79  = legEnd - d * 0.79 * rng
+        stp    = ext - d * slBuf * atr
+        ent    = model == M_FAST ? close : model == M_OTE ? legEnd - d * 0.705 * rng :
+             entryMode == E_EDGE ? fvgA : (fvgA + fvgB) / 2
+        // ICT student-book confluences
+        [obH, obL] = f_ob(d)
+        cOB   = hasFvg and not na(obH) and obL <= math.max(fvgA, fvgB) and obH >= math.min(fvgA, fvgB)
+        cOTE  = rng > 0 and ent <= math.max(ote62, ote79) and ent >= math.min(ote62, ote79)
+        cPO3  = not na(midOpen) and (d == 1 ? ent < midOpen : ent > midOpen)
+        cLQ   = d == 1 ? ((not na(asL) and ext < asL and close > asL) or (not na(pdL) and ext < pdL and close > pdL)) :
+             ((not na(asH) and ext > asH and close < asH) or (not na(pdH) and ext > pdH and close < pdH))
+        cSMT  = d == 1 ? smtBull : smtBear
+        score = (cOB ? 1 : 0) + (cOTE ? 1 : 0) + (cPO3 ? 1 : 0) + (cLQ ? 1 : 0) + (cSMT ? 1 : 0)
+        info  = "\n— عوامل التوافق —\n" + f_ck(cOB) + "Order Block + FVG\n" + f_ck(cOTE) + "OTE 62–79%\n" +
+             f_ck(cPO3) + "Power of 3 (Midnight Open)\n" + f_ck(cLQ) + "سحب سيولة آسيا / اليوم السابق" +
+             (useSMT ? "\n" + f_ck(cSMT) + "SMT Divergence" : "")
+        risk  = d * (ent - stp)
+        pdOK  = not usePD or (d == 1 ? ent <= eq1 : ent >= eq1)
+        if risk > 0 and risk <= maxSlAtr * atr and pdOK and score >= minScore
+            if model == M_FAST
+                oDir   := d
+                oEntry := ent
                 oSL    := stp
-        else
-            top = bullFvg0 ? low : low[1]
-            bot = bullFvg0 ? high[2] : high[3]
-            ent = entryMode == E_EDGE ? top : (top + bot) / 2
-            risk = ent - stp
-            if risk > 0 and risk <= maxSlAtr * atr and (not usePD or ent <= eq1)
-                pDir   := 1
+                oScore := score
+                oInfo  := info
+            else
+                pDir   := d
                 pBar   := bar_index
                 pEntry := ent
                 pSL    := stp
-                pFinal := ent + risk * rrFinal
-                pBox   := showFvg ? box.new(bar_index - (bullFvg0 ? 2 : 3), top, bar_index + fillWin, bot,
-                     border_color = color.new(colBuy, 60), bgcolor = color.new(colBuy, 85)) : na
-    else if mssShort and biasShort
-        stp = bslHigh + slBuf * atr
-        if model == M_FAST
-            risk = stp - close
-            if risk > 0 and risk <= maxSlAtr * atr and (not usePD or close >= eq1)
-                oDir   := -1
-                oEntry := close
-                oSL    := stp
-        else
-            bot = bearFvg0 ? high : high[1]
-            top = bearFvg0 ? low[2] : low[3]
-            ent = entryMode == E_EDGE ? bot : (top + bot) / 2
-            risk = stp - ent
-            if risk > 0 and risk <= maxSlAtr * atr and (not usePD or ent >= eq1)
-                pDir   := -1
-                pBar   := bar_index
-                pEntry := ent
-                pSL    := stp
-                pFinal := ent - risk * rrFinal
-                pBox   := showFvg ? box.new(bar_index - (bearFvg0 ? 2 : 3), top, bar_index + fillWin, bot,
-                     border_color = color.new(colSell, 60), bgcolor = color.new(colSell, 85)) : na
+                pFinal := ent + d * risk * rrFinal
+                pScore := score
+                pInfo  := info
+                zc      = d == 1 ? colBuy : colSell
+                zTop    = model == M_OTE ? math.max(ote62, ote79) : math.max(fvgA, fvgB)
+                zBot    = model == M_OTE ? math.min(ote62, ote79) : math.min(fvgA, fvgB)
+                pBox   := showFvg ? box.new(bar_index - (model == M_OTE ? 0 : f0 ? 2 : 3), zTop, bar_index + fillWin, zBot,
+                     border_color = color.new(zc, 60), bgcolor = color.new(zc, 85), text = model == M_OTE ? "OTE" : "FVG",
+                     text_color = color.new(zc, 30), text_size = size.tiny) : na
 
 // 3) Open the trade: BUY / SELL on the candle + fixed TP (green) and SL (red) lines
 bool buySig  = oDir == 1
@@ -344,12 +436,13 @@ if oDir != 0
     tip = word + "  |  الدخول " + f_px(oEntry) + "\nالستوب " + f_px(oSL) +
          "\nالهدف 1: " + f_px(tTP1) + " (" + str.tostring(rr1) + "R)" +
          "\nالهدف 2: " + f_px(tp2) + " (" + str.tostring(rr2) + "R)" +
-         "\nالهدف 3: " + f_px(tp3) + " (" + str.tostring(rr3) + "R)"
+         "\nالهدف 3: " + f_px(tp3) + " (" + str.tostring(rr3) + "R)" + oInfo
+    stars = f_stars(oScore)
     if oDir == 1
-        label.new(bar_index, low - atr * 0.2, word + "\n" + f_px(oEntry), style = label.style_label_up,
+        label.new(bar_index, low - atr * 0.2, word + "\n" + f_px(oEntry) + "\n" + stars, style = label.style_label_up,
              color = col, textcolor = color.white, size = sigSize, tooltip = tip)
     else
-        label.new(bar_index, high + atr * 0.2, word + "\n" + f_px(oEntry), style = label.style_label_down,
+        label.new(bar_index, high + atr * 0.2, word + "\n" + f_px(oEntry) + "\n" + stars, style = label.style_label_down,
              color = col, textcolor = color.white, size = sigSize, tooltip = tip)
 
     x2 = bar_index + lineLen
@@ -400,12 +493,16 @@ if not na(swL) and close < swL
     bslBar := na
 if not na(swH) and high > swH
     if not mssLong
-        bslHigh := bslOn ? math.max(bslHigh, high) : high
+        if not bslOn or high > bslHigh
+            bslHigh  := high
+            bslLegLo := low
         bslBar  := bar_index        // buy-side liquidity taken
     swH := na
 if not na(swL) and low < swL
     if not mssShort
-        sslLow := sslOn ? math.min(sslLow, low) : low
+        if not sslOn or low < sslLow
+            sslLow   := low
+            sslLegHi := high
         sslBar := bar_index         // sell-side liquidity taken
     swL := na
 
