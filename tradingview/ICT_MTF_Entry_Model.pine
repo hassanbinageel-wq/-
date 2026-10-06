@@ -45,29 +45,37 @@ const string Z_N = "عادي"
 const string Z_L = "كبير"
 const string Z_H = "كبير جداً"
 
-grpBias = "① اتجاه الفريمات الكبيرة"
+const string L_STRONG = "قوي (موصى به)"
+const string L_SAFE   = "آمن جداً (إشارات نادرة)"
+const string L_MORE   = "إشارات أكثر"
+const string L_CUSTOM = "مخصص (من الإعدادات تحت)"
+
+preset = input.string(L_STRONG, "⭐ مستوى الإشارات", options = [L_STRONG, L_SAFE, L_MORE, L_CUSTOM],
+     tooltip = "قوي: اتجاه 4 ساعات + سحب سيولة + كسر هيكل بشمعة قوية + FVG.\nآمن جداً: كل شروط ICT (الفريمين متفقين، خصم/بريميوم، رجوع للـ FVG، الكيل زون فقط) — إشارات قليلة جداً.\nإشارات أكثر: شروط أخف.\nمخصص: يستخدم الإعدادات اللي تحت كما هي.")
+
+grpBias = "① اتجاه الفريمات الكبيرة (تشتغل في وضع مخصص)"
 htf1     = input.timeframe("60",  "الفريم الكبير 1", group = grpBias)
 htf2     = input.timeframe("240", "الفريم الكبير 2", group = grpBias)
-biasMode = input.string(B_BOTH, "فلتر الاتجاه", options = [B_ANY, B_BOTH, B_HTF2, B_HTF1, B_NONE], group = grpBias,
+biasModeIn = input.string(B_BOTH, "فلتر الاتجاه", options = [B_ANY, B_BOTH, B_HTF2, B_HTF1, B_NONE], group = grpBias,
      tooltip = "أي فريم يوافق: يكفي إن الساعة أو الأربع ساعات تكون بنفس اتجاه الصفقة.\nالفريمين متفقين: أقوى لكن إشارات أقل.")
 htfLen   = input.int(3, "قوة القمم والقيعان (الفريم الكبير)", minval = 1, group = grpBias)
-usePD    = input.bool(true, "فلتر الخصم / البريميوم", group = grpBias,
+usePDIn = input.bool(true, "فلتر الخصم / البريميوم", group = grpBias,
      tooltip = "شراء فقط تحت منتصف نطاق الفريم الكبير 1 (Discount)، وبيع فقط فوقه (Premium).")
 pdLen    = input.int(24, "طول النطاق (شموع الفريم الكبير 1)", minval = 5, group = grpBias)
 
-grpEntry = "② نموذج الدخول (1 / 5 دقائق)"
+grpEntry = "② نموذج الدخول (1 / 5 دقائق) — بعضها يشتغل في وضع مخصص"
 onlyLTF   = input.bool(true, "الإشارات فقط على فريم 1 و 5 دقائق", group = grpEntry)
-model     = input.string(M_FVG, "طريقة الدخول", options = [M_FAST, M_FVG], group = grpEntry)
-ltfLen    = input.int(3, "قوة القمم والقيعان (نقاط السيولة)", minval = 1, group = grpEntry,
+modelIn = input.string(M_FVG, "طريقة الدخول", options = [M_FAST, M_FVG], group = grpEntry)
+ltfLenIn = input.int(3, "قوة القمم والقيعان (نقاط السيولة)", minval = 1, group = grpEntry,
      tooltip = "رقم أصغر = إشارات أكثر وأسرع. رقم أكبر = إشارات أقل وأقوى.")
 sweepWin  = input.int(30, "أقصى عدد شموع بين سحب السيولة وكسر الهيكل", minval = 3, group = grpEntry)
-dispMult  = input.float(1.0, "قوة شمعة الاندفاع (جسم الشمعة × ATR)", minval = 0, step = 0.1, group = grpEntry)
-needFvg   = input.bool(true, "اشتراط وجود FVG في الطريقة السريعة", group = grpEntry)
+dispMultIn = input.float(1.0, "قوة شمعة الاندفاع (جسم الشمعة × ATR)", minval = 0, step = 0.1, group = grpEntry)
+needFvgIn = input.bool(true, "اشتراط وجود FVG في الطريقة السريعة", group = grpEntry)
 entryMode = input.string(E_EDGE, "مستوى الدخول (الطريقة الدقيقة)", options = [E_EDGE, E_CE], group = grpEntry)
 fillWin   = input.int(15, "عدد الشموع لانتظار الرجوع للـ FVG", minval = 1, group = grpEntry)
 slBuf     = input.float(0.2, "مسافة إضافية للستوب (× ATR)", minval = 0, step = 0.05, group = grpEntry)
-maxSlAtr  = input.float(3.0, "أقصى حجم للستوب (× ATR)", minval = 0.5, step = 0.5, group = grpEntry)
-maxPerDay = input.int(2, "أقصى عدد صفقات في اليوم (0 = بدون حد)", minval = 0, group = grpEntry)
+maxSlAtrIn = input.float(3.0, "أقصى حجم للستوب (× ATR)", minval = 0.5, step = 0.5, group = grpEntry)
+maxPerDayIn = input.int(2, "أقصى عدد صفقات في اليوم (0 = بدون حد)", minval = 0, group = grpEntry)
 
 grpTP = "③ الأهداف ووقف الخسارة"
 rr1     = input.float(1.0, "الهدف 1 (مضاعف المخاطرة R)", minval = 0.1, step = 0.1, group = grpTP)
@@ -77,7 +85,7 @@ finalTP = input.string(TP_2, "تُحسب الصفقة رابحة عند", option
 moveBE  = input.bool(true, "نقل الستوب لنقطة الدخول بعد الهدف 1", group = grpTP)
 
 grpKZ = "④ أوقات الكيل زون (بتوقيت نيويورك)"
-useKZ = input.bool(true, "الإشارات فقط داخل الأوقات المختارة", group = grpKZ)
+useKZIn = input.bool(true, "الإشارات فقط داخل الأوقات المختارة", group = grpKZ)
 uLO   = input.bool(true, "", inline = "lo", group = grpKZ)
 sLO   = input.session("0200-0500", "جلسة لندن", inline = "lo", group = grpKZ)
 uNY   = input.bool(true, "", inline = "ny", group = grpKZ)
@@ -103,6 +111,18 @@ showFvg    = input.bool(true, "إظهار مربع الـ FVG (الطريقة ا
 lblSize    = input.string(Z_L, "حجم كلمة BUY / SELL", options = [Z_N, Z_L, Z_H], group = grpVis)
 colBuy     = input.color(#089981, "لون الشراء والأهداف", group = grpVis)
 colSell    = input.color(#f23645, "لون البيع والستوب", group = grpVis)
+
+// ───────────────────────────── Preset → effective settings ─────────────────────────────
+isCustom  = preset == L_CUSTOM
+biasMode  = isCustom ? biasModeIn : preset == L_SAFE ? B_BOTH : preset == L_STRONG ? B_HTF2 : B_ANY
+usePD     = isCustom ? usePDIn    : preset == L_SAFE
+model     = isCustom ? modelIn    : preset == L_SAFE ? M_FVG : M_FAST
+ltfLen    = isCustom ? ltfLenIn   : preset == L_SAFE ? 3 : 2
+dispMult  = isCustom ? dispMultIn : preset == L_SAFE ? 1.0 : preset == L_STRONG ? 0.8 : 0.5
+needFvg   = isCustom ? needFvgIn  : preset != L_MORE
+maxSlAtr  = isCustom ? maxSlAtrIn : preset == L_SAFE ? 3.0 : preset == L_STRONG ? 4.0 : 5.0
+maxPerDay = isCustom ? maxPerDayIn : preset == L_SAFE ? 2 : preset == L_STRONG ? 3 : 0
+useKZ     = isCustom ? useKZIn    : preset == L_SAFE
 
 // ───────────────────────────── Helpers ─────────────────────────────
 f_key(t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
@@ -299,6 +319,8 @@ if tDir == 0 and pDir == 0 and oDir == 0 and canTrade and sigOK and inKZ and bar
 // 3) Open the trade: BUY / SELL on the candle + fixed TP (green) and SL (red) lines
 bool buySig  = oDir == 1
 bool sellSig = oDir == -1
+var int lastSigTime = na
+var int lastSigDir  = 0
 if oDir != 0
     risk    = math.abs(oEntry - oSL)
     tDir    := oDir
@@ -312,6 +334,8 @@ if oDir != 0
     tTP1Hit := false
     tLimit  := oLimit
     nToday  += 1
+    lastSigTime := time
+    lastSigDir  := oDir
 
     tp2 = oEntry + oDir * risk * rr2
     tp3 = oEntry + oDir * risk * rr3
@@ -404,7 +428,7 @@ f_inPeriod(t, todayKey) =>
         => true
 
 var table tbl = table.new(tblPosIn == P_TR ? position.top_right : tblPosIn == P_TL ? position.top_left :
-     tblPosIn == P_BR ? position.bottom_right : position.bottom_left, 2, 11,
+     tblPosIn == P_BR ? position.bottom_right : position.bottom_left, 2, 13,
      bgcolor = color.new(#131722, 10), border_color = color.new(color.gray, 70), border_width = 1)
 
 if barstate.islast and showTbl
@@ -450,3 +474,8 @@ if barstate.islast and showTbl
     table.cell(tbl, 0, 10, "الصفقة الحالية", text_color = white, text_size = size.small)
     table.cell(tbl, 1, 10, tDir == 1 ? "BUY @ " + f_px(tEntry) : tDir == -1 ? "SELL @ " + f_px(tEntry) : pDir != 0 ? "انتظار الرجوع للـ FVG" : "لا يوجد",
          text_color = tDir == 1 ? colBuy : tDir == -1 ? colSell : color.gray, text_size = size.small)
+    table.cell(tbl, 0, 11, "آخر إشارة", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 11, na(lastSigTime) ? "لا توجد في الشارت — جرّب مستوى أخف" : (lastSigDir == 1 ? "BUY " : "SELL ") + str.format_time(lastSigTime, "yyyy-MM-dd HH:mm"),
+         text_color = lastSigDir == 1 ? colBuy : lastSigDir == -1 ? colSell : color.orange, text_size = size.small)
+    table.cell(tbl, 0, 12, "مستوى الإشارات", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 12, preset, text_color = white, text_size = size.small)
