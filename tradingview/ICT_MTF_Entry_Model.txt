@@ -48,26 +48,26 @@ const string Z_H = "كبير جداً"
 grpBias = "① اتجاه الفريمات الكبيرة"
 htf1     = input.timeframe("60",  "الفريم الكبير 1", group = grpBias)
 htf2     = input.timeframe("240", "الفريم الكبير 2", group = grpBias)
-biasMode = input.string(B_ANY, "فلتر الاتجاه", options = [B_ANY, B_BOTH, B_HTF2, B_HTF1, B_NONE], group = grpBias,
+biasMode = input.string(B_BOTH, "فلتر الاتجاه", options = [B_ANY, B_BOTH, B_HTF2, B_HTF1, B_NONE], group = grpBias,
      tooltip = "أي فريم يوافق: يكفي إن الساعة أو الأربع ساعات تكون بنفس اتجاه الصفقة.\nالفريمين متفقين: أقوى لكن إشارات أقل.")
 htfLen   = input.int(3, "قوة القمم والقيعان (الفريم الكبير)", minval = 1, group = grpBias)
-usePD    = input.bool(false, "فلتر الخصم / البريميوم", group = grpBias,
+usePD    = input.bool(true, "فلتر الخصم / البريميوم", group = grpBias,
      tooltip = "شراء فقط تحت منتصف نطاق الفريم الكبير 1 (Discount)، وبيع فقط فوقه (Premium).")
 pdLen    = input.int(24, "طول النطاق (شموع الفريم الكبير 1)", minval = 5, group = grpBias)
 
 grpEntry = "② نموذج الدخول (1 / 5 دقائق)"
 onlyLTF   = input.bool(true, "الإشارات فقط على فريم 1 و 5 دقائق", group = grpEntry)
-model     = input.string(M_FAST, "طريقة الدخول", options = [M_FAST, M_FVG], group = grpEntry)
-ltfLen    = input.int(2, "قوة القمم والقيعان (نقاط السيولة)", minval = 1, group = grpEntry,
+model     = input.string(M_FVG, "طريقة الدخول", options = [M_FAST, M_FVG], group = grpEntry)
+ltfLen    = input.int(3, "قوة القمم والقيعان (نقاط السيولة)", minval = 1, group = grpEntry,
      tooltip = "رقم أصغر = إشارات أكثر وأسرع. رقم أكبر = إشارات أقل وأقوى.")
 sweepWin  = input.int(30, "أقصى عدد شموع بين سحب السيولة وكسر الهيكل", minval = 3, group = grpEntry)
-dispMult  = input.float(0.6, "قوة شمعة الاندفاع (جسم الشمعة × ATR)", minval = 0, step = 0.1, group = grpEntry)
-needFvg   = input.bool(false, "اشتراط وجود FVG في الطريقة السريعة", group = grpEntry)
+dispMult  = input.float(1.0, "قوة شمعة الاندفاع (جسم الشمعة × ATR)", minval = 0, step = 0.1, group = grpEntry)
+needFvg   = input.bool(true, "اشتراط وجود FVG في الطريقة السريعة", group = grpEntry)
 entryMode = input.string(E_EDGE, "مستوى الدخول (الطريقة الدقيقة)", options = [E_EDGE, E_CE], group = grpEntry)
 fillWin   = input.int(15, "عدد الشموع لانتظار الرجوع للـ FVG", minval = 1, group = grpEntry)
-slBuf     = input.float(0.1, "مسافة إضافية للستوب (× ATR)", minval = 0, step = 0.05, group = grpEntry)
-maxSlAtr  = input.float(5.0, "أقصى حجم للستوب (× ATR)", minval = 0.5, step = 0.5, group = grpEntry)
-maxPerDay = input.int(0, "أقصى عدد صفقات في اليوم (0 = بدون حد)", minval = 0, group = grpEntry)
+slBuf     = input.float(0.2, "مسافة إضافية للستوب (× ATR)", minval = 0, step = 0.05, group = grpEntry)
+maxSlAtr  = input.float(3.0, "أقصى حجم للستوب (× ATR)", minval = 0.5, step = 0.5, group = grpEntry)
+maxPerDay = input.int(2, "أقصى عدد صفقات في اليوم (0 = بدون حد)", minval = 0, group = grpEntry)
 
 grpTP = "③ الأهداف ووقف الخسارة"
 rr1     = input.float(1.0, "الهدف 1 (مضاعف المخاطرة R)", minval = 0.1, step = 0.1, group = grpTP)
@@ -77,7 +77,7 @@ finalTP = input.string(TP_2, "تُحسب الصفقة رابحة عند", option
 moveBE  = input.bool(true, "نقل الستوب لنقطة الدخول بعد الهدف 1", group = grpTP)
 
 grpKZ = "④ أوقات الكيل زون (بتوقيت نيويورك)"
-useKZ = input.bool(false, "الإشارات فقط داخل الأوقات المختارة", group = grpKZ)
+useKZ = input.bool(true, "الإشارات فقط داخل الأوقات المختارة", group = grpKZ)
 uLO   = input.bool(true, "", inline = "lo", group = grpKZ)
 sLO   = input.session("0200-0500", "جلسة لندن", inline = "lo", group = grpKZ)
 uNY   = input.bool(true, "", inline = "ny", group = grpKZ)
