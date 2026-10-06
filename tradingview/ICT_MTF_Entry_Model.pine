@@ -1,0 +1,404 @@
+//@version=6
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ICT MTF Entry Model — 1H / 4H bias  →  1m / 5m entries
+//
+//  Based on the concepts taught by Michael J. Huddleston (ICT — The Inner Circle
+//  Trader), mainly the "2022 Mentorship" entry model:
+//     1) HTF bias (1H + 4H market structure, premium / discount)
+//     2) Liquidity sweep on the LTF (sell-side for buys, buy-side for sells)
+//     3) Market Structure Shift (MSS) with displacement
+//     4) Entry on the retrace into the Fair Value Gap (FVG) created by displacement
+//     5) Stop beyond the swept liquidity, targets in R multiples
+//     6) Trades only inside ICT Killzones / Silver Bullet windows (New York time)
+//
+//  Non-repainting: HTF data comes from the previous CLOSED HTF candle, every
+//  signal is evaluated on closed bars only, and BUY / SELL labels are never
+//  moved or deleted once printed — even if price reverses.
+//
+//  Educational tool — not financial advice.
+// ═══════════════════════════════════════════════════════════════════════════════
+indicator("ICT MTF Entry Model [1H/4H Bias → 1m/5m]", shorttitle = "ICT MTF", overlay = true,
+     max_labels_count = 500, max_lines_count = 500, max_boxes_count = 500)
+
+const string TZ = "America/New_York"   // ICT uses New York local time for all sessions
+
+// ───────────────────────────── Inputs ─────────────────────────────
+grpBias = "1) Higher-timeframe bias"
+htf1     = input.timeframe("60",  "HTF 1", group = grpBias)
+htf2     = input.timeframe("240", "HTF 2", group = grpBias)
+biasMode = input.string("Both agree", "Bias mode", options = ["Both agree", "HTF 2 only", "HTF 1 only"], group = grpBias)
+htfLen   = input.int(3, "HTF swing strength", minval = 1, group = grpBias,
+     tooltip = "Bars on each side that define an HTF swing high / low. Bias turns bullish when an HTF candle closes above the last swing high (BOS) and bearish when it closes below the last swing low.")
+usePD    = input.bool(true, "Premium / Discount filter", group = grpBias,
+     tooltip = "Buys only below the HTF 1 dealing-range equilibrium (discount), sells only above it (premium).")
+pdLen    = input.int(24, "Dealing range length (HTF 1 bars)", minval = 5, group = grpBias)
+
+grpEntry = "2) LTF entry model (1m / 5m)"
+onlyLTF   = input.bool(true, "Signals only on 1m and 5m charts", group = grpEntry)
+ltfLen    = input.int(3, "Swing strength (liquidity points)", minval = 1, group = grpEntry)
+sweepWin  = input.int(40, "Max bars from sweep to MSS", minval = 3, group = grpEntry)
+dispMult  = input.float(1.0, "Displacement: candle body ≥ ATR ×", minval = 0, step = 0.1, group = grpEntry)
+entryMode = input.string("FVG edge", "Entry level", options = ["FVG edge", "FVG CE (50%)"], group = grpEntry)
+fillWin   = input.int(15, "Bars to wait for FVG retrace", minval = 1, group = grpEntry)
+slBuf     = input.float(0.1, "SL buffer beyond sweep (ATR ×)", minval = 0, step = 0.05, group = grpEntry)
+maxSlAtr  = input.float(4.0, "Max SL size (ATR ×)", minval = 0.5, step = 0.5, group = grpEntry)
+maxPerDay = input.int(2, "Max trades per day (0 = unlimited)", minval = 0, group = grpEntry)
+
+grpTP = "3) Targets & stop"
+rr1     = input.float(1.0, "TP1 (R)", minval = 0.1, step = 0.1, group = grpTP)
+rr2     = input.float(2.0, "TP2 (R)", minval = 0.1, step = 0.1, group = grpTP)
+rr3     = input.float(3.0, "TP3 (R)", minval = 0.1, step = 0.1, group = grpTP)
+finalTP = input.string("TP2", "Trade counted as WIN at", options = ["TP1", "TP2", "TP3"], group = grpTP)
+moveBE  = input.bool(true, "Move SL to break-even after TP1", group = grpTP)
+
+grpKZ = "4) Killzones (New York time)"
+useKZ = input.bool(true, "Take setups only inside the selected windows", group = grpKZ)
+uLO   = input.bool(true, "", inline = "lo", group = grpKZ)
+sLO   = input.session("0200-0500", "London Killzone", inline = "lo", group = grpKZ)
+uNY   = input.bool(true, "", inline = "ny", group = grpKZ)
+sNY   = input.session("0700-1000", "New York AM Killzone", inline = "ny", group = grpKZ)
+uSB1  = input.bool(true, "", inline = "sb1", group = grpKZ)
+sSB1  = input.session("1000-1100", "Silver Bullet AM", inline = "sb1", group = grpKZ)
+uSB2  = input.bool(true, "", inline = "sb2", group = grpKZ)
+sSB2  = input.session("1400-1500", "Silver Bullet PM", inline = "sb2", group = grpKZ)
+
+grpSt = "5) Statistics"
+statMode = input.string("Today", "Count trades for", options = ["Today", "Specific day", "Date range", "All history"], group = grpSt)
+specDay  = input.time(timestamp("01 Oct 2026 00:00 +0000"), "Specific day", group = grpSt)
+fromDate = input.time(timestamp("01 Sep 2026 00:00 +0000"), "Range from", group = grpSt)
+toDate   = input.time(timestamp("06 Oct 2026 00:00 +0000"), "Range to (inclusive)", group = grpSt)
+tblPosIn = input.string("Top right", "Table position", options = ["Top right", "Top left", "Bottom right", "Bottom left"], group = grpSt)
+
+grpVis = "6) Visuals"
+showLevels = input.bool(true, "Show Entry / SL / TP lines", group = grpVis)
+showFvg    = input.bool(true, "Show entry FVG box", group = grpVis)
+colBuy     = input.color(#089981, "Buy color", group = grpVis)
+colSell    = input.color(#f23645, "Sell color", group = grpVis)
+
+// ───────────────────────────── Helpers ─────────────────────────────
+f_key(t) => year(t, TZ) * 10000 + month(t, TZ) * 100 + dayofmonth(t, TZ)
+f_px(x)  => str.tostring(x, format.mintick)
+f_inSess(s) => not na(time(timeframe.period, s, TZ))
+
+// HTF market structure: +1 bullish / -1 bearish, plus dealing-range equilibrium.
+// Values are shifted by one HTF bar and requested with lookahead_on, which returns
+// the previous CLOSED HTF candle only → no repainting.
+f_htf(len, rangeLen) =>
+    hph = ta.pivothigh(high, len, len)
+    hpl = ta.pivotlow(low, len, len)
+    var float lastH = na
+    var float lastL = na
+    var int dir = 0
+    if not na(hph)
+        lastH := hph
+    if not na(hpl)
+        lastL := hpl
+    if not na(lastH) and close > lastH
+        dir := 1
+        lastH := na
+    if not na(lastL) and close < lastL
+        dir := -1
+        lastL := na
+    eq = (ta.highest(high, rangeLen) + ta.lowest(low, rangeLen)) / 2
+    [dir[1], eq[1]]
+
+[bias1, eq1] = request.security(syminfo.tickerid, htf1, f_htf(htfLen, pdLen), lookahead = barmerge.lookahead_on)
+[bias2, eq2] = request.security(syminfo.tickerid, htf2, f_htf(htfLen, pdLen), lookahead = barmerge.lookahead_on)
+
+biasLong  = biasMode == "Both agree" ? (bias1 == 1 and bias2 == 1)   : biasMode == "HTF 2 only" ? bias2 == 1  : bias1 == 1
+biasShort = biasMode == "Both agree" ? (bias1 == -1 and bias2 == -1) : biasMode == "HTF 2 only" ? bias2 == -1 : bias1 == -1
+
+tfOK  = timeframe.period == "1" or timeframe.period == "5"
+sigOK = not onlyLTF or tfOK
+
+inLO  = f_inSess(sLO)
+inNY  = f_inSess(sNY)
+inSB1 = f_inSess(sSB1)
+inSB2 = f_inSess(sSB2)
+inKZ  = not useKZ or (uLO and inLO) or (uNY and inNY) or (uSB1 and inSB1) or (uSB2 and inSB2)
+
+rrFinal = finalTP == "TP1" ? rr1 : finalTP == "TP2" ? rr2 : rr3
+
+// Daily trade counter (New York day)
+dayKey = f_key(time)
+var int curDay = na
+var int nToday = 0
+if dayKey != curDay
+    curDay := dayKey
+    nToday := 0
+canTrade = maxPerDay == 0 or nToday < maxPerDay
+
+// ───────────────────────────── LTF liquidity & structure ─────────────────────────────
+atr = ta.atr(14)
+ph  = ta.pivothigh(high, ltfLen, ltfLen)
+pl  = ta.pivotlow(low, ltfLen, ltfLen)
+
+var float swH = na   // latest untaken swing high (buy-side liquidity)
+var float swL = na   // latest untaken swing low  (sell-side liquidity)
+if not na(ph)
+    swH := ph
+if not na(pl)
+    swL := pl
+
+var int   sslBar  = na   // bar of the last sell-side liquidity sweep
+var float sslLow  = na   // extreme low after that sweep
+var int   bslBar  = na   // bar of the last buy-side liquidity sweep
+var float bslHigh = na
+
+sslOn = not na(sslBar) and bar_index - sslBar <= sweepWin
+bslOn = not na(bslBar) and bar_index - bslBar <= sweepWin
+if sslOn
+    sslLow := math.min(sslLow, low)
+if bslOn
+    bslHigh := math.max(bslHigh, high)
+
+body   = close - open
+dispUp = body >= dispMult * atr or body[1] >= dispMult * atr[1]
+dispDn = -body >= dispMult * atr or -body[1] >= dispMult * atr[1]
+
+bullFvg0 = low > high[2]
+bullFvg1 = low[1] > high[3]
+bearFvg0 = high < low[2]
+bearFvg1 = high[1] < low[3]
+
+mssLong  = sslOn and not na(swH) and close > swH and body > 0 and dispUp and (bullFvg0 or bullFvg1)
+mssShort = bslOn and not na(swL) and close < swL and body < 0 and dispDn and (bearFvg0 or bearFvg1)
+
+// ───────────────────────────── Trade state ─────────────────────────────
+var int   pDir   = 0      // pending setup direction (waiting for FVG retrace)
+var int   pBar   = na
+var float pEntry = na
+var float pSL    = na
+var float pFinal = na
+var box   pBox   = na
+
+var int   tDir    = 0     // open trade direction
+var int   tBar    = na
+var int   tTime   = na
+var float tEntry  = na
+var float tSL     = na
+var float tRisk   = na
+var float tTP1    = na
+var float tFinal  = na
+var bool  tBE     = false
+var bool  tTP1Hit = false
+var line  lnE = na
+var line  lnS = na
+var line  ln1 = na
+var line  ln2 = na
+var line  ln3 = na
+
+var array<int>   stTime = array.new<int>()
+var array<int>   stRes  = array.new<int>()     // 1 win, 0 break-even, -1 loss
+var array<float> stR    = array.new<float>()
+
+bool buySig  = false
+bool sellSig = false
+
+// Everything below runs on CLOSED bars only, so a printed label can never change.
+// 1) Pending setup → fill on retrace into the FVG
+if pDir != 0 and bar_index > pBar and barstate.isconfirmed
+    expired = bar_index - pBar > fillWin
+    touched = pDir == 1 ? low <= pEntry : high >= pEntry
+    ranAway = pDir == 1 ? high >= pFinal : low <= pFinal
+    if expired or (ranAway and not touched)
+        if not na(pBox)
+            box.set_right(pBox, bar_index)
+        pDir := 0
+    else if touched
+        tDir    := pDir
+        tBar    := bar_index
+        tTime   := time
+        tEntry  := pEntry
+        tSL     := pSL
+        tRisk   := math.abs(pEntry - pSL)
+        tTP1    := tEntry + tDir * tRisk * rr1
+        tFinal  := tEntry + tDir * tRisk * rrFinal
+        tBE     := false
+        tTP1Hit := false
+        nToday  += 1
+        if not na(pBox)
+            box.set_right(pBox, bar_index)
+        pDir := 0
+
+        tp2 = tEntry + tDir * tRisk * rr2
+        tp3 = tEntry + tDir * tRisk * rr3
+        col = tDir == 1 ? colBuy : colSell
+        tip = (tDir == 1 ? "BUY" : "SELL") + "  |  Entry " + f_px(tEntry) + "\nSL " + f_px(tSL) +
+             "\nTP1 " + f_px(tTP1) + " (" + str.tostring(rr1) + "R)" +
+             "\nTP2 " + f_px(tp2) + " (" + str.tostring(rr2) + "R)" +
+             "\nTP3 " + f_px(tp3) + " (" + str.tostring(rr3) + "R)"
+        if tDir == 1
+            label.new(bar_index, low, "BUY", yloc = yloc.belowbar, style = label.style_label_up,
+                 color = col, textcolor = color.white, size = size.normal, tooltip = tip)
+            buySig := true
+        else
+            label.new(bar_index, high, "SELL", yloc = yloc.abovebar, style = label.style_label_down,
+                 color = col, textcolor = color.white, size = size.normal, tooltip = tip)
+            sellSig := true
+
+        if showLevels
+            lnE := line.new(bar_index, tEntry, bar_index, tEntry, color = color.gray, width = 2)
+            lnS := line.new(bar_index, tSL, bar_index, tSL, color = colSell, width = 2)
+            ln1 := line.new(bar_index, tTP1, bar_index, tTP1, color = colBuy, style = line.style_dashed)
+            ln2 := finalTP != "TP1" ? line.new(bar_index, tp2, bar_index, tp2, color = colBuy, style = line.style_dashed) : na
+            ln3 := finalTP == "TP3" ? line.new(bar_index, tp3, bar_index, tp3, color = colBuy, style = line.style_dashed) : na
+            label.new(bar_index, tSL, "SL " + f_px(tSL), style = label.style_label_right, color = color.new(colSell, 80), textcolor = colSell, size = size.small)
+            label.new(bar_index, tTP1, "TP1 " + f_px(tTP1), style = label.style_label_right, color = color.new(colBuy, 80), textcolor = colBuy, size = size.small)
+            if finalTP != "TP1"
+                label.new(bar_index, tp2, "TP2 " + f_px(tp2), style = label.style_label_right, color = color.new(colBuy, 80), textcolor = colBuy, size = size.small)
+            if finalTP == "TP3"
+                label.new(bar_index, tp3, "TP3 " + f_px(tp3), style = label.style_label_right, color = color.new(colBuy, 80), textcolor = colBuy, size = size.small)
+
+// 2) Manage the open trade (stop is checked first → conservative results)
+int   exitRes = na
+float exitPx  = na
+if tDir != 0 and barstate.isconfirmed
+    hitSL = tDir == 1 ? low <= tSL : high >= tSL
+    if hitSL
+        exitRes := tBE ? 0 : -1
+        exitPx  := tSL
+    else if bar_index > tBar
+        if not tTP1Hit and (tDir == 1 ? high >= tTP1 : low <= tTP1)
+            tTP1Hit := true
+            if moveBE and finalTP != "TP1"
+                tSL := tEntry
+                tBE := true
+        if tDir == 1 ? high >= tFinal : low <= tFinal
+            exitRes := 1
+            exitPx  := tFinal
+    if showLevels
+        for ln in array.from(lnE, lnS, ln1, ln2, ln3)
+            if not na(ln)
+                line.set_x2(ln, bar_index)
+        if not na(lnS)
+            line.set_y1(lnS, tSL)
+            line.set_y2(lnS, tSL)
+
+if not na(exitRes)
+    rVal = exitRes == 1 ? rrFinal : exitRes == 0 ? 0.0 : -1.0
+    txt  = exitRes == 1 ? finalTP + " ✓ +" + str.tostring(rrFinal) + "R" : exitRes == 0 ? "BE 0R" : "SL ✗ -1R"
+    col  = exitRes == 1 ? colBuy : exitRes == 0 ? color.gray : colSell
+    label.new(bar_index, exitPx, txt, style = label.style_label_left, color = color.new(col, 15), textcolor = color.white, size = size.small)
+    array.push(stTime, tTime)
+    array.push(stRes, exitRes)
+    array.push(stR, rVal)
+    tDir := 0
+    lnE := na
+    lnS := na
+    ln1 := na
+    ln2 := na
+    ln3 := na
+
+// 3) New setups (only when flat and nothing pending)
+if mssLong and tDir == 0 and pDir == 0 and canTrade and sigOK and inKZ and biasLong and barstate.isconfirmed
+    top = bullFvg0 ? low : low[1]
+    bot = bullFvg0 ? high[2] : high[3]
+    ent = entryMode == "FVG edge" ? top : (top + bot) / 2
+    stp = sslLow - slBuf * atr
+    risk = ent - stp
+    if risk > 0 and risk <= maxSlAtr * atr and (not usePD or ent <= eq1)
+        pDir   := 1
+        pBar   := bar_index
+        pEntry := ent
+        pSL    := stp
+        pFinal := ent + risk * rrFinal
+        pBox   := showFvg ? box.new(bar_index - (bullFvg0 ? 2 : 3), top, bar_index + fillWin, bot,
+             border_color = color.new(colBuy, 60), bgcolor = color.new(colBuy, 85)) : na
+
+if mssShort and tDir == 0 and pDir == 0 and canTrade and sigOK and inKZ and biasShort and barstate.isconfirmed
+    bot = bearFvg0 ? high : high[1]
+    top = bearFvg0 ? low[2] : low[3]
+    ent = entryMode == "FVG edge" ? bot : (top + bot) / 2
+    stp = bslHigh + slBuf * atr
+    risk = stp - ent
+    if risk > 0 and risk <= maxSlAtr * atr and (not usePD or ent >= eq1)
+        pDir   := -1
+        pBar   := bar_index
+        pEntry := ent
+        pSL    := stp
+        pFinal := ent - risk * rrFinal
+        pBox   := showFvg ? box.new(bar_index - (bearFvg0 ? 2 : 3), top, bar_index + fillWin, bot,
+             border_color = color.new(colSell, 60), bgcolor = color.new(colSell, 85)) : na
+
+// 4) Update liquidity / sweep state for the next bars
+if not na(swH) and close > swH
+    sslBar := na                    // structure already shifted up → sell-side sweep is spent
+if not na(swL) and close < swL
+    bslBar := na
+if not na(swH) and high > swH
+    if not mssLong
+        bslHigh := bslOn ? math.max(bslHigh, high) : high
+        bslBar  := bar_index        // buy-side liquidity taken
+    swH := na
+if not na(swL) and low < swL
+    if not mssShort
+        sslLow := sslOn ? math.min(sslLow, low) : low
+        sslBar := bar_index         // sell-side liquidity taken
+    swL := na
+
+// ───────────────────────────── Alerts ─────────────────────────────
+alertcondition(buySig,  "ICT BUY",  "ICT BUY on {{ticker}} ({{interval}}) @ {{close}}")
+alertcondition(sellSig, "ICT SELL", "ICT SELL on {{ticker}} ({{interval}}) @ {{close}}")
+if buySig or sellSig
+    alert((buySig ? "ICT BUY " : "ICT SELL ") + syminfo.ticker + " | Entry " + f_px(tEntry) + " | SL " + f_px(tSL) +
+         " | TP1 " + f_px(tTP1) + " | " + finalTP + " " + f_px(tFinal), alert.freq_once_per_bar_close)
+
+// ───────────────────────────── Statistics table ─────────────────────────────
+f_biasTxt(b) => b == 1 ? "Bullish ▲" : b == -1 ? "Bearish ▼" : "Neutral"
+f_biasCol(b) => b == 1 ? colBuy : b == -1 ? colSell : color.gray
+
+f_inPeriod(t, todayKey) =>
+    switch statMode
+        "Today"        => f_key(t) == todayKey
+        "Specific day" => t >= specDay and t < specDay + 86400000
+        "Date range"   => t >= fromDate and t < toDate + 86400000
+        => true
+
+var table tbl = table.new(tblPosIn == "Top right" ? position.top_right : tblPosIn == "Top left" ? position.top_left :
+     tblPosIn == "Bottom right" ? position.bottom_right : position.bottom_left, 2, 11,
+     bgcolor = color.new(#131722, 10), border_color = color.new(color.gray, 70), border_width = 1)
+
+if barstate.islast
+    todayKey = f_key(time)
+    int   w   = 0
+    int   l   = 0
+    int   be  = 0
+    float net = 0.0
+    int n = array.size(stTime)
+    if n > 0
+        for i = 0 to n - 1
+            if f_inPeriod(array.get(stTime, i), todayKey)
+                r = array.get(stRes, i)
+                w   += r == 1 ? 1 : 0
+                l   += r == -1 ? 1 : 0
+                be  += r == 0 ? 1 : 0
+                net += array.get(stR, i)
+    decided = w + l
+    wr = decided > 0 ? 100.0 * w / decided : 0.0
+    period = statMode == "Specific day" ? str.format_time(specDay, "yyyy-MM-dd") :
+         statMode == "Date range" ? str.format_time(fromDate, "yyyy-MM-dd") + " → " + str.format_time(toDate, "yyyy-MM-dd") : statMode
+    white = color.white
+    table.cell(tbl, 0, 0, "ICT MTF", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 0, tfOK ? timeframe.period + "m ✓" : "⚠ use 1m / 5m", text_color = tfOK ? colBuy : color.orange, text_size = size.small)
+    table.cell(tbl, 0, 1, "HTF 1 (" + htf1 + ")", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 1, f_biasTxt(bias1), text_color = f_biasCol(bias1), text_size = size.small)
+    table.cell(tbl, 0, 2, "HTF 2 (" + htf2 + ")", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 2, f_biasTxt(bias2), text_color = f_biasCol(bias2), text_size = size.small)
+    table.cell(tbl, 0, 3, "Period", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 3, period, text_color = white, text_size = size.small)
+    table.cell(tbl, 0, 4, "Trades", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 4, str.tostring(w + l + be), text_color = white, text_size = size.small)
+    table.cell(tbl, 0, 5, "Wins", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 5, str.tostring(w), text_color = colBuy, text_size = size.small)
+    table.cell(tbl, 0, 6, "Losses", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 6, str.tostring(l), text_color = colSell, text_size = size.small)
+    table.cell(tbl, 0, 7, "Break-even", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 7, str.tostring(be), text_color = color.gray, text_size = size.small)
+    table.cell(tbl, 0, 8, "Win rate", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 8, str.tostring(wr, "#.#") + "%", text_color = wr >= 50 ? colBuy : colSell, text_size = size.small)
+    table.cell(tbl, 0, 9, "Net R", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 9, str.tostring(net, "#.##") + "R", text_color = net >= 0 ? colBuy : colSell, text_size = size.small)
+    table.cell(tbl, 0, 10, "Open trade", text_color = white, text_size = size.small)
+    table.cell(tbl, 1, 10, tDir == 1 ? "BUY @ " + f_px(tEntry) : tDir == -1 ? "SELL @ " + f_px(tEntry) : pDir != 0 ? "Waiting FVG retrace" : "None",
+         text_color = tDir == 1 ? colBuy : tDir == -1 ? colSell : color.gray, text_size = size.small)
