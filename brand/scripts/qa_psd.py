@@ -3,7 +3,7 @@ import glob, sys, os
 from psd_tools import PSDImage
 from PIL import Image, ImageChops, ImageStat
 import warnings; warnings.filterwarnings('ignore')
-D = 'dist/Ghayma_Brand_Identity'
+D = sys.argv[1] if len(sys.argv) > 1 else 'dist/Ghayma_Brand_Identity'
 files = sorted(glob.glob(D + '/**/*.psd', recursive=True))
 bad = 0; texts = 0; layers = 0
 for f in files:
