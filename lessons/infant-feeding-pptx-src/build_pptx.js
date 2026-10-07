@@ -41,6 +41,7 @@ const PARTS = ["", "Breastfeeding", "Artificial Feeding", "NG Tube Feeding", "We
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE"; // 13.333 x 7.5
 pres.title = "Infant and Child Feeding";
+pres.author = "Dr. Ruqaiah Aidaros Alhebshi";
 pres.subject = "Pediatric nursing lesson";
 pres.theme = { headFontFace: THEME.headFontFace, bodyFontFace: THEME.bodyFontFace };
 const C = pres.SchemeColor;
@@ -52,7 +53,7 @@ pres.defineSlideMaster({
   background: { color: C.background2 },
   objects: [
     { placeholder: { options: { name: "title", type: "title", x: 0.6, y: 0.62, w: 12.1, h: 0.8, fontSize: 36, bold: true, color: C.text1, valign: "middle", align: "left", margin: 0 }, text: "" } },
-    { text: { text: "Infant and Child Feeding", options: { x: 0.6, y: 7.05, w: 6, h: 0.3, fontSize: 10, color: MUTED, margin: 0 } } }
+    { text: { text: "Infant and Child Feeding · Dr. Ruqaiah Aidaros Alhebshi", options: { x: 0.6, y: 7.05, w: 8, h: 0.3, fontSize: 10, color: MUTED, margin: 0 } } }
   ],
   slideNumber: { x: 12.2, y: 7.05, w: 0.6, h: 0.3, fontSize: 10, color: MUTED, align: "right" }
 });
@@ -227,9 +228,12 @@ async function divider(part, chips, question) {
   {
     const s = pres.addSlide({ masterName: "Cover", sectionTitle: curSection });
     eyebrow(s, 0, "Pediatric Nursing");
-    T(s, [{ text: "Infant & Child\n", options: { color: C.text1 } }, { text: "Feeding", options: { color: C.accent5 } }], { x: 0.6, y: 1.0, w: 6.6, h: 2.3, fontSize: 60, bold: true, valign: "middle" });
+    T(s, [{ text: "Infant & Child\n", options: { color: C.text1 } }, { text: "Feeding", options: { color: C.accent5 } }], { x: 0.6, y: 0.75, w: 6.6, h: 2.1, fontSize: 56, bold: true, valign: "middle" });
+    card(s, 0.6, 3.0, 6.3, 1.15, { name: "Author card" });
+    T(s, "PRESENTED BY", { x: 0.9, y: 3.14, w: 5.8, h: 0.3, fontSize: 12, bold: true, color: MUTED, charSpacing: 2 });
+    T(s, "Dr. Ruqaiah Aidaros Alhebshi", { x: 0.9, y: 3.45, w: 5.9, h: 0.55, fontSize: 26, bold: true, color: C.accent5 });
     for (let i = 0; i < 4; i++) {
-      const x = 0.6 + (i % 2) * 3.25, y = 3.75 + Math.floor(i / 2) * 0.95;
+      const x = 0.6 + (i % 2) * 3.25, y = 4.5 + Math.floor(i / 2) * 0.95;
       card(s, x, y, 3.05, 0.78, { name: "Part card" });
       T(s, "0" + (i + 1), { x: x + 0.2, y, w: 0.7, h: 0.78, valign: "middle", fontSize: 26, bold: true, color: PC[i + 1] });
       T(s, PARTS[i + 1], { x: x + 0.9, y, w: 2.1, h: 0.78, valign: "middle", fontSize: 17, bold: true });
@@ -513,25 +517,36 @@ async function divider(part, chips, question) {
     notes(s, "Before NG feeding", "Ask a student to read each check aloud and tick it on the board.");
   }
   {
-    const s = content(3, "NG feeding procedure");
-    const st = ["Perform hand hygiene.", "Position the infant safely, usually semi-upright.", "Verify NG tube placement according to protocol.", "Check the prescribed feed.", "Administer the feed at the prescribed rate.", "Observe the infant throughout feeding.", "Stop feeding if concerning signs occur (see below).", "Flush the tube only according to the prescribed / appropriate protocol.", "Keep the infant appropriately positioned after feeding.", "Document the feeding and the infant’s response."];
+    const s = content(3, "NG tube insertion procedure");
+    const st = [
+      [{ text: "Wash hands and prepare the " }, { text: "NG tube, lubricant, syringe, pH paper and fixation tape", options: { bold: true } }, { text: "." }],
+      [{ text: "Explain the procedure to the child / parents and position the child " }, { text: "upright or semi-upright", options: { bold: true } }, { text: "." }],
+      [{ text: "Measure the tube from the " }, { text: "nose → earlobe → midpoint between xiphoid and umbilicus", options: { bold: true } }, { text: "." }],
+      [{ text: "Mark", options: { bold: true } }, { text: " the measured length on the tube." }],
+      [{ text: "Lubricate the tip of the NG tube with a " }, { text: "water-soluble lubricant", options: { bold: true } }, { text: "." }],
+      [{ text: "Insert the tube gently through the nostril, directing it " }, { text: "backward, not upward", options: { bold: true } }, { text: "." }],
+      [{ text: "Encourage swallowing in older children; use a " }, { text: "pacifier", options: { bold: true } }, { text: " to help infants swallow." }],
+      [{ text: "If distress occurs, " }, { text: "stop and remove the tube", options: { bold: true } }, { text: " (see below)." }],
+      [{ text: "Confirm position using " }, { text: "gastric aspirate and pH testing", options: { bold: true } }, { text: " according to local protocol; " }, { text: "X-ray", options: { bold: true } }, { text: " may be required if placement is uncertain." }],
+      [{ text: "Secure", options: { bold: true } }, { text: " the tube to the nose / cheek, " }, { text: "record the external tube length", options: { bold: true } }, { text: ", and give no feeding or medication until correct placement is confirmed." }]
+    ];
     st.forEach((t, i) => {
-      const col = Math.floor(i / 5), x = 0.6 + col * 6.2, y = 1.55 + (i % 5) * 0.7;
-      s.addShape(pres.shapes.OVAL, { x, y: y + 0.08, w: 0.44, h: 0.44, fill: { color: C.background1 }, line: { color: C.accent3, width: 1.75 }, objectName: "Step number" });
-      T(s, String(i + 1), { x, y: y + 0.08, w: 0.44, h: 0.44, align: "center", valign: "middle", fontSize: 13, bold: true, color: C.accent3 });
-      T(s, t, { x: x + 0.6, y, w: 5.4, h: 0.6, valign: "middle", fontSize: 15 });
+      const col = Math.floor(i / 5), x = 0.6 + col * 6.2, y = 1.5 + (i % 5) * 0.76;
+      s.addShape(pres.shapes.OVAL, { x, y: y + 0.12, w: 0.44, h: 0.44, fill: { color: C.background1 }, line: { color: C.accent3, width: 1.75 }, objectName: "Step number" });
+      T(s, String(i + 1), { x, y: y + 0.12, w: 0.44, h: 0.44, align: "center", valign: "middle", fontSize: 13, bold: true, color: C.accent3 });
+      T(s, t, { x: x + 0.6, y, w: 5.45, h: 0.7, valign: "middle", fontSize: 14 });
     });
-    card(s, 0.6, 5.2, 12.15, 1.65, { fill: { color: BAD, transparency: 92 }, line: { color: BAD, width: 1.5 } });
-    s.addShape(pres.shapes.OCTAGON, { x: 0.85, y: 5.45, w: 1.15, h: 1.15, fill: { color: BAD }, line: { type: "none" }, objectName: "Stop sign" });
-    T(s, "STOP", { x: 0.85, y: 5.45, w: 1.15, h: 1.15, align: "center", valign: "middle", fontSize: 18, bold: true, color: C.background1 });
-    T(s, "Stop feeding if significant respiratory distress, vomiting, coughing, cyanosis or other concerning signs occur.", { x: 2.25, y: 5.3, w: 10.3, h: 0.6, valign: "middle", fontSize: 16, bold: true });
-    const sg = [["lungs", "Respiratory distress", BAD], ["upflow", "Vomiting", BAD], ["cough", "Coughing", BAD], ["blueface", "Cyanosis", "3F7FD9"]];
+    card(s, 0.6, 5.42, 12.15, 1.48, { fill: { color: BAD, transparency: 92 }, line: { color: BAD, width: 1.5 } });
+    s.addShape(pres.shapes.OCTAGON, { x: 0.85, y: 5.6, w: 1.1, h: 1.1, fill: { color: BAD }, line: { type: "none" }, objectName: "Stop sign" });
+    T(s, "STOP", { x: 0.85, y: 5.6, w: 1.1, h: 1.1, align: "center", valign: "middle", fontSize: 18, bold: true, color: C.background1 });
+    T(s, "If severe coughing, choking, cyanosis or respiratory distress occurs, stop and remove the tube.", { x: 2.2, y: 5.5, w: 10.4, h: 0.55, valign: "middle", fontSize: 16, bold: true });
+    const sg = [["cough", "Severe coughing", BAD], ["aloneX", "Choking", BAD], ["blueface", "Cyanosis", "3F7FD9"], ["lungs", "Respiratory distress", BAD]];
     for (let i = 0; i < 4; i++) {
-      const x = 2.25 + i * 2.6;
-      s.addImage({ data: await iconData(sg[i][0], sg[i][2]), x, y: 6.0, w: 0.6, h: 0.6, altText: sg[i][1] });
-      T(s, sg[i][1], { x: x + 0.7, y: 6.0, w: 1.85, h: 0.6, valign: "middle", fontSize: 14 });
+      const x = 2.2 + i * 2.6;
+      s.addImage({ data: await iconData(sg[i][0], sg[i][2]), x, y: 6.12, w: 0.55, h: 0.55, altText: sg[i][1] });
+      T(s, sg[i][1], { x: x + 0.65, y: 6.12, w: 1.9, h: 0.55, valign: "middle", fontSize: 14 });
     }
-    notes(s, "NG feeding procedure");
+    notes(s, "NG tube insertion procedure");
   }
   {
     const s = content(3, "Complications of NG feeding");
