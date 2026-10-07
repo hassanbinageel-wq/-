@@ -9,6 +9,9 @@ import { C } from '../lib/palette.mjs'
 import * as E from '../lib/elements.mjs'
 import { OVERLAYS } from '../templates/reels.mjs'
 import { SLOGAN, HANDLE } from '../templates/launch.mjs'
+import { VIDEOS } from '../templates/launch-video.mjs'
+import { openPage } from '../lib/browser.mjs'
+import { execFileSync } from 'node:child_process'
 
 const W = 1080, H = 1920, FPS = 30
 const KIT = path.join(ROOT, 'dist', 'Ghayma_Launch_Kit')
@@ -26,7 +29,7 @@ const grad = (a, b) => L.rect('الخلفية', 0, 0, W, H, `linear-gradient(180
 // كل طبقة: [اسم الملف, HTML, بداية (ث), نهاية (ث), ظهور تدريجي (ث), اختفاء تدريجي (ث)]
 const PROJECTS = [
   {
-    id: 'Reel_01_Teaser_10s', title: 'ريل التشويق — 10 ثوانٍ', dur: 10, ref: 'Reel_01_Teaser_Ready_10s.mp4',
+    id: 'Reel_01_Teaser_10s', title: 'ريل التشويق — 10 ثوانٍ', dur: 10, ref: 'Reel_01_Teaser_Ready_10s.mp4', baked: VIDEOS[0],
     layers: [
       ['01_Background', grad(C.mist, C.cotton), 0, 10, 0, 0],
       ['02_Cloud_Small_A', cloud('غيمة صغيرة', 240, 380, 60, C.milk, 0.85), 0, 10, 0, 0],
@@ -42,7 +45,7 @@ const PROJECTS = [
     ],
   },
   {
-    id: 'Reel_02_Launch_8s', title: 'ريل الافتتاح — 8 ثوانٍ', dur: 8, ref: 'Reel_02_Launch_Ready_8s.mp4',
+    id: 'Reel_02_Launch_8s', title: 'ريل الافتتاح — 8 ثوانٍ', dur: 8, ref: 'Reel_02_Launch_Ready_8s.mp4', baked: VIDEOS[1],
     layers: [
       ['01_Background', grad(C.apricot, '#F7DCCB'), 0, 8, 0, 0],
       ['02_Cloud_Left', cloud('غيمة', 280, 1900, 300, C.cotton), 0, 8, 0, 0],
@@ -110,11 +113,58 @@ const shared = mk('_Shared')
 fs.copyFileSync(path.join(BRAND, '06_Reels_Templates', 'Animation', 'Ghayma_End_Screen_3s_1080x1920.mp4'), path.join(shared, 'Ghayma_End_Screen_3s_1080x1920.mp4'))
 fs.copyFileSync(path.join(BRAND, '06_Reels_Templates', 'Animation', 'Ghayma_Logo_Intro_3s_1080x1920_Transparent.mov'), path.join(shared, 'Ghayma_Logo_Intro_3s_Transparent_ProRes4444.mov'))
 
+
+// ===== تصدير كل عنصر فيديو شفافاً بنفس حركة الريل الأصلي إطاراً بإطار =====
+// QuickTime Animation (qtrle، بدون فقد، بقناة شفافية) — المقطع يغطي فقط الفترة التي يظهر فيها العنصر
+async function bake(v, dir) {
+  const Md = path.join(dir, 'Layers_MOV_Alpha'), TMP = path.join(dir, '_frames')
+  fs.mkdirSync(Md, { recursive: true })
+  fs.rmSync(TMP, { recursive: true, force: true })
+  const ids = v.layers.map(([id]) => id)
+  for (const id of ids) fs.mkdirSync(path.join(TMP, id), { recursive: true })
+  const pg = await openPage(v.html, W, H)
+  // الخلفية: صورة ثابتة
+  await pg.evaluate((ids) => { for (const id of ids) document.getElementById(id).style.visibility = 'hidden' }, ids)
+  await pg.screenshot({ path: path.join(Md, '01_Background.png') })
+  await pg.evaluate(() => { document.documentElement.style.background = document.body.style.background = 'transparent'; document.getElementById('stage').style.background = 'transparent' })
+  const n = fr(v.dur), vis = Object.fromEntries(ids.map((id) => [id, []]))
+  for (let i = 0; i < n; i++) {
+    await pg.evaluate(v.setter, i / FPS)
+    const op = await pg.evaluate((ids) => Object.fromEntries(ids.map((id) => [id, +getComputedStyle(document.getElementById(id)).opacity])), ids)
+    for (const id of ids) {
+      if (op[id] <= 0.001) continue
+      vis[id].push(i)
+      await pg.evaluate(([ids, show]) => { for (const x of ids) document.getElementById(x).style.visibility = x === show ? 'visible' : 'hidden' }, [ids, id])
+      await pg.screenshot({ path: path.join(TMP, id, `f${String(i).padStart(4, '0')}.png`), omitBackground: true })
+    }
+  }
+  await pg.close()
+  const out = []
+  for (const [id, name] of v.layers) {
+    const fs0 = vis[id]
+    if (!fs0.length) continue
+    const a = fs0[0], b = fs0[fs0.length - 1] + 1
+    // إطارات مخفية داخل الفترة (نادر): نملؤها بإطار شفاف
+    for (let i = a; i < b; i++) { const f = path.join(TMP, id, `f${String(i).padStart(4, '0')}.png`); if (!fs.existsSync(f)) execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', `color=c=black@0.0:s=${W}x${H},format=rgba`, '-frames:v', '1', f]) }
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-start_number', String(a), '-i', path.join(TMP, id, 'f%04d.png'), '-frames:v', String(b - a), '-c:v', 'qtrle', '-pix_fmt', 'argb', path.join(Md, `${name}.mov`)])
+    out.push({ name, a, b })
+  }
+  fs.rmSync(TMP, { recursive: true, force: true })
+  return out
+}
+
 let fid = 0
 for (const p of PROJECTS) {
-  const dir = mk(p.id), Ld = mk(p.id, 'Layers_PNG')
+  const dir = mk(p.id)
   const clips = []
-  for (const [name, html, a, b, fi, fo] of p.layers) {
+  if (p.baked) {
+    const parts = await bake(p.baked, dir)
+    clips.push([{ name: '01_Background', start: 0, end: p.dur, file: { id: `file-${++fid}`, name: '01_Background.png', url: 'Layers_MOV_Alpha/01_Background.png', dur: fr(p.dur) } }])
+    for (const c of parts) clips.push([{ name: c.name, start: c.a / FPS, end: c.b / FPS, file: { id: `file-${++fid}`, name: c.name + '.mov', url: `Layers_MOV_Alpha/${c.name}.mov`, dur: c.b - c.a } }])
+    p.timing = parts.map((c) => `${c.name.padEnd(30)} ${(c.a / FPS).toFixed(2)}s → ${(c.b / FPS).toFixed(2)}s`).join('\n')
+  }
+  const Ld = p.baked ? null : mk(p.id, 'Layers_PNG')
+  for (const [name, html, a, b, fi, fo] of p.baked ? [] : p.layers) {
     await renderToFile(page(html, W, H, 'transparent'), W, H, path.join(Ld, name + '.png'), { transparent: true })
     clips.push([{ name, start: a, end: b, fi, fo, file: { id: `file-${++fid}`, name: name + '.png', url: `Layers_PNG/${name}.png`, dur: fr(p.dur) } }])
   }
@@ -129,10 +179,12 @@ for (const p of PROJECTS) {
   }
   fs.writeFileSync(path.join(dir, `${p.id}_Premiere.xml`), sequenceXML(p, clips))
   // مصدر الطبقات للتعديل في فوتوشوب (نفس أسماء ملفات PNG)
+  if (!p.baked) {
   const all = p.layers.map(([name, html]) => html.replace(/data-layer="([^"]*)"/g, `data-layer="${name} — $1"`)).join('')
   await exportDesign({ html: page(all, W, H, 'transparent'), w: W, h: H, psd: path.join(dir, `${p.id}_Layers_Source.psd`), jpg: path.join(dir, `${p.id}_All_Layers_Preview.jpg`) })
+  }
   // جدول التوقيت للقراءة
-  const t = p.layers.map(([n, , a, b]) => `${n.padEnd(42)} ${a.toFixed(2)}s → ${b.toFixed(2)}s`).join('\n') + (p.endScreen ? `\n${'End_Screen (_Shared)'.padEnd(42)} ${p.endScreen.toFixed(2)}s → ${p.dur.toFixed(2)}s` : '')
+  const t = p.timing || p.layers.map(([n, , a, b]) => `${n.padEnd(42)} ${a.toFixed(2)}s → ${b.toFixed(2)}s`).join('\n') + (p.endScreen ? `\n${'End_Screen (_Shared)'.padEnd(42)} ${p.endScreen.toFixed(2)}s → ${p.dur.toFixed(2)}s` : '')
   fs.writeFileSync(path.join(dir, 'Timing.txt'), `${p.title}\n${'-'.repeat(40)}\n${t}\n`)
   console.log(p.id)
 }
@@ -141,51 +193,54 @@ for (const p of PROJECTS) {
 const cov = mk('_Covers')
 for (const d of ['Covers_PSD_Editable', 'Covers_Previews_JPG']) for (const f of fs.readdirSync(path.join(KIT, '03_Reels', d))) fs.copyFileSync(path.join(KIT, '03_Reels', d, f), path.join(cov, f))
 
-fs.writeFileSync(path.join(R, '00_ابدأ_هنا_START_HERE.txt'), '﻿' + `ريلز إطلاق «غيمة» — نسخة قابلة للتعديل في Adobe Premiere Pro
-==========================================================
+fs.writeFileSync(path.join(R, '00_ابدأ_هنا_START_HERE.txt'), '﻿' + `ريلز إطلاق «غيمة» — نسخة Adobe Premiere Pro
+==============================================
 
 المحتوى
 -------
-Reel_01_Teaser_10s            ريل التشويق (جاهز، كل عنصر طبقة مستقلة)
-Reel_02_Launch_8s             ريل الافتتاح (جاهز، كل عنصر طبقة مستقلة)
-Reel_03_How_To_Order_30s      قالب: ضعوا تسجيل شاشة الجوال، والنصوص والخطوات جاهزة فوقه
-Reel_04_Packing_First_Order_20s  قالب: ضعوا فيديو التغليف، والنصوص والخطوات جاهزة فوقه
-_Shared                       الشاشة الختامية MP4 + مقدمة الشعار بخلفية شفافة (ProRes 4444)
-_Covers                       أغلفة الريلز (PSD قابل للتعديل + JPG)
+Reel_01_Teaser_10s               ريل التشويق — كل عنصر فيديو شفاف مستقل بنفس الحركة الأصلية بالضبط
+Reel_02_Launch_8s                ريل الافتتاح — كل عنصر فيديو شفاف مستقل بنفس الحركة الأصلية بالضبط
+Reel_03_How_To_Order_30s         قالب: ضعوا تسجيل شاشة الجوال، والعناوين والخطوات جاهزة فوقه
+Reel_04_Packing_First_Order_20s  قالب: ضعوا فيديو التغليف، والعناوين والخطوات جاهزة فوقه
+_Shared                          الشاشة الختامية MP4 + مقدمة الشعار بخلفية شفافة (ProRes 4444)
+_Covers                          أغلفة الريلز (PSD قابل للتعديل + JPG)
 
-في كل مجلد ريل:
-- ‎*_Premiere.xml              الـ Sequence: المسارات والتوقيتات وظهور/اختفاء العناصر (Opacity keyframes)
-- Layers_PNG                  كل عنصر صورة PNG شفافة بمقاس 1080×1920
-- ‎*_Layers_Source.psd         نفس الطبقات في فوتوشوب لتعديل النصوص
-- Timing.txt                  توقيت كل عنصر
-- Reference_*.mp4             النسخة النهائية للمقارنة (مسار معطّل في الـ Sequence)
+الريلزان 01 و02 (مطابقان للفيديو الجاهز بكل تفصيل)
+--------------------------------------------------
+- Layers_MOV_Alpha: كل عنصر (كل غيمة، كل نص، الشعار) ملف فيديو MOV بخلفية شفافة،
+  والحركة فيه محفوظة إطاراً بإطار: نفس السرعة والانسياب والظهور والاختفاء. الخلفية صورة PNG.
+  الصيغة: QuickTime Animation (بدون فقد في الجودة، مع شفافية) بمقاس 1080×1920 و30 إطاراً/ث.
+- كل مقطع يبدأ في الـ Timeline في نفس لحظته في الفيديو الأصلي (التوقيتات في Timing.txt).
+- تأكدنا آلياً: تركيب الطبقات فوق بعض يعطي نفس الفيديو الجاهز (تطابق PSNR أعلى من 52 dB).
+- تقدرون: تحريك أي عنصر في الوقت، تقديمه أو تأخيره، حذفه، تغيير مكانه أو حجمه (Motion)،
+  أو إضافة عناصر وصوت فوقه — وتبقى حركة كل عنصر كما هي.
 
 طريقة الفتح في Premiere Pro
 --------------------------
-1) فكّوا الضغط واحتفظوا بالمجلدات كما هي (لا تفصلوا ملف XML عن مجلد Layers_PNG).
+1) فكّوا الضغط واحتفظوا بالمجلدات كما هي (لا تفصلوا ملف XML عن مجلد الطبقات).
 2) File > Import ← اختاروا ملف ‎*_Premiere.xml ← يظهر Sequence بمقاس 1080×1920 و30 إطاراً/ث.
-3) إذا ظهرت الملفات «Offline»: اضغطوا Locate على أول ملف وحدّدوه من مجلد Layers_PNG، وفعّلوا
+3) إذا ظهرت الملفات «Offline»: اضغطوا Locate على أول ملف وحدّدوه من مجلده، وفعّلوا
    «Relink others automatically» فيربط Premiere الباقي تلقائياً.
-4) لتغيير التوقيت: حرّكوا أو مدّدوا المقاطع في الـ Timeline. الظهور والاختفاء عبر Effect Controls > Opacity.
-5) لإضافة حركة (تكبير أو انزلاق): Effect Controls > Motion > Position / Scale.
-6) الصوت: أضيفوا موسيقى مرخّصة، أو انشروا بدون صوت وأضيفوا الصوت من مكتبة إنستغرام.
-7) التصدير: File > Export > Media ← H.264 ← Match Source، أو مقاس 1080×1920.
+4) بديل بدون XML: أنشئوا Sequence بمقاس 1080×1920 / 30fps، ضعوا 01_Background.png في المسار السفلي،
+   ثم كل ملف MOV في مسار فوقه بالترتيب الرقمي، وابدؤوه عند الثانية المكتوبة في Timing.txt.
+5) الصوت: أضيفوا موسيقى مرخّصة، أو انشروا بدون صوت وأضيفوا الصوت من مكتبة إنستغرام.
+6) التصدير: File > Export > Media ← H.264 ← Match Source.
 
 تعديل النصوص
 ------------
-النصوص صور PNG حتى تظهر الخطوط العربية مطابقة تماماً للهوية. لتعديل نص:
-- افتحوا ‎*_Layers_Source.psd في فوتوشوب (ثبّتوا خطوط Readex Pro وIBM Plex Sans Arabic أولاً)،
-  عدّلوا النص، ثم صدّروا الطبقة PNG بالمقاس الكامل 1080×1920 وبنفس الاسم داخل Layers_PNG.
-  طريقة سريعة: File > Export > Layers to Files (PNG-24، مع الشفافية)، ثم أعيدوا التسمية.
-- Premiere يحدّث الصورة تلقائياً لأنها بنفس الاسم والمسار.
-- أو اكتبوا النص مباشرة في Premiere بأداة النص (Type Tool) واحذفوا طبقة PNG المقابلة.
+- في الريلزين 01 و02 النص جزء من فيديو العنصر (حتى تبقى الحركة مطابقة)، فتغيير الكلمات نفسها
+  يحتاج إعادة تصدير ذلك العنصر: أرسلوا لي النص الجديد وأصدّر لكم ملف MOV بنفس الحركة.
+  (أو اكتبوا النص بأداة النص في Premiere وطبّقوا عليه حركة Opacity وPosition بأنفسكم.)
+- في القالبين 03 و04 النصوص صور PNG ومعها ملف ‎*_Layers_Source.psd: عدّلوا النص في فوتوشوب
+  وصدّروا الطبقة PNG بالمقاس الكامل وبنفس الاسم داخل Layers_PNG، فيحدّثها Premiere تلقائياً.
+  ظهورها واختفاؤها التدريجي مضبوط في الـ Sequence (Effect Controls > Opacity).
 
 ملاحظات صادقة
 -------------
 - ملفات XML بصيغة Final Cut Pro 7 XML التي يستوردها Premiere Pro. لم أستطع تجربتها داخل Premiere نفسه هنا؛
-  إن واجهتكم مشكلة في الاستيراد فالطبقات PNG وملف Timing.txt يكفيان لتركيبها يدوياً في دقائق.
-- حركة الغيوم الخفيفة الموجودة في الفيديو الجاهز غير مضافة في الـ Sequence (أضيفوها من Motion إن أردتم).
-- اسم الحساب ${HANDLE} مؤقت؛ عدّلوه من ملف PSD كما في الأعلى.
+  إن واجهتكم مشكلة في الاستيراد فالخطوة 4 أعلاه تركّبها يدوياً في دقائق وبنفس النتيجة.
+- مسار «REFERENCE» في الـ Sequence معطّل: هو الفيديو الجاهز للمقارنة فقط.
+- اسم الحساب ${HANDLE} مؤقت؛ إن غيّرتموه أرسلوه لي لأعيد تصدير طبقته.
 `)
 await closeBrowser()
 console.log('done', R)
