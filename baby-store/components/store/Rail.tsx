@@ -62,13 +62,75 @@ function Hanger({ kind, big = false }: { kind: 'shoulder' | 'clip'; big?: boolea
   )
 }
 
+// قص الهوامش الشفافة حول القطعة المفرغة حتى تتعلق مباشرة تحت كتفي الشماعة (يُحفظ الناتج لكل صورة)
+const trimmed = new Map<string, Promise<string | null>>()
+function trimTransparent(url: string): Promise<string | null> {
+  if (!trimmed.has(url)) {
+    trimmed.set(
+      url,
+      new Promise((resolve) => {
+        const im = new Image()
+        im.decoding = 'async'
+        im.onload = () => {
+          try {
+            const W = im.naturalWidth
+            const H = im.naturalHeight
+            const c = document.createElement('canvas')
+            c.width = W
+            c.height = H
+            const ctx = c.getContext('2d', { willReadFrequently: true })!
+            ctx.drawImage(im, 0, 0)
+            const d = ctx.getImageData(0, 0, W, H).data
+            let t = H, l = W, r = -1, b = -1
+            for (let y = 0; y < H; y++) {
+              for (let x = 0; x < W; x++) {
+                if (d[(y * W + x) * 4 + 3] > 12) {
+                  if (y < t) t = y
+                  if (y > b) b = y
+                  if (x < l) l = x
+                  if (x > r) r = x
+                }
+              }
+            }
+            // لا نقص إن كانت الهوامش صغيرة أصلاً
+            if (r < 0 || (t < H * 0.03 && H - b < H * 0.03 && l < W * 0.03 && W - r < W * 0.03)) return resolve(null)
+            const pad = Math.round(Math.max(r - l, b - t) * 0.01)
+            l = Math.max(0, l - pad); t = Math.max(0, t - pad); r = Math.min(W - 1, r + pad); b = Math.min(H - 1, b + pad)
+            const o = document.createElement('canvas')
+            o.width = r - l + 1
+            o.height = b - t + 1
+            o.getContext('2d')!.drawImage(c, l, t, o.width, o.height, 0, 0, o.width, o.height)
+            resolve(o.toDataURL('image/webp', 0.9))
+          } catch {
+            resolve(null)
+          }
+        }
+        im.onerror = () => resolve(null)
+        im.src = url
+      }),
+    )
+  }
+  return trimmed.get(url)!
+}
+
 function Garment({ item, eager = false, sizes }: { item: RailItem; eager?: boolean; sizes: string }) {
   const img = item.front
+  const [cropped, setCropped] = useState<string | null>(null)
+  useEffect(() => {
+    if (item.hanger !== 'cutout') return
+    let alive = true
+    // أكبر مقاس متاح من srcset للحفاظ على الوضوح
+    const best = (img.srcset || '').split(',').map((x) => x.trim().split(' ')[0]).filter(Boolean).pop() || img.url
+    trimTransparent(best).then((u) => alive && setCropped(u))
+    return () => {
+      alive = false
+    }
+  }, [item.hanger, img.url, img.srcset])
   return (
     <img
       className={`rail__img is-${item.hanger}`}
-      src={img.url}
-      srcSet={img.srcset || undefined}
+      src={cropped || img.url}
+      srcSet={cropped ? undefined : img.srcset || undefined}
       sizes={sizes}
       alt=""
       draggable={false}

@@ -73,6 +73,17 @@ export async function saveImage(
 ): Promise<number> {
   await readImageMeta(buf)
   // صورة الشماعة: نقص الهوامش الشفافة حتى يلامس الخطاف العمود مباشرة
+  // صورة منتج شفافة (PNG مفرغ): نقص المساحة الشفافة الزائدة حول القطعة
+  if (opts.purpose === 'product') {
+    try {
+      const probe = sharp(buf, { limitInputPixels: 60_000_000 })
+      const m0 = await probe.metadata()
+      if (m0.hasAlpha) {
+        const corner = await sharp(buf).extract({ left: 0, top: 0, width: 1, height: 1 }).ensureAlpha().raw().toBuffer()
+        if (corner[3] === 0) buf = await sharp(buf, { limitInputPixels: 60_000_000 }).rotate().trim({ threshold: 10 }).png().toBuffer()
+      }
+    } catch {}
+  }
   if (opts.purpose === 'hanger') {
     try {
       buf = await sharp(buf, { limitInputPixels: 60_000_000 }).rotate().trim({ threshold: 10 }).png().toBuffer()
