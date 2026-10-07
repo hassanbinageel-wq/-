@@ -79,8 +79,13 @@ function Garment({ item, eager = false, sizes }: { item: RailItem; eager?: boole
 }
 
 /** الشماعة المناسبة لنوع صورة القطعة */
-function HangerFor({ item, big }: { item: RailItem; big?: boolean }) {
+function HangerFor({ item, big, image }: { item: RailItem; big?: boolean; image?: string | null }) {
   if (item.hanger === 'photo') return null
+  // شماعة مرفوعة من لوحة التحكم (صورة حقيقية) للقطع المفرغة
+  if (image && item.hanger === 'cutout') {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className={`rail__hanger rail__hanger--img ${big ? 'rail__hanger--big' : ''}`} src={image} alt="" aria-hidden="true" draggable={false} />
+  }
   return <Hanger kind={item.hanger === 'cutout' ? 'shoulder' : 'clip'} big={big} />
 }
 
@@ -90,12 +95,14 @@ export function Rail({
   subtitle,
   buttonText,
   buttonLink,
+  hangerImage = null,
 }: {
   items: RailItem[]
   kicker: string
   subtitle: string
   buttonText: string
   buttonLink: string
+  hangerImage?: string | null
 }) {
   const [mode, setMode] = useState<Mode>('hover')
   const [active, setActive] = useState<number | null>(null)
@@ -223,7 +230,7 @@ export function Rail({
               >
                 <span className="rail__swing">
                   <span className="rail__turn">
-                    <HangerFor item={it} />
+                    <HangerFor item={it} image={hangerImage} />
                     <Garment item={it} eager={i < 6} sizes={mode === 'scroll' ? '60vw' : '260px'} />
                   </span>
                 </span>
@@ -246,12 +253,12 @@ export function Rail({
           </Link>
         )}
       </div>
-      {open !== null && <RailFocus items={items} index={open} onIndex={setOpen} onClose={closeFocus} />}
+      {open !== null && <RailFocus items={items} index={open} onIndex={setOpen} onClose={closeFocus} hangerImage={hangerImage} />}
     </section>
   )
 }
 
-function RailFocus({ items, index, onIndex, onClose }: { items: RailItem[]; index: number; onIndex: (i: number) => void; onClose: () => void }) {
+function RailFocus({ items, index, onIndex, onClose, hangerImage }: { items: RailItem[]; index: number; onIndex: (i: number) => void; onClose: () => void; hangerImage: string | null }) {
   const { config } = useStore()
   const it = items[index]
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -326,7 +333,7 @@ function RailFocus({ items, index, onIndex, onClose }: { items: RailItem[]; inde
         <figure className="rail-focus__stage" key={it.id}>
           <span className="rail-focus__string" aria-hidden="true" />
           <div className="rail-focus__face">
-            <HangerFor item={it} big />
+            <HangerFor item={it} big image={hangerImage} />
             <Garment item={it} eager sizes="(min-width: 900px) 380px, 70vw" />
           </div>
           <figcaption className="sr-only">{it.front.alt || it.name}</figcaption>

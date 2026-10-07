@@ -459,7 +459,7 @@ export async function deleteDemoData(): Promise<{ products: number }> {
       )
       .all() as MediaRow[]
   for (const m of media) {
-    if (new RegExp(`"(imageDesktopId|imageMobileId|logoId|faviconId|customFontId)":${m.id}[,}]`).test(appearanceJson)) continue
+    if (new RegExp(`"(imageDesktopId|imageMobileId|logoId|faviconId|customFontId|hangerImageId)":${m.id}[,}]`).test(appearanceJson)) continue
     await deleteMediaFiles(m)
     await d.prepare('DELETE FROM media WHERE id=?').run(m.id)
   }

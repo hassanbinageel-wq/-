@@ -153,11 +153,15 @@ export async function railItems(productIds: number[], limit: number): Promise<Ra
   const ids = list.map((x) => x.row.id)
   const rows = await db()
     .prepare(
-      `SELECT pi.product_id, pi.media_id, pi.alt, pi.option_value, pi.role, m.* FROM product_images pi JOIN media m ON m.id=pi.media_id
+      `SELECT pi.product_id, pi.media_id, pi.alt, pi.option_value, pi.role, m.*,
+        -- صورة WEBP بقناة شفافية (رأس VP8X وعلامة ALPHA) = صورة مفرغة بدون خلفية
+        (SELECT substring(b.data from 13 for 4) = '\\x56503858'::bytea AND (get_byte(b.data, 20) & 16) <> 0
+           FROM media_blobs b WHERE b.media_id=m.id AND b.mime='image/webp' ORDER BY b.bytes LIMIT 1) AS transparent
+       FROM product_images pi JOIN media m ON m.id=pi.media_id
        WHERE pi.product_id IN (${ids.map(() => '?').join(',')}) ORDER BY pi.product_id, pi.sort, pi.id`,
     )
-    .all<ImgRow & MediaRow>(...ids)
-  const byProduct = new Map<number, (ImgRow & MediaRow)[]>()
+    .all<ImgRow & MediaRow & { transparent: boolean | null }>(...ids)
+  const byProduct = new Map<number, (ImgRow & MediaRow & { transparent: boolean | null })[]>()
   for (const r of rows) {
     if (!byProduct.has(r.product_id)) byProduct.set(r.product_id, [])
     byProduct.get(r.product_id)!.push(r)
@@ -182,7 +186,7 @@ export async function railItems(productIds: number[], limit: number): Promise<Ra
       priceFrom: x.card.priceFrom,
       available: x.card.available,
       front: frontRef,
-      hanger: railPhoto ? 'photo' : rail ? 'cutout' : 'card',
+      hanger: railPhoto ? 'photo' : rail || front.transparent ? 'cutout' : 'card',
       isDemo: x.card.isDemo,
     })
     if (items.length >= max) break

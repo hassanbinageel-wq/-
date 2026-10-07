@@ -122,6 +122,7 @@ export function AppearanceEditor(p: Props) {
   const { run, busy } = useAction()
   const [a, setA] = useState<Appearance>(p.initial)
   const [tab, setTab] = useState('brand')
+  const [hangerUrl, setHangerUrl] = useState<string | null>(p.initial.theme.hangerImageId ? p.urls[p.initial.theme.hangerImageId] || null : null)
   const [dirty, setDirty] = useState(false)
   const [urls, setUrls] = useState(p.urls)
   const [products, setProducts] = useState(p.products)
@@ -340,6 +341,9 @@ export function AppearanceEditor(p: Props) {
               <NumInput value={a.theme.radius} min={0} max={32} onChange={(v) => up((x) => ({ ...x, theme: { ...x.theme, radius: v ?? 18 } }))} />
             </Field>
             <Switch checked={a.theme.decorations} onChange={(v) => up((x) => ({ ...x, theme: { ...x.theme, decorations: v } }))} label="زخارف النجوم والغيوم والقمر" />
+            <Field label="صورة الشماعة لقسم «على الشماعة» (اختياري)" hint="صورة شماعة واحدة من الأمام بخلفية شفافة (PNG)، الخطاف في الأعلى بالمنتصف. تُستخدم للقطع المفرغة بدل الشماعة المرسومة" className="a-span-2">
+              <ImageUpload value={a.theme.hangerImageId} url={hangerUrl} purpose="hanger" label="رفع صورة الشماعة" onChange={(id, url) => { setHangerUrl(url); up((x) => ({ ...x, theme: { ...x.theme, hangerImageId: id } })) }} />
+            </Field>
             <p className="small muted a-span-2" style={{ margin: 0 }}>تأكد أن لديك ترخيص استخدام الخط على الويب قبل رفعه (مثل DIN Next LT Arabic).</p>
           </div>
         </div>

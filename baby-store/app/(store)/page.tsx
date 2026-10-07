@@ -25,12 +25,13 @@ const FEATURE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   baby: Baby,
 }
 
-async function renderSection(s: HomeSection, decorations: boolean) {
+async function renderSection(s: HomeSection, decorations: boolean, hangerImageId: number | null = null) {
   switch (s.type) {
     case 'rail': {
       const items = await railItems(s.productIds, s.limit || 10)
       if (!items.length) return null
-      return <Rail key={s.id} items={items} kicker={s.title} subtitle={s.subtitle} buttonText={s.buttonText} buttonLink={s.buttonLink} />
+      const hanger = (await imageRefById(hangerImageId, '', 640))?.url || null
+      return <Rail key={s.id} items={items} kicker={s.title} subtitle={s.subtitle} buttonText={s.buttonText} buttonLink={s.buttonLink} hangerImage={hanger} />
     }
     case 'hero': {
       const active = s.banners.filter((b) => b.enabled && isScheduledActive(b.startsAt, b.endsAt))
@@ -199,7 +200,7 @@ export default async function HomePage() {
   return (
     <>
       {!hasHero && <h1 className="sr-only">{a.brand.name}</h1>}
-      {sections.map((s) => renderSection(s, a.theme.decorations))}
+      {sections.map((s) => renderSection(s, a.theme.decorations, a.theme.hangerImageId))}
     </>
   )
 }

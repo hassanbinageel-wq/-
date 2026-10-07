@@ -13,6 +13,7 @@ export default async function AppearancePage() {
   const ids = new Set<number>()
   if (a.brand.logoId) ids.add(a.brand.logoId)
   if (a.brand.faviconId) ids.add(a.brand.faviconId)
+  if (a.theme.hangerImageId) ids.add(a.theme.hangerImageId)
   for (const s of a.home.sections) for (const b of s.banners) [b.imageDesktopId, b.imageMobileId].forEach((x) => x && ids.add(x))
   const urls: Record<number, string> = {}
   for (const id of ids) urls[id] = mediaUrl(await getMedia(id), 640) || ''

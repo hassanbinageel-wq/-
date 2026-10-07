@@ -138,7 +138,18 @@ test('صورة الشماعة الحقيقية تُعرض بدون رسم شما
     { type: 'simple', name: 'قبعة', status: 'published', price: 3000, trackStock: false, manualAvailability: 'in_stock', images: [{ mediaId: img1 }] },
     actor,
   )
-  const items = await m.catalog.railItems([id, card], 10)
+  // صورة PNG بخلفية شفافة كصورة رئيسية عادية تُعامل كقطعة مفرغة (بدون إطار أبيض)
+  const clear = await sharp({ create: { width: 40, height: 50, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: { create: { width: 20, height: 30, channels: 4, background: { r: 200, g: 40, b: 40, alpha: 1 } } }, left: 10, top: 10 }])
+    .png()
+    .toBuffer()
+  const img3 = await m.media.saveImage(clear, { purpose: 'product' })
+  const cut = await m.products.saveProduct(
+    { type: 'simple', name: 'قميص', status: 'published', price: 3000, trackStock: false, manualAvailability: 'in_stock', images: [{ mediaId: img3 }] },
+    actor,
+  )
+  const items = await m.catalog.railItems([id, card, cut], 10)
   assert.equal(items.find((x) => x.id === id)?.hanger, 'photo')
   assert.equal(items.find((x) => x.id === card)?.hanger, 'card')
+  assert.equal(items.find((x) => x.id === cut)?.hanger, 'cutout')
 })

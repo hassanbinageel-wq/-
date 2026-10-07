@@ -641,6 +641,8 @@ p { margin: 0 0 1em; }
 }
 .rail__hanger { display: block; width: 72%; height: auto; margin: 0 auto; overflow: visible; position: relative; z-index: 2; filter: drop-shadow(0 2px 2px rgb(58 46 63 / 22%)); }
 .rail__hanger--clip { width: 70%; }
+/* شماعة بصورة مرفوعة: الخطاف يلامس العمود والقطعة تحت الكتفين */
+.rail__hanger--img { width: 78%; filter: drop-shadow(0 3px 3px rgb(58 46 63 / 20%)); margin-bottom: -6px; }
 .rail__foot { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; text-align: center; margin-top: 0.2rem; }
 .rail__caption { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; min-height: 4.8rem; }
 .rail__name { font-size: 1.05rem; }

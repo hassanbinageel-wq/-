@@ -71,6 +71,13 @@ export async function saveImage(
   buf: Buffer,
   opts: { purpose: string; originalName?: string; userId?: number | null; isDemo?: boolean; widths?: number[] },
 ): Promise<number> {
+  await readImageMeta(buf)
+  // صورة الشماعة: نقص الهوامش الشفافة حتى يلامس الخطاف العمود مباشرة
+  if (opts.purpose === 'hanger') {
+    try {
+      buf = await sharp(buf, { limitInputPixels: 60_000_000 }).rotate().trim({ threshold: 10 }).png().toBuffer()
+    } catch {}
+  }
   const meta = await readImageMeta(buf)
   const path = newPath()
   const img = sharp(buf, { limitInputPixels: 60_000_000 }).rotate()

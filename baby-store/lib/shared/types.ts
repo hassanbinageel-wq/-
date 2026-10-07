@@ -156,6 +156,8 @@ export type Appearance = {
     customFontName: string
     baseSize: number
     decorations: boolean
+    /** صورة شماعة مرفوعة (PNG شفاف) تُستخدم في قسم «على الشماعة» بدل الشماعة المرسومة */
+    hangerImageId: number | null
   }
   announcement: {
     enabled: boolean

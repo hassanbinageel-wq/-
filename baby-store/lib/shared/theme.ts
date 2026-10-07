@@ -147,6 +147,7 @@ export function defaultAppearance(): Appearance {
       customFontName: 'DIN Next LT Arabic',
       baseSize: 16,
       decorations: true,
+      hangerImageId: null,
     },
     announcement: {
       enabled: true,

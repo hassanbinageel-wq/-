@@ -52,6 +52,7 @@ const appearanceSchema = z.object({
     customFontName: s(60),
     baseSize: z.number().int().min(14).max(19),
     decorations: z.boolean(),
+    hangerImageId: z.number().int().nullable().default(null),
   }),
   announcement: z.object({ enabled: z.boolean(), items: z.array(link).max(8), bg: hex, fg: hex, startsAt: date, endsAt: date }),
   header: z.object({ menu: z.array(link).max(12) }),
