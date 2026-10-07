@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>FILM</title>
+<!-- قالب محايد: لا ستايل افتراضي. الألوان والخطوط تأتي من style_guide.md لكل فيلم. -->
+<style>
+  /* ضع ملفات الخطوط هنا (من node_modules/@fontsource/<family>/files) — لا تعتمد على خطوط النظام */
+  @font-face { font-family: 'Display'; src: url('node_modules/@fontsource/cairo/files/cairo-arabic-900-normal.woff2') format('woff2'); font-weight: 900; }
+  @font-face { font-family: 'Text'; src: url('node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-500-normal.woff2') format('woff2'); font-weight: 500; }
+
+  :root {
+    --ground: #0d0d0d;   /* الأرضية */
+    --ink: #f4f1ea;      /* الحبر */
+    --accent: #ff4d2e;   /* لون واحد للتمييز */
+    --ui: #1c1c1e;       /* أسطح الواجهة */
+    --display: 'Display', sans-serif;
+    --text: 'Text', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #000; overflow: hidden; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: var(--ground);
+           color: var(--ink); font-family: var(--text); transform-origin: 0 0; }
+  .scene { position: absolute; inset: 0; visibility: hidden; }
+  .center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .w { display: inline-block; will-change: auto; } /* لا will-change على ما تكبّره الكاميرا */
+  /* المنطقة الآمنة للعمودي: النص بين y=250 و y=1440، ومتمركز على x=540 */
+</style>
+</head>
+<body>
+<div id="stage">
+  <section class="scene" id="s1"><div class="center"><h1 id="t1" style="font:900 150px var(--display)"></h1></div></section>
+</div>
+
+<script src="lib/motion.js"></script>
+<script>
+const FILM = { width: 1080, height: 1920, fps: 30, duration: 4, bpm: 120, cuts: [] }; // cuts: أزمنة القطع الحادة (تمنع ضبابية الحركة من عبورها)
+const B = M.grid(FILM.bpm);
+
+// ---------------------------------------------------------------- المشاهد: كل مشهد [بداية, نهاية, setup, draw(t)]
+// draw تستقبل الزمن العام t. لا Math.random ولا حالة بين الإطارات.
+const SCENES = [
+  { id: 's1', a: 0, b: 4,
+    setup() { this.w = M.words(M.$('#t1'), 'اكتب فكرتك هنا'); },
+    draw(t) { this.w.forEach((el, i) => { M.wordIn(el, t, B.at(1 + i)); M.wordOut(el, t, 3.7); }); } },
+];
+
+// ---------------------------------------------------------------- عقد العرض (لا تعدّله)
+SCENES.forEach(s => s.setup && s.setup());
+window.FILM = FILM;
+window.renderAt = async function (t) {
+  for (const s of SCENES) {
+    const on = t >= s.a && t < s.b;
+    M.show(document.getElementById(s.id), on);
+    if (on) s.draw(t);
+  }
+};
+window.__ready = document.fonts.ready.then(() => window.renderAt(0)).then(() => true);
+
+// معاينة في المتصفح فقط: film.html?preview  (لا تُستعمل أثناء الرندر)
+if (location.search.includes('preview')) {
+  const st = document.getElementById('stage');
+  const fit = () => { const k = Math.min(innerWidth / FILM.width, innerHeight / FILM.height); st.style.transform = `scale(${k})`; };
+  fit(); addEventListener('resize', fit);
+  const t0 = performance.now();
+  (function loop() { window.renderAt(((performance.now() - t0) / 1000) % FILM.duration); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>
