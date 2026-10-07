@@ -167,7 +167,7 @@ if (run('plan')) {
   for (let i = 0; i < T.REELS.length; i += 2) {
     pages += `<section class="pg"><div class="k">الريلز</div>${T.REELS.slice(i, i + 2).map((r) => `<div class="row">${img(path.join(RV, `${r.f}.jpg`), 150)}<div style="flex:1"><h3>${r.title}<span class="pill">${r.day}</span></h3><ul style="padding-inline-start:6mm">${r.script.map((s) => `<li>${esc(s)}</li>`).join('')}</ul><div class="cap">${esc(r.caption)}</div></div></div>`).join('')}</section>`
   }
-  await renderPdf(doc(pages, CSS + css), path.join(D, 'Launch_Plan_and_Captions_AR.pdf'), { width: '210mm', height: '297mm' })
+  // الخطة الآن صفحة HTML: scripts/build-launch-html.mjs
   console.log('plan done')
 }
 
@@ -179,12 +179,13 @@ if (run('readme')) {
 01_Feed_Posts       9 منشورات (منها كاروسيلان) 1080×1350 — PSD قابل للتعديل + JPG جاهز للنشر
 02_Stories          9 ستوريات 1080×1920 — PSD + JPG + نسخة توضح مناطق واجهة إنستغرام
 03_Reels            4 أغلفة ريلز PSD + JPG، وفيديوهان جاهزان للنشر MP4 (تشويق 10 ثوانٍ + افتتاح 8 ثوانٍ)
-04_Content_Plan     الخطة والجدول والكابشن: PDF مرتب + ملف نصي للنسخ واللصق من الجوال
+                    نسخة Premiere Pro القابلة للتعديل في ملف مستقل: Ghayma_Reels_Premiere.zip
+04_Content_Plan     الخطة والجدول والكابشن: صفحة HTML (تفتح في أي متصفح، بزر نسخ لكل كابشن) + ملف نصي
 05_Fonts            الخطوط المستخدمة (مجانية، رخصة OFL) — ثبّتوها قبل فتح ملفات PSD
 
 طريقة الاستخدام السريعة
 -----------------------
-1) افتحوا 04_Content_Plan/Launch_Plan_and_Captions_AR.pdf واتبعوا الجدول يوماً بيوم.
+1) افتحوا 04_Content_Plan/Launch_Plan_AR.html في المتصفح واتبعوا الجدول يوماً بيوم.
 2) الصور الجاهزة للنشر في مجلدات Previews_JPG — انشروها كما هي.
 3) للتعديل (اسم الحساب، عدد الأيام، النصوص): افتحوا ملف PSD المقابل في فوتوشوب، الطبقات بأسماء عربية واضحة.
 4) المنشورات 1 و2 و3 صف واحد متصل: انشروها بالترتيب 1 ثم 2 ثم 3 حتى يكتمل الشكل في الحساب.
