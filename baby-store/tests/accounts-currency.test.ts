@@ -140,7 +140,7 @@ test('صورة الشماعة الحقيقية تُعرض بدون رسم شما
   )
   // صورة PNG بخلفية شفافة كصورة رئيسية عادية تُعامل كقطعة مفرغة (بدون إطار أبيض)
   const clear = await sharp({ create: { width: 40, height: 50, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite([{ input: { create: { width: 20, height: 30, channels: 4, background: { r: 200, g: 40, b: 40, alpha: 1 } } }, left: 10, top: 10 }])
+    .composite([{ input: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="30"><ellipse cx="10" cy="15" rx="10" ry="15" fill="#c82828"/></svg>'), left: 10, top: 10 }])
     .png()
     .toBuffer()
   const img3 = await m.media.saveImage(clear, { purpose: 'product' })
