@@ -7,9 +7,9 @@ import type { MethodView } from '@/components/store/PaymentActions'
 export async function activeMethods(): Promise<MethodView[]> {
   const rows = await db().prepare('SELECT * FROM transfer_methods WHERE active=1 ORDER BY sort, id').all() as {
     id: number; name: string; type: string; beneficiary: string; account_number: string; extra_info: string | null
-    currency: string | null; instructions: string | null; qr_media_id: number | null
+    currency: string | null; instructions: string | null; qr_media_id: number | null; logo_media_id: number | null
   }[]
-  const media = await getMediaMap(rows.map((m) => m.qr_media_id))
+  const media = await getMediaMap(rows.flatMap((m) => [m.qr_media_id, m.logo_media_id]))
   return rows.map((m) => ({
     id: m.id,
     name: m.name,
@@ -21,6 +21,7 @@ export async function activeMethods(): Promise<MethodView[]> {
     currency: m.currency,
     instructions: m.instructions,
     qr: mediaUrl(media.get(m.qr_media_id!) || null, 640),
+    logo: mediaUrl(media.get(m.logo_media_id!) || null, 320),
   }))
 }
 

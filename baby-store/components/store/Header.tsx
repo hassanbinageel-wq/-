@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Heart, Menu, Search, ShoppingBag, X, ChevronLeft, PackageSearch } from 'lucide-react'
+import { Heart, Menu, Search, ShoppingBag, X, ChevronLeft, PackageSearch, UserRound } from 'lucide-react'
+import { CurrencySwitch } from './CurrencySwitch'
 import { useStore } from './StoreProvider'
 import { SearchBox } from './SearchBox'
 import { LogoMark, WhatsAppIcon, Star } from './Deco'
@@ -41,7 +42,7 @@ export function Announcement({ items, bg, fg }: { items: LinkItem[]; bg: string;
 }
 
 export function Header({ name, logoUrl, menu, categories, announcement, whatsappUrl }: Props) {
-  const { cartCount, favorites, setCartOpen, hydrated } = useStore()
+  const { cartCount, favorites, setCartOpen, hydrated, config } = useStore()
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -94,12 +95,19 @@ export function Header({ name, logoUrl, menu, categories, announcement, whatsapp
             ))}
           </nav>
           <div className="header__end">
-            <span className="desktop-only" style={{ width: 260 }}>
+            <span className="desktop-only header__search">
               <SearchBox />
             </span>
             <button type="button" className="icon-btn mobile-only" aria-label="بحث" onClick={() => setSearchOpen(true)}>
               <Search size={22} />
             </button>
+            <span className="desktop-only">
+              <CurrencySwitch />
+            </span>
+            <Link href="/account" className="icon-btn desktop-only" aria-label={config.account ? `حسابي (${config.account.name})` : 'تسجيل الدخول أو إنشاء حساب'}>
+              <UserRound size={22} />
+              {config.account && <span className="dot-on" aria-hidden="true" />}
+            </Link>
             <Link href="/favorites" className="icon-btn" aria-label="المفضلة">
               <Heart size={22} />
               {hydrated && favorites.length > 0 && <span className="count">{favorites.length}</span>}
@@ -174,6 +182,11 @@ export function Header({ name, logoUrl, menu, categories, announcement, whatsapp
                   </Link>
                 </li>
                 <li>
+                  <Link href="/account">
+                    {config.account ? 'حسابي وطلباتي' : 'تسجيل الدخول / حساب جديد'} <UserRound size={18} />
+                  </Link>
+                </li>
+                <li>
                   <Link href="/track">
                     تتبع طلبك <PackageSearch size={18} />
                   </Link>
@@ -181,6 +194,12 @@ export function Header({ name, logoUrl, menu, categories, announcement, whatsapp
               </ul>
             </div>
             <div className="drawer__foot">
+              {config.currencies.length > 1 && (
+                <div className="row" style={{ justifyContent: 'space-between', marginBottom: '0.7rem' }}>
+                  <span className="small muted">عرض الأسعار بـ</span>
+                  <CurrencySwitch />
+                </div>
+              )}
               <a className="btn btn--wa btn--block" href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                 <WhatsAppIcon /> تواصل معنا عبر واتساب
               </a>

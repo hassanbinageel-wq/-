@@ -23,6 +23,15 @@ export type CheckoutProps = {
   wraps: { id: number; name: string; description: string | null; price: number; image: string | null }[]
   defaultCountry: string
   defaultPhoneCode: string
+  /** بيانات الحساب المسجل لتعبئة النموذج تلقائياً */
+  account: { name: string; phone: string; country: string | null; city: string | null; area: string | null; address: string | null; landmark: string | null; mapUrl: string | null } | null
+}
+
+/** يفصل الرقم الدولي المحفوظ إلى مفتاح دولة ورقم محلي */
+export function splitIntl(intl: string): { code: string; local: string } {
+  const codes = PHONE_CODES.map(([c]) => c).sort((a, b) => b.length - a.length)
+  const code = codes.find((c) => intl.startsWith(c)) || ''
+  return { code, local: code ? intl.slice(code.length) : intl }
 }
 
 const PHONE_CODES: [string, string][] = [
@@ -76,7 +85,7 @@ export function CheckoutForm(props: CheckoutProps) {
     area: '', address: '', landmark: '', mapUrl: '', notes: '',
     isGift: false, wrapId: null, giftMessage: '', hidePrices: false, toRecipient: false,
     rName: '', rPhoneCode: props.defaultPhoneCode, rPhone: '', rCountry: '', rCity: '', rCityOther: '', rArea: '', rAddress: '',
-    remember: false,
+    remember: true,
   }
   const [f, setF] = useState<Form>(initial)
   const [step, setStep] = useState<'info' | 'review'>('info')
@@ -86,6 +95,9 @@ export function CheckoutForm(props: CheckoutProps) {
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [serverQuote, setServerQuote] = useState<Quote | null>(null)
   const [loaded, setLoaded] = useState(false)
+  // إنشاء حساب مع الطلب (لا تُحفظ كلمة المرور في المتصفح)
+  const [makeAccount, setMakeAccount] = useState(false)
+  const [accountPassword, setAccountPassword] = useState('')
   const honeypot = useRef<HTMLInputElement>(null)
 
   // استعادة البيانات أثناء التنقل (sessionStorage) أو من «تذكر بياناتي» (localStorage)
@@ -94,6 +106,29 @@ export function CheckoutForm(props: CheckoutProps) {
       const raw = sessionStorage.getItem(K_FORM) || localStorage.getItem(K_FORM)
       if (raw) setF((x) => ({ ...x, ...JSON.parse(raw) }))
     } catch {}
+    const a = props.account
+    if (a) {
+      // بيانات الحساب تملأ الحقول الفارغة فقط
+      const ph = splitIntl(a.phone)
+      setF((x) => {
+        const sameCountry = !a.country || props.shipping.some((s) => s.country === a.country)
+        const cities = props.shipping.find((s) => s.country === (a.country || x.country))?.cities || []
+        const cityKnown = !a.city || !cities.length || cities.includes(a.city)
+        return {
+          ...x,
+          name: x.name || a.name,
+          phoneCode: x.phone ? x.phoneCode : ph.code || x.phoneCode,
+          phone: x.phone || ph.local,
+          country: x.address ? x.country : (sameCountry && a.country) || x.country,
+          city: x.address ? x.city : a.city ? (cityKnown ? a.city : OTHER) : x.city,
+          cityOther: x.address ? x.cityOther : a.city && !cityKnown ? a.city : x.cityOther,
+          area: x.area || a.area || '',
+          address: x.address || a.address || '',
+          landmark: x.landmark || a.landmark || '',
+          mapUrl: x.mapUrl || a.mapUrl || '',
+        }
+      })
+    }
     setLoaded(true)
   }, [])
   useEffect(() => {
@@ -166,6 +201,7 @@ export function CheckoutForm(props: CheckoutProps) {
       if (f.address.trim().length < 6) e.address = 'يرجى كتابة العنوان بالتفصيل (الشارع، المبنى، الشقة)'
     }
     if (f.mapUrl.trim() && !/^https?:\/\/\S+$/.test(f.mapUrl.trim())) e.mapUrl = 'الصق رابط الموقع كاملاً يبدأ بـ https://'
+    if (!props.account && makeAccount && accountPassword.length < 6) e.accountPassword = 'كلمة المرور 6 أحرف أو أرقام على الأقل'
     if (f.notes.length > props.notesMax) e.notes = `الحد الأقصى ${props.notesMax} حرفاً`
     if (giftOn) {
       if (props.gifts.giftMessageEnabled && f.giftMessage.length > props.gifts.giftMessageMax) e.giftMessage = `الحد الأقصى ${props.gifts.giftMessageMax} حرفاً`
@@ -245,6 +281,7 @@ export function CheckoutForm(props: CheckoutProps) {
           }
         : null,
       website: honeypot.current?.value || '',
+      accountPassword: !props.account && makeAccount ? accountPassword : null,
     }
     try {
       const r = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -284,7 +321,9 @@ export function CheckoutForm(props: CheckoutProps) {
         sessionStorage.setItem(K_FORM, JSON.stringify({ ...rest, isGift: false, toRecipient: false }))
       } catch {}
       clearCart()
+      if (d.accountNote) sessionStorage.setItem('gh_account_note', d.accountNote)
       router.replace(`/order/${d.token}/payment`)
+      if (d.accountCreated) router.refresh()
     } catch {
       setServerError('تعذر الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة — لن يتكرر الطلب عند إعادة الضغط.')
       setSubmitting(false)
@@ -431,6 +470,21 @@ export function CheckoutForm(props: CheckoutProps) {
                 toReview()
               }}
             >
+              {props.account ? (
+                <div className="notice small" style={{ marginBottom: 12 }}>
+                  <Lock size={16} />
+                  <span>
+                    مرحباً {props.account.name.split(' ')[0]}، عبّأنا بياناتك المحفوظة. سيُحفظ هذا الطلب في <Link className="link" href="/account">حسابك</Link>.
+                  </span>
+                </div>
+              ) : (
+                <div className="notice small" style={{ marginBottom: 12 }}>
+                  <Lock size={16} />
+                  <span>
+                    لديك حساب؟ <Link className="link" href="/account?next=/checkout">سجّل الدخول</Link> لتعبئة بياناتك تلقائياً. أو أكمل الطلب كزائر.
+                  </span>
+                </div>
+              )}
               <div className="card">
                 <h2 style={{ fontSize: '1.15rem' }}>بيانات التواصل</h2>
                 <div className="form-grid form-grid--2">
@@ -634,6 +688,34 @@ export function CheckoutForm(props: CheckoutProps) {
                   <input type="checkbox" checked={f.remember} onChange={(e) => set('remember', e.target.checked)} />
                   <span className="small">تذكر بياناتي على هذا الجهاز للطلبات القادمة</span>
                 </label>
+                {!props.account && (
+                  <>
+                    <label className="check" style={{ marginTop: 8 }}>
+                      <input type="checkbox" checked={makeAccount} onChange={(e) => setMakeAccount(e.target.checked)} />
+                      <span className="small">أنشئ لي حساباً برقم واتساب لحفظ بياناتي ومتابعة طلباتي السابقة</span>
+                    </label>
+                    {makeAccount && (
+                      <Field id="accountPassword" label="اختر كلمة مرور للحساب" error={errors.accountPassword} hint="6 أحرف أو أرقام على الأقل. ستدخل لاحقاً برقم واتساب وهذه الكلمة">
+                        <input
+                          id="accountPassword"
+                          className="input"
+                          type="password"
+                          dir="ltr"
+                          autoComplete="new-password"
+                          value={accountPassword}
+                          onChange={(e) => {
+                            setAccountPassword(e.target.value)
+                            setErrors((x) => {
+                              const n = { ...x }
+                              delete n.accountPassword
+                              return n
+                            })
+                          }}
+                        />
+                      </Field>
+                    )}
+                  </>
+                )}
               </div>
               <div className="row" style={{ marginTop: '1rem' }}>
                 <Link href="/cart" className="btn btn--ghost">

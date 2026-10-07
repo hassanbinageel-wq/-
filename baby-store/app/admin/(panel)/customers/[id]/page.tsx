@@ -7,7 +7,7 @@ import { formatMoney } from '@/lib/shared/money'
 import { formatDateTime } from '@/lib/shared/dates'
 import { formatIntl, waLink } from '@/lib/shared/phone'
 import { PageHead, OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/ui'
-import { CustomerNotes } from '@/components/admin/CustomerNotes'
+import { CustomerNotes, CustomerAccountBox } from '@/components/admin/CustomerNotes'
 import type { OrderRow } from '@/lib/server/orders'
 
 export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,6 +19,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   if (!c) notFound()
   const orders = await db().prepare('SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC').all(id) as OrderRow[]
   const store = await getSetting('store')
+  const account = await db().prepare('SELECT id, created_at, last_login_at FROM customer_accounts WHERE phone=?').get<{ id: number; created_at: string; last_login_at: string | null }>(c.phone)
   const m = (v: number) => formatMoney(v, store.currency)
   const totalValue = orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0)
   return (
@@ -67,6 +68,9 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
             </dl>
           </div>
           <CustomerNotes id={c.id} notes={c.notes || ''} />
+          <CustomerAccountBox
+            account={account ? { id: account.id, created: formatDateTime(account.created_at, store.timezone), lastLogin: account.last_login_at ? formatDateTime(account.last_login_at, store.timezone) : null } : null}
+          />
         </div>
       </div>
     </>

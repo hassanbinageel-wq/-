@@ -52,17 +52,10 @@ export function Wave({ className, style }: { className?: string; style?: CSSProp
   )
 }
 
+/** رمز غيمة (الدائرة مع حرف الغين والغيمة) */
 export function LogoMark({ size = 40 }: { size?: number }) {
-  return (
-    <svg className="logo__mark" width={size} height={size} viewBox="0 0 48 48" aria-hidden="true">
-      <circle cx="24" cy="24" r="23" fill="var(--c-soft)" />
-      <path d="M12 31q-6 0-6-5.5T12 20q1.5-6.5 8.5-6.5 6 0 8 5.5 6-1.5 8 4 4.5.5 4.5 4.3T36.5 31Z" fill="#fff" stroke="var(--c-primary)" strokeWidth="1.6" />
-      <path d="M33 9.5l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2.1 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="var(--c-accent)" />
-      <circle cx="19" cy="25" r="1.3" fill="var(--c-text)" />
-      <circle cx="27" cy="25" r="1.3" fill="var(--c-text)" />
-      <path d="M21.5 27.8q1.5 1.3 3 0" fill="none" stroke="var(--c-text)" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className="logo__mark" src="/brand/ghayma-symbol.svg" width={size} height={size} alt="" aria-hidden="true" />
 }
 
 /** دبدوب نائم على القمر — للصفحات الفارغة */

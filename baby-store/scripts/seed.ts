@@ -12,7 +12,8 @@ import type { ProductOption } from '../lib/shared/types'
 const withDemo = !process.argv.includes('--no-demo')
 const d = db()
 const actor = { id: 0, name: 'التهيئة' }
-const Y = (n: number) => n * 100 // ريال → سنت
+// الأسعار التجريبية مكتوبة بأرقام كبيرة وتُحفظ بالريال السعودي بعد القسمة على 100 (مثلاً 3500 ← 35 ر.س)
+const Y = (n: number) => n // ريال سعودي × 100 = سنت
 
 async function art(a: Art, color: string, accent: string, bg: string, purpose = 'product') {
   return demoMedia(demoSvg(a, color, accent, bg), { name: a, purpose, widths: [400, 800] })

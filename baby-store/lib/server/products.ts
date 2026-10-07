@@ -259,7 +259,7 @@ export async function saveProduct(input: ProductInput, actor: Actor): Promise<nu
       const ins = d.prepare('INSERT INTO product_images(product_id,media_id,alt,option_value,sort,role) VALUES(?,?,?,?,?,?)')
       for (const [i, im] of input.images.slice(0, 30).entries()) {
         const m = await d.prepare("SELECT id FROM media WHERE id=? AND kind='public'").get(im.mediaId)
-        const role = im.role === 'rail' || im.role === 'back' ? im.role : null
+        const role = im.role === 'rail' || im.role === 'rail_photo' || im.role === 'back' ? im.role : null
         if (m) await ins.run(id, im.mediaId, t(im.alt, 200), t(im.optionValue, 40), i, role)
       }
     }

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Mail, MapPin, Phone, Clock } from 'lucide-react'
 import type { Appearance } from '@/lib/shared/types'
 import type { StoreSettings } from '@/lib/shared/types'
-import { Wave, WhatsAppIcon, LogoMark, SocialIcon, Star } from './Deco'
+import { Wave, WhatsAppIcon, SocialIcon, Star } from './Deco'
 import { formatIntl } from '@/lib/shared/phone'
 
 export function Footer({ a, store, whatsapp }: { a: Appearance; store: StoreSettings; whatsapp: string }) {
@@ -15,7 +15,8 @@ export function Footer({ a, store, whatsapp }: { a: Appearance; store: StoreSett
         <div className="footer__grid">
           <div>
             <Link href="/" className="logo" style={{ marginBottom: '0.6rem' }}>
-              <LogoMark /> <span>{a.brand.name}</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/ghayma-logo.svg" alt={a.brand.name} className="footer__logo" />
             </Link>
             <p className="muted small" style={{ maxWidth: 360 }}>
               {a.footer.about}

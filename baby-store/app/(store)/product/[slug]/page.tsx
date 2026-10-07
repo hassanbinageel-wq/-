@@ -191,7 +191,7 @@ export default async function ProductPage({ params }: Props) {
               {p.personalization && (
                 <p>
                   يمكن كتابة {p.personalization.label} (حتى {p.personalization.maxLength} حرفاً)
-                  {p.personalization.fee > 0 && <> برسوم {formatMoney(p.personalization.fee, store.currency)} للقطعة</>}
+                  {p.personalization.fee > 0 && <> برسوم {formatMoney(p.personalization.fee, ctx.config.currency)} للقطعة</>}
                   {p.personalization.extraDays > 0 && <>، ويضيف {p.personalization.extraDays} يوم عمل لمدة التجهيز</>}.
                 </p>
               )}

@@ -8,7 +8,8 @@ import { activeMethods, publicItems } from '@/lib/server/order-view'
 import { getSetting, storeWhatsapp } from '@/lib/server/settings'
 import { OWNER_COOKIE, readOwned } from '@/lib/server/order-access'
 import { PaymentActions } from '@/components/store/PaymentActions'
-import { formatMoney } from '@/lib/shared/money'
+import { formatMoney, plainAmount } from '@/lib/shared/money'
+import { orderCurrency, orderBaseCurrency } from '@/lib/server/currency'
 import { formatDateTime, toDate } from '@/lib/shared/dates'
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/shared/constants'
 import { Star, Cloud } from '@/components/store/Deco'
@@ -20,14 +21,16 @@ export default async function PaymentPage({ params }: { params: Promise<{ token:
   const o = await getOrderByToken(token)
   if (!o) notFound()
   const store = await getSetting('store')
-  const cur = { ...store.currency, symbol: o.currency_symbol }
+  const cur = orderCurrency(o, store)
   const owner = (await readOwned((await cookies()).get(OWNER_COOKIE)?.value)).includes(o.id)
   const link = await orderWhatsappLink(o, await getOrderItems(o.id), { masked: !owner })
   const items = await publicItems(o)
   const deadline = o.stock_state === 'reserved' ? toDate(o.reservation_expires_at) : null
   const awaiting = ['awaiting_transfer', 'needs_review', 'partially_paid'].includes(o.payment_status) && o.status !== 'cancelled'
   const firstName = o.customer_name.split(' ')[0]
-  const totalRaw = (o.total / 100).toFixed(Math.min(2, store.currency.decimals))
+  const totalRaw = plainAmount(o.total, cur)
+  const base = orderBaseCurrency(o, store)
+  const totalNote = cur.id !== 'base' ? `${cur.label} — يعادل ${formatMoney(o.total, base)} حسب سعر الصرف المعتمد وقت الطلب` : null
 
   return (
     <div className="container" style={{ paddingTop: '1.2rem', paddingBottom: '3rem', maxWidth: 860 }}>
@@ -74,6 +77,7 @@ export default async function PaymentPage({ params }: { params: Promise<{ token:
           <PaymentActions
             token={o.token}
             totalText={formatMoney(o.total, cur)}
+            totalNote={totalNote}
             totalRaw={totalRaw}
             methods={await activeMethods()}
             selectedId={o.transfer_method_id}

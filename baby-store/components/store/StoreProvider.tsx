@@ -6,7 +6,10 @@ import type { Appearance, CartLineSnapshot } from '@/lib/shared/types'
 
 export type StoreConfig = {
   storeName: string
+  /** عملة العرض التي اختارها الزائر (بسعر الصرف) */
   currency: CurrencyConfig
+  currencies: { id: string; label: string; symbol: string }[]
+  account: { name: string } | null
   labels: Record<string, string>
   whatsapp: string
   productCard: Appearance['productCard']

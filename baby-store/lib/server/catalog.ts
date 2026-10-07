@@ -165,9 +165,9 @@ export async function railItems(productIds: number[], limit: number): Promise<Ra
   const items: RailItem[] = []
   for (const x of list) {
     const imgs = byProduct.get(x.row.id) || []
-    const rail = imgs.find((r) => r.role === 'rail')
-    const front = rail || imgs.find((r) => r.role !== 'back') || imgs[0]
-    const back = imgs.find((r) => r.role === 'back' && r !== front)
+    const railPhoto = imgs.find((r) => r.role === 'rail_photo')
+    const rail = railPhoto ? null : imgs.find((r) => r.role === 'rail')
+    const front = railPhoto || rail || imgs.find((r) => r.role !== 'back') || imgs[0]
     const frontRef = front ? imageRef({ ...front, id: front.media_id }, front.alt || x.card.name, null, 800) : null
     if (!frontRef) continue
     const nc = x.colors.length
@@ -182,8 +182,7 @@ export async function railItems(productIds: number[], limit: number): Promise<Ra
       priceFrom: x.card.priceFrom,
       available: x.card.available,
       front: frontRef,
-      back: back ? imageRef({ ...back, id: back.media_id }, back.alt || x.card.name, null, 800) : null,
-      cutout: !!rail,
+      hanger: railPhoto ? 'photo' : rail ? 'cutout' : 'card',
       isDemo: x.card.isDemo,
     })
     if (items.length >= max) break

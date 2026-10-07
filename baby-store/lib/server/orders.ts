@@ -6,7 +6,8 @@ import { getPublishedAppearance } from './appearance'
 import { randomToken } from './security'
 import { ApiError } from './errors'
 import { validatePhone, formatIntl, maskName, maskPhone, waLink } from '../shared/phone'
-import { formatMoney } from '../shared/money'
+import { formatMoney, convertMoney } from '../shared/money'
+import { pickCurrency, orderCurrency, orderBaseCurrency } from './currency'
 import { formatDateTime } from '../shared/dates'
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, FULFILLMENT_LABELS, type OrderStatus, type PaymentStatus } from '../shared/constants'
 import type { CartLineInput } from '../shared/types'
@@ -49,6 +50,14 @@ export type OrderRow = {
   total: number
   currency: string
   currency_symbol: string
+  display_currency: string | null
+  display_label: string | null
+  display_symbol: string | null
+  display_decimals: number | null
+  display_rate: number | null
+  display_round_to: number | null
+  display_total: number | null
+  account_id: number | null
   coupon_id: number | null
   coupon_code: string | null
   transfer_method_id: number | null
@@ -205,7 +214,7 @@ export async function quoteForOrder(input: CreateOrderInput, phone?: string | nu
   })
 }
 
-export async function createOrder(input: CreateOrderInput, ctx: { ipHash: string }): Promise<{ id: number; number: string; token: string; existing: boolean }> {
+export async function createOrder(input: CreateOrderInput, ctx: { ipHash: string; currencyId?: string | null; accountId?: number | null }): Promise<{ id: number; number: string; token: string; existing: boolean }> {
   const d = db()
   if (!input.idempotencyKey || input.idempotencyKey.length < 16 || input.idempotencyKey.length > 100) {
     throw new ApiError(400, 'طلب غير صالح، أعد تحميل الصفحة')
@@ -402,6 +411,14 @@ export async function createOrder(input: CreateOrderInput, ctx: { ipHash: string
       `${number} — ${clean(c.name, 80)} — ${formatMoney(quote.total, store.currency)}`,
       `/admin/orders/${orderId}`,
     )
+    // عملة العرض التي رأى بها العميل الأسعار، بسعر الصرف وقت الطلب
+    const shown = pickCurrency(store, ctx.currencyId)
+    if (shown.id !== 'base' && shown.rate) {
+      await d
+        .prepare('UPDATE orders SET display_currency=?, display_label=?, display_symbol=?, display_decimals=?, display_rate=?, display_round_to=?, display_total=? WHERE id=?')
+        .run(shown.id!, shown.label || shown.code, shown.symbol, shown.decimals, shown.rate, shown.roundTo || 1, convertMoney(quote.total, shown), orderId)
+    }
+    if (ctx.accountId) await d.prepare('UPDATE orders SET account_id=? WHERE id=?').run(ctx.accountId, orderId)
     return { id: orderId, number, token, existing: false }
   })
 }
@@ -599,7 +616,8 @@ export async function storeName(): Promise<string> {
 
 export async function buildOrderWhatsappMessage(o: OrderRow, items: OrderItemRow[], opts: { masked?: boolean; methodName?: string | null } = {}): Promise<string> {
   const store = await getSetting('store')
-  const cur = { ...store.currency, symbol: o.currency_symbol }
+  const base = orderBaseCurrency(o, store)
+  const cur = orderCurrency(o, store)
   const m = (c: number) => formatMoney(c, cur)
   const masked = !!opts.masked
   const L: string[] = []
@@ -656,7 +674,10 @@ export async function buildOrderWhatsappMessage(o: OrderRow, items: OrderItemRow
   if (o.wrap_fee || o.gift_wrap_name) L.push(`التغليف: ${o.gift_wrap_name ? `${o.gift_wrap_name} — ` : ''}${m(o.wrap_fee)}`)
   if (o.personalization_fee) L.push(`التخصيص: ${m(o.personalization_fee)}`)
   if (o.fulfillment === 'delivery') L.push(`الشحن: ${o.shipping_fee ? m(o.shipping_fee) : 'مجاني'}`)
-  L.push(`الإجمالي المطلوب: ${m(o.total)} (${o.currency})`)
+  if (cur.id !== 'base') {
+    L.push(`الإجمالي المطلوب: ${m(o.total)} (${cur.label})`)
+    L.push(`ما يعادل: ${formatMoney(o.total, base)} — سعر الصرف المعتمد: 1 ${base.symbol} = ${cur.rate} ${cur.symbol}`)
+  } else L.push(`الإجمالي المطلوب: ${m(o.total)} (${base.label || o.currency})`)
   const method = opts.methodName ?? o.transfer_method_name
   if (method) L.push(`وسيلة التحويل المختارة: ${method}`)
   if (o.notes && !masked) L.push(`ملاحظات الطلب: ${o.notes}`)
@@ -679,7 +700,7 @@ export function trackingUrl(o: Pick<OrderRow, 'token'>, origin?: string) {
 /** تعبئة قالب رسالة للموظف */
 export async function fillTemplate(body: string, o: OrderRow, origin?: string): Promise<string> {
   const store = await getSetting('store')
-  const cur = { ...store.currency, symbol: o.currency_symbol }
+  const cur = orderCurrency(o, store)
   const methods = await db().prepare('SELECT * FROM transfer_methods WHERE active=1 ORDER BY sort, id').all() as {
     name: string; beneficiary: string; account_number: string; currency: string | null; extra_info: string | null
   }[]
@@ -693,7 +714,7 @@ export async function fillTemplate(body: string, o: OrderRow, origin?: string): 
     customer_name: o.customer_name.split(' ')[0] || o.customer_name,
     customer_full_name: o.customer_name,
     order_number: ltr(o.number),
-    total: formatMoney(o.total, cur),
+    total: cur.id !== 'base' ? `${formatMoney(o.total, cur)} (${cur.label})` : formatMoney(o.total, cur),
     remaining_amount: formatMoney(Math.max(0, sum.balance), cur),
     store_name: await storeName(),
     tracking_link: trackingUrl(o, origin),

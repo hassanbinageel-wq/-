@@ -1,7 +1,7 @@
 import { db, parseJson } from './db'
 import { bumpCacheVersion, ensureFresh, onInvalidate } from './cache'
 import type { AllSettings, MessageTemplate } from '../shared/types'
-import { DEFAULT_CURRENCY } from '../shared/money'
+import { DEFAULT_CURRENCY, DEFAULT_BASE_LABEL, DEFAULT_DISPLAY_CURRENCIES } from '../shared/money'
 
 export const DEFAULT_MESSAGES: MessageTemplate[] = [
   {
@@ -44,6 +44,8 @@ export const DEFAULT_MESSAGES: MessageTemplate[] = [
 export const DEFAULT_SETTINGS: AllSettings = {
   store: {
     currency: { ...DEFAULT_CURRENCY },
+    currencyLabel: DEFAULT_BASE_LABEL,
+    displayCurrencies: DEFAULT_DISPLAY_CURRENCIES.map((c) => ({ ...c })),
     timezone: 'Asia/Aden',
     whatsappCountryCode: '967',
     whatsappNumber: '775038900',
@@ -107,7 +109,13 @@ function mergeDefaults<K extends Key>(key: K, value: unknown): AllSettings[K] {
   }
   const obj = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>
   const merged = { ...(def as object), ...obj } as Record<string, unknown>
-  if (key === 'store') merged.currency = { ...DEFAULT_CURRENCY, ...((obj.currency as object) || {}) }
+  if (key === 'store') {
+    merged.currency = { ...DEFAULT_CURRENCY, ...((obj.currency as object) || {}) }
+    // نضمن وجود العملتين اليمنيتين في القائمة حتى لو حُفظت الإعدادات قبل إضافتها
+    const saved = Array.isArray(obj.displayCurrencies) ? (obj.displayCurrencies as { id: string }[]) : []
+    const ids = new Set(saved.map((c) => c.id))
+    merged.displayCurrencies = [...saved, ...DEFAULT_DISPLAY_CURRENCIES.filter((c) => !ids.has(c.id)).map((c) => ({ ...c }))]
+  }
   return merged as AllSettings[K]
 }
 

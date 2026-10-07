@@ -20,7 +20,7 @@ export type EditorRefs = {
 }
 
 type Variant = NonNullable<ProductInput['variants']>[number]
-type Img = { mediaId: number; url: string; alt?: string | null; optionValue?: string | null; role?: 'rail' | 'back' | null }
+type Img = { mediaId: number; url: string; alt?: string | null; optionValue?: string | null; role?: 'rail' | 'rail_photo' | 'back' | null }
 
 const blank = (type: ProductInput['type']): ProductInput => ({
   type,

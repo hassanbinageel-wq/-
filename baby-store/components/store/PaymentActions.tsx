@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Copy, Check, Landmark, Wallet, ArrowLeftRight, CreditCard, RefreshCw, Info } from 'lucide-react'
 import { WhatsAppIcon } from './Deco'
 import { useStore } from './StoreProvider'
@@ -16,6 +16,7 @@ export type MethodView = {
   currency: string | null
   instructions: string | null
   qr: string | null
+  logo?: string | null
 }
 
 const ICONS: Record<string, typeof Landmark> = { bank: Landmark, wallet: Wallet, exchange: ArrowLeftRight, other: CreditCard }
@@ -48,6 +49,7 @@ export function CopyButton({ value, label = 'نسخ', small }: { value: string; 
 export function PaymentActions({
   token,
   totalText,
+  totalNote,
   totalRaw,
   methods,
   selectedId,
@@ -58,6 +60,7 @@ export function PaymentActions({
 }: {
   token: string
   totalText: string
+  totalNote?: string | null
   totalRaw: string
   methods: MethodView[]
   selectedId: number | null
@@ -72,6 +75,16 @@ export function PaymentActions({
   const [busy, setBusy] = useState(false)
   const [opened, setOpened] = useState(false)
   const { toast } = useStore()
+
+  useEffect(() => {
+    try {
+      const note = sessionStorage.getItem('gh_account_note')
+      if (note) {
+        sessionStorage.removeItem('gh_account_note')
+        toast(`تم إنشاء الطلب، لكن لم يُنشأ الحساب: ${note}`, { type: 'error' })
+      }
+    } catch {}
+  }, [toast])
 
   const choose = async (id: number) => {
     setSelected(id)
@@ -110,6 +123,11 @@ export function PaymentActions({
             المبلغ المطلوب تحويله
           </span>
           <strong className="num">{totalText}</strong>
+          {totalNote && (
+            <span className="small muted" style={{ display: 'block' }}>
+              {totalNote}
+            </span>
+          )}
         </span>
         <CopyButton value={totalRaw} label="نسخ المبلغ" />
       </div>
@@ -136,9 +154,14 @@ export function PaymentActions({
                 <div key={m.id} className={`method ${on ? 'is-selected' : ''}`}>
                   <button type="button" className="method__head" onClick={() => choose(m.id)} aria-expanded={on}>
                     <input type="radio" readOnly checked={on} tabIndex={-1} style={{ accentColor: 'var(--c-primary)', width: 20, height: 20 }} aria-hidden="true" />
-                    <span className="feature__icon" style={{ width: 40, height: 40 }}>
-                      <Icon size={20} />
-                    </span>
+                    {m.logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img className="method__logo" src={m.logo} alt={`شعار ${m.name}`} width={44} height={44} />
+                    ) : (
+                      <span className="feature__icon" style={{ width: 40, height: 40 }}>
+                        <Icon size={20} />
+                      </span>
+                    )}
                     <span className="grow">
                       <b>{m.name}</b>
                       <span className="small muted" style={{ display: 'block' }}>

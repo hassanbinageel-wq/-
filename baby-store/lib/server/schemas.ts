@@ -52,5 +52,7 @@ export const createOrderSchema = z.object({
     .nullable()
     .optional(),
   transferMethodId: z.number().int().nullable().optional(),
+  /** إنشاء حساب مع الطلب (اختياري): كلمة مرور لحفظ البيانات والطلبات */
+  accountPassword: z.string().max(200).optional().nullable(),
   website: z.string().max(0, 'طلب غير صالح').optional(),
 })

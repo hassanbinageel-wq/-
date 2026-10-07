@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowUpLeft, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { RailItem } from '@/lib/shared/types'
 import { Price } from './ProductCard'
@@ -14,20 +14,59 @@ type Mode = 'hover' | 'scroll'
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
-function Hanger({ big = false }: { big?: boolean }) {
+/** شماعة خشبية واقعية: خطاف معدني ورقبة وكتفان خشبيان (للصور المفرغة بدون شماعة) أو عارضة بمشبكين (للصور العادية) */
+function Hanger({ kind, big = false }: { kind: 'shoulder' | 'clip'; big?: boolean }) {
+  const uid = useId().replace(/:/g, '')
+  const wood = `hw-${uid}`
+  const metal = `hm-${uid}`
   return (
-    <svg className={`rail__hanger ${big ? 'rail__hanger--big' : ''}`} viewBox="0 0 200 60" aria-hidden="true" focusable="false">
-      <path d="M100 30 V17 a8.5 8.5 0 1 1 8.5 -8.5" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" className="rail__hanger-hook" />
-      <path d="M100 27 L14 50 Q4 53 10 57 L190 57 Q196 53 186 50 Z" className="rail__hanger-wood" />
+    <svg
+      className={`rail__hanger rail__hanger--${kind} ${big ? 'rail__hanger--big' : ''}`}
+      viewBox={kind === 'shoulder' ? '0 0 200 62' : '0 0 200 60'}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <linearGradient id={wood} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#e2b884" />
+          <stop offset="0.45" stopColor="#c08b52" />
+          <stop offset="1" stopColor="#8d5b2e" />
+        </linearGradient>
+        <linearGradient id={metal} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#8f8a92" />
+          <stop offset="0.45" stopColor="#f2f0f3" />
+          <stop offset="1" stopColor="#7d7880" />
+        </linearGradient>
+      </defs>
+      <path d="M100 31 V17.5 a8.6 8.6 0 1 1 8.6 -8.6" fill="none" stroke={`url(#${metal})`} strokeWidth="3.2" strokeLinecap="round" />
+      <rect x="96.6" y="25.5" width="6.8" height="6.5" rx="1.6" fill={`url(#${metal})`} />
+      {kind === 'shoulder' ? (
+        <g>
+          <path d="M10 59 Q3.5 57 8 51.8 Q50 35 100 29.5 Q150 35 192 51.8 Q196.5 57 190 59 Q150 45 100 39.6 Q50 45 10 59 Z" fill={`url(#${wood})`} stroke="#7a4d25" strokeOpacity="0.55" strokeWidth="0.8" />
+          <path d="M14 52.6 Q52 36.6 100 31.4 Q148 36.6 186 52.6" fill="none" stroke="#fff" strokeOpacity="0.42" strokeWidth="1.1" strokeLinecap="round" />
+          <path d="M30 50 Q62 39.5 92 35.8 M108 35.8 Q138 39.5 170 50" fill="none" stroke="#6b421f" strokeOpacity="0.16" strokeWidth="0.7" />
+        </g>
+      ) : (
+        <g>
+          <rect x="12" y="30" width="176" height="11.5" rx="5.75" fill={`url(#${wood})`} stroke="#7a4d25" strokeOpacity="0.55" strokeWidth="0.8" />
+          <path d="M18 32.6 H182" stroke="#fff" strokeOpacity="0.4" strokeWidth="1.1" strokeLinecap="round" />
+          {[44, 156].map((x) => (
+            <g key={x}>
+              <rect x={x - 6.5} y="38" width="13" height="19" rx="2.2" fill={`url(#${metal})`} stroke="#6e6972" strokeWidth="0.7" />
+              <path d={`M${x - 4} 44 H${x + 4}`} stroke="#6e6972" strokeWidth="0.8" strokeLinecap="round" />
+            </g>
+          ))}
+        </g>
+      )}
     </svg>
   )
 }
 
-function Garment({ item, side = 'front', eager = false, sizes }: { item: RailItem; side?: 'front' | 'back'; eager?: boolean; sizes: string }) {
-  const img = side === 'back' && item.back ? item.back : item.front
+function Garment({ item, eager = false, sizes }: { item: RailItem; eager?: boolean; sizes: string }) {
+  const img = item.front
   return (
     <img
-      className={`rail__img ${item.cutout ? 'is-cutout' : 'is-card'}`}
+      className={`rail__img is-${item.hanger}`}
       src={img.url}
       srcSet={img.srcset || undefined}
       sizes={sizes}
@@ -37,6 +76,12 @@ function Garment({ item, side = 'front', eager = false, sizes }: { item: RailIte
       decoding="async"
     />
   )
+}
+
+/** الشماعة المناسبة لنوع صورة القطعة */
+function HangerFor({ item, big }: { item: RailItem; big?: boolean }) {
+  if (item.hanger === 'photo') return null
+  return <Hanger kind={item.hanger === 'cutout' ? 'shoulder' : 'clip'} big={big} />
 }
 
 export function Rail({
@@ -178,7 +223,7 @@ export function Rail({
               >
                 <span className="rail__swing">
                   <span className="rail__turn">
-                    {it.cutout ? <Hanger /> : <span className="rail__peg" aria-hidden="true" />}
+                    <HangerFor item={it} />
                     <Garment item={it} eager={i < 6} sizes={mode === 'scroll' ? '60vw' : '260px'} />
                   </span>
                 </span>
@@ -209,14 +254,11 @@ export function Rail({
 function RailFocus({ items, index, onIndex, onClose }: { items: RailItem[]; index: number; onIndex: (i: number) => void; onClose: () => void }) {
   const { config } = useStore()
   const it = items[index]
-  const [side, setSide] = useState<'front' | 'back'>('front')
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const touch = useRef<{ x: number; y: number } | null>(null)
   const n = items.length
   const go = useCallback((d: number) => onIndex((index + d + n) % n), [index, n, onIndex])
-
-  useEffect(() => setSide('front'), [index])
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -283,17 +325,9 @@ function RailFocus({ items, index, onIndex, onClose }: { items: RailItem[]; inde
         )}
         <figure className="rail-focus__stage" key={it.id}>
           <span className="rail-focus__string" aria-hidden="true" />
-          <div className={`rail-focus__flip ${side === 'back' ? 'is-back' : ''}`}>
-            <div className="rail-focus__face">
-              {it.cutout ? <Hanger big /> : <span className="rail__peg rail__peg--big" aria-hidden="true" />}
-              <Garment item={it} eager sizes="(min-width: 900px) 380px, 70vw" />
-            </div>
-            {it.back && (
-              <div className="rail-focus__face rail-focus__face--back">
-                {it.cutout ? <Hanger big /> : <span className="rail__peg rail__peg--big" aria-hidden="true" />}
-                <Garment item={it} side="back" eager sizes="(min-width: 900px) 380px, 70vw" />
-              </div>
-            )}
+          <div className="rail-focus__face">
+            <HangerFor item={it} big />
+            <Garment item={it} eager sizes="(min-width: 900px) 380px, 70vw" />
           </div>
           <figcaption className="sr-only">{it.front.alt || it.name}</figcaption>
         </figure>
@@ -308,16 +342,6 @@ function RailFocus({ items, index, onIndex, onClose }: { items: RailItem[]; inde
           {it.subtitle && <p className="rail-focus__sub">{it.subtitle}</p>}
           <Price price={it.price} compareAt={it.compareAt} from={it.priceFrom} className="rail-focus__price" />
           {!it.available && <p className="rail-focus__oos">غير متوفر حالياً</p>}
-          {it.back && (
-            <div className="rail-focus__sides" role="group" aria-label="جهة القطعة">
-              <button type="button" aria-pressed={side === 'front'} onClick={() => setSide('front')}>
-                الأمام
-              </button>
-              <button type="button" aria-pressed={side === 'back'} onClick={() => setSide('back')}>
-                الخلف
-              </button>
-            </div>
-          )}
           <div className="rail-focus__foot">
             <span>{config.storeName}</span>
             <Link href={`/product/${encodeURIComponent(it.slug)}`} className="rail-focus__link">

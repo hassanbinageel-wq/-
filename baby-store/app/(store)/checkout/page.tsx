@@ -5,6 +5,7 @@ import { shippingOptions } from '@/lib/server/pricing'
 import { getSetting } from '@/lib/server/settings'
 import { db } from '@/lib/server/db'
 import { getMediaMap, imageRef } from '@/lib/server/media'
+import { currentAccount } from '@/lib/server/customer-auth'
 
 export const metadata: Metadata = { title: 'إتمام الطلب', robots: { index: false } }
 
@@ -12,6 +13,7 @@ export default async function CheckoutPage() {
   const checkout = await getSetting('checkout')
   const gifts = await getSetting('gifts')
   const store = await getSetting('store')
+  const acct = await currentAccount()
   const wrapRows = await db().prepare('SELECT id, name, description, price, image_id FROM gift_wraps WHERE active=1 ORDER BY sort, id').all<{
     id: number; name: string; description: string | null; price: number; image_id: number | null
   }>()
@@ -19,7 +21,7 @@ export default async function CheckoutPage() {
   const wraps = wrapRows.map((w) => ({ id: w.id, name: w.name, description: w.description, price: w.price, image: imageRef(media.get(w.image_id!), w.name, null, 320)?.url || null }))
   return (
     <div className="container" style={{ paddingTop: '1.4rem', paddingBottom: '3rem' }}>
-      <SectionTitle title="إتمام الطلب" subtitle="الطلب كزائر بدون إنشاء حساب" as="h1" />
+      <SectionTitle title="إتمام الطلب" subtitle={acct ? 'بياناتك المحفوظة جاهزة' : 'اطلب كزائر أو سجّل الدخول لحفظ بياناتك'} as="h1" />
       <CheckoutForm
         shipping={await shippingOptions()}
         deliveryEnabled={checkout.deliveryEnabled}
@@ -32,6 +34,11 @@ export default async function CheckoutPage() {
         wraps={wraps}
         defaultCountry={store.defaultCountry}
         defaultPhoneCode={store.defaultPhoneCode}
+        account={
+          acct
+            ? { name: acct.name, phone: acct.phone, country: acct.country, city: acct.city, area: acct.area, address: acct.address, landmark: acct.landmark, mapUrl: acct.map_url }
+            : null
+        }
       />
     </div>
   )

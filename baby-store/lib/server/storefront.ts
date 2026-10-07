@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { draftMode, headers } from 'next/headers'
+import { cookies, draftMode, headers } from 'next/headers'
 import { db } from './db'
 import { getDraftAppearance, getPublishedAppearance } from './appearance'
 import { getSetting, siteUrl, storeWhatsapp } from './settings'
@@ -9,6 +9,8 @@ import { releaseExpiredReservations } from './inventory'
 import { isScheduledActive } from '../shared/theme'
 import type { Appearance } from '../shared/types'
 import type { StoreConfig } from '@/components/store/StoreProvider'
+import { storeCurrencies, pickCurrency, CURRENCY_COOKIE } from './currency'
+import { currentAccount } from './customer-auth'
 
 export type StoreContext = {
   a: Appearance
@@ -31,6 +33,8 @@ export const getStoreContext = cache(async (): Promise<StoreContext> => {
   const origin = siteUrl(`${proto}://${host}`)
   const store = await getSetting('store')
   const shipping = await getSetting('shipping')
+  const jar = await cookies()
+  const account = await currentAccount()
   return {
     a,
     preview,
@@ -38,7 +42,9 @@ export const getStoreContext = cache(async (): Promise<StoreContext> => {
     origin,
     config: {
       storeName: a.brand.name,
-      currency: store.currency,
+      currency: pickCurrency(store, jar.get(CURRENCY_COOKIE)?.value),
+      currencies: storeCurrencies(store).map((c) => ({ id: c.id!, label: c.label || c.code, symbol: c.symbol })),
+      account: account ? { name: account.name } : null,
       labels: a.labels,
       whatsapp: await storeWhatsapp(),
       productCard: a.productCard,
@@ -65,8 +71,9 @@ export function announcementFor(a: Appearance) {
   return { items: an.items.filter((i) => i.label), bg: an.bg, fg: an.fg }
 }
 
+/** الشعار المرفوع من لوحة التحكم، وإلا شعار غيمة الأفقي الافتراضي */
 export async function logoUrl(a: Appearance): Promise<string | null> {
-  return (await imageRefById(a.brand.logoId, a.brand.name, 320))?.url || null
+  return (await imageRefById(a.brand.logoId, a.brand.name, 640))?.url || '/brand/ghayma-logo.svg'
 }
 
 /** مهمة دورية خفيفة عند الطلبات: تحرير الحجوزات المنتهية (مرة كل دقيقة على الأكثر) */

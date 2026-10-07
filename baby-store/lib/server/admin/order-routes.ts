@@ -3,6 +3,7 @@ import { json, readJson, readFile } from '../api'
 import { ApiError } from '../errors'
 import { db, nowSql, parseJson } from '../db'
 import { audit } from '../auth'
+import { adminResetAccountPassword } from '../customer-auth'
 import {
   addEvent,
   cancelOrder,
@@ -293,6 +294,18 @@ export const ORDER_ROUTES: Route[] = [
       const { notes } = await readJson(req, z.object({ notes: z.string().max(2000) }))
       await db().prepare("UPDATE customers SET notes=?, updated_at=datetime('now') WHERE id=?").run(notes, num(params.id))
       await audit(user, 'customer_notes', 'customer', params.id, null, ip)
+      return json({ ok: true })
+    },
+  },
+  {
+    // كلمة مرور جديدة لحساب العميل (بعد التحقق منه عبر واتساب من نفس الرقم)
+    method: 'POST',
+    path: 'customer-accounts/:id/password',
+    perm: 'owner',
+    handler: async ({ req, params, user, ip }) => {
+      const { password } = await readJson(req, z.object({ password: z.string().max(200) }))
+      await adminResetAccountPassword(num(params.id), password)
+      await audit(user, 'customer_password_reset', 'customer_account', params.id, null, ip)
       return json({ ok: true })
     },
   },

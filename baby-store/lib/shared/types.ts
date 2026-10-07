@@ -1,9 +1,14 @@
-import type { CurrencyConfig } from './money'
+import type { CurrencyConfig, DisplayCurrency } from './money'
 import type { HomeSectionType } from './constants'
 
 // ===== إعدادات المتجر (تُحفظ في جدول settings) =====
 export type StoreSettings = {
+  /** العملة الأساسية: تُدخل بها الأسعار وتُحسب بها الطلبات */
   currency: CurrencyConfig
+  /** اسم العملة الأساسية للعميل في مبدّل العملة */
+  currencyLabel: string
+  /** عملات عرض إضافية بسعر صرف يحدده المالك */
+  displayCurrencies: DisplayCurrency[]
   timezone: string
   whatsappCountryCode: string
   whatsappNumber: string
@@ -196,8 +201,11 @@ export type Personalization = {
 
 export type ImageRef = { id: number; url: string; srcset: string; w: number | null; h: number | null; alt: string; optionValue: string | null }
 
-/** دور الصورة: عادية، أو صورة الشماعة (الأمام بخلفية شفافة، لا تظهر في المعرض)، أو صورة الخلف */
-export type ImageRole = 'rail' | 'back' | null
+/**
+ * دور الصورة: عادية، أو صورة الشماعة المفرغة (خلفية شفافة بدون شماعة، نرسم لها شماعة خشبية ولا تظهر في المعرض)،
+ * أو صورة حقيقية للقطعة معلقة على شماعتها (تُعرض كما هي)، أو صورة الخلف (تظهر في معرض المنتج فقط)
+ */
+export type ImageRole = 'rail' | 'rail_photo' | 'back' | null
 
 /** عنصر في قسم «على الشماعة» */
 export type RailItem = {
@@ -210,8 +218,8 @@ export type RailItem = {
   priceFrom: boolean
   available: boolean
   front: ImageRef
-  back: ImageRef | null
-  cutout: boolean
+  /** cutout: صورة مفرغة نرسم لها شماعة بكتفين، photo: صورة فيها الشماعة الحقيقية، card: صورة عادية تُعلق بمشبكين */
+  hanger: 'cutout' | 'photo' | 'card'
   isDemo: boolean
 }
 

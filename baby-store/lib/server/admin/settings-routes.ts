@@ -99,6 +99,22 @@ const appearanceSchema = z.object({
 const SETTING_SCHEMAS = {
   store: z.object({
     currency: z.object({ code: s(6).min(2), symbol: s(10).min(1), decimals: z.number().int().min(0).max(2), numerals: z.enum(['latn', 'arab']) }),
+    currencyLabel: s(40).min(1, 'اكتب اسم العملة الأساسية'),
+    displayCurrencies: z
+      .array(
+        z.object({
+          id: z.string().regex(/^[a-z0-9_]{1,30}$/),
+          label: s(40).min(1, 'اكتب اسم العملة'),
+          code: s(6).min(2),
+          symbol: s(16).min(1),
+          decimals: z.number().int().min(0).max(2),
+          rate: z.number().min(0).max(1e7),
+          roundTo: z.number().int().min(1).max(100000),
+          enabled: z.boolean(),
+        }),
+      )
+      .max(6)
+      .refine((l) => l.every((c) => !c.enabled || c.rate > 0), 'أدخل سعر الصرف قبل تفعيل العملة'),
     timezone: s(60).refine((tz) => {
       try {
         new Intl.DateTimeFormat('en', { timeZone: tz })
@@ -227,6 +243,7 @@ const methodSchema = z.object({
   currency: s(80),
   instructions: s(1000),
   qrMediaId: z.number().int().nullable(),
+  logoMediaId: z.number().int().nullable().default(null),
   active: z.boolean(),
 })
 const couponSchema = z.object({
@@ -330,7 +347,7 @@ export const SETTINGS_ROUTES: Route[] = [
   }), 'owner'),
   ...crud('transfer_methods', methodSchema, (b: z.infer<typeof methodSchema>) => ({
     name: b.name, type: b.type, beneficiary: b.beneficiary.trim(), account_number: b.accountNumber.trim(), extra_info: b.extraInfo || null,
-    currency: b.currency || null, instructions: b.instructions || null, qr_media_id: b.qrMediaId, active: b.active ? 1 : 0, updated_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    currency: b.currency || null, instructions: b.instructions || null, qr_media_id: b.qrMediaId, logo_media_id: b.logoMediaId, active: b.active ? 1 : 0, updated_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
   }), 'owner'),
   ...crud('coupons', couponSchema, (b: z.infer<typeof couponSchema>) => {
     if (b.type === 'percent' && b.value > 10000) throw new ApiError(400, 'نسبة الخصم لا تتجاوز 100%')

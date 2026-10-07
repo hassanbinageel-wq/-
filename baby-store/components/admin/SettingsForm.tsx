@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { api, useAction, PageHead, Field, Switch, NumInput, Tabs } from './ui'
+import { formatMoney, convertMoney } from '@/lib/shared/money'
 import type { AllSettings } from '@/lib/shared/types'
 
 export function SettingsForm({ initial, tab: tab0, demo }: { initial: AllSettings; tab: string; demo: { products: number; zones: number; coupons: number; wraps: number } }) {
@@ -21,6 +22,7 @@ export function SettingsForm({ initial, tab: tab0, demo }: { initial: AllSetting
       <Tabs
         tabs={[
           { key: 'store', label: 'المتجر وواتساب' },
+          { key: 'currency', label: 'العملات وسعر الصرف' },
           { key: 'orders', label: 'الطلبات والحجز' },
           { key: 'inventory', label: 'المخزون' },
           { key: 'maintenance', label: 'وضع الصيانة' },
@@ -41,24 +43,6 @@ export function SettingsForm({ initial, tab: tab0, demo }: { initial: AllSetting
             <p className="a-span-2 small" style={{ margin: 0 }}>
               الرقم الدولي: <b dir="ltr">+{store.whatsappCountryCode}{store.whatsappNumber.replace(/^0+/, '')}</b> — رابط المحادثة: <span dir="ltr">wa.me/{store.whatsappCountryCode}{store.whatsappNumber.replace(/^0+/, '')}</span>
             </p>
-            <Field label="رمز العملة (ISO)" hint="مثل YER أو SAR">
-              <input className="a-input" dir="ltr" value={store.currency.code} onChange={(e) => setStore({ currency: { ...store.currency, code: e.target.value.toUpperCase() } })} />
-            </Field>
-            <Field label="رمز العملة المعروض">
-              <input className="a-input" value={store.currency.symbol} onChange={(e) => setStore({ currency: { ...store.currency, symbol: e.target.value } })} />
-            </Field>
-            <Field label="الخانات العشرية">
-              <select className="a-select" value={store.currency.decimals} onChange={(e) => setStore({ currency: { ...store.currency, decimals: Number(e.target.value) } })}>
-                <option value={0}>بدون كسور (12,500)</option>
-                <option value={2}>خانتان (12,500.00)</option>
-              </select>
-            </Field>
-            <Field label="شكل الأرقام">
-              <select className="a-select" value={store.currency.numerals} onChange={(e) => setStore({ currency: { ...store.currency, numerals: e.target.value as 'latn' | 'arab' } })}>
-                <option value="latn">1234567890</option>
-                <option value="arab">١٢٣٤٥٦٧٨٩٠</option>
-              </select>
-            </Field>
             <Field label="المنطقة الزمنية">
               <input className="a-input" dir="ltr" value={store.timezone} onChange={(e) => setStore({ timezone: e.target.value })} />
             </Field>
@@ -94,6 +78,90 @@ export function SettingsForm({ initial, tab: tab0, demo }: { initial: AllSetting
             حفظ
           </button>
           <p className="small muted">اسم المتجر وشعاره من صفحة «مظهر المتجر».</p>
+        </div>
+      )}
+      {tab === 'currency' && (
+        <div className="a-card stack">
+          <div className="a-notice" style={{ marginBottom: 4 }}>
+            تُدخل أسعار المنتجات والشحن والكوبونات بالعملة الأساسية. يستطيع العميل اختيار عرض الأسعار بعملة أخرى، وتُحوّل حسب سعر الصرف الذي تكتبه هنا.
+            لا تظهر أي عملة للعميل قبل أن تكتب سعر صرفها وتفعّلها. عند تغيير سعر الصرف لا تتغير مبالغ الطلبات السابقة.
+          </div>
+          <h3 style={{ margin: 0, fontSize: '1rem' }}>العملة الأساسية</h3>
+          <div className="a-form a-form--2">
+            <Field label="اسم العملة للعميل" hint="مثل: ريال سعودي">
+              <input className="a-input" value={store.currencyLabel} onChange={(e) => setStore({ currencyLabel: e.target.value })} />
+            </Field>
+            <Field label="رمز العملة (ISO)" hint="مثل SAR">
+              <input className="a-input" dir="ltr" value={store.currency.code} onChange={(e) => setStore({ currency: { ...store.currency, code: e.target.value.toUpperCase() } })} />
+            </Field>
+            <Field label="رمز العملة المعروض" hint="مثل: ر.س">
+              <input className="a-input" value={store.currency.symbol} onChange={(e) => setStore({ currency: { ...store.currency, symbol: e.target.value } })} />
+            </Field>
+            <Field label="الخانات العشرية">
+              <select className="a-select" value={store.currency.decimals} onChange={(e) => setStore({ currency: { ...store.currency, decimals: Number(e.target.value) } })}>
+                <option value={0}>بدون كسور (125)</option>
+                <option value={2}>تسمح بالهللات (125.50)</option>
+              </select>
+            </Field>
+            <Field label="شكل الأرقام">
+              <select className="a-select" value={store.currency.numerals} onChange={(e) => setStore({ currency: { ...store.currency, numerals: e.target.value as 'latn' | 'arab' } })}>
+                <option value="latn">1234567890</option>
+                <option value="arab">١٢٣٤٥٦٧٨٩٠</option>
+              </select>
+            </Field>
+          </div>
+          <h3 style={{ margin: '8px 0 0', fontSize: '1rem' }}>عملات العرض للعميل</h3>
+          {store.displayCurrencies.map((c, i) => {
+            const setC = (patch: Partial<typeof c>) => setStore({ displayCurrencies: store.displayCurrencies.map((x, j) => (j === i ? { ...x, ...patch } : x)) })
+            const cfg = { ...c, numerals: store.currency.numerals }
+            return (
+              <div key={c.id} className="a-card" style={{ background: 'var(--a-soft, #fafafa)' }}>
+                <div className="a-form a-form--2">
+                  <Field label="اسم العملة كما يراه العميل">
+                    <input className="a-input" value={c.label} onChange={(e) => setC({ label: e.target.value })} />
+                  </Field>
+                  <Field label={`سعر الصرف: كم ${c.label || 'وحدة'} مقابل 1 ${store.currencyLabel || store.currency.code}`} hint="اكتب السعر الذي تعتمده أنت، ويمكن أن يكون بكسور">
+                    <input
+                      className="a-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      defaultValue={c.rate || ''}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const n = Number(e.target.value.replace(/[,\s]/g, ''))
+                        setC({ rate: Number.isFinite(n) && n > 0 ? n : 0 })
+                      }}
+                    />
+                  </Field>
+                  <Field label="رمز العملة المعروض">
+                    <input className="a-input" value={c.symbol} onChange={(e) => setC({ symbol: e.target.value })} />
+                  </Field>
+                  <Field label="تقريب المبلغ المحول لأقرب" hint="1 = بدون تقريب، أو 10، 50، 100">
+                    <NumInput value={c.roundTo} min={1} max={100000} onChange={(n) => setC({ roundTo: n || 1 })} />
+                  </Field>
+                  <Field label="الخانات العشرية">
+                    <select className="a-select" value={c.decimals} onChange={(e) => setC({ decimals: Number(e.target.value) })}>
+                      <option value={0}>بدون كسور</option>
+                      <option value={2}>خانتان</option>
+                    </select>
+                  </Field>
+                  <div>
+                    <Switch checked={c.enabled} onChange={(v) => setC({ enabled: v })} label="متاحة للعميل" />
+                    {c.enabled && !(c.rate > 0) && <p className="small" style={{ color: '#b42318', margin: '4px 0 0' }}>اكتب سعر الصرف أولاً</p>}
+                  </div>
+                  {c.rate > 0 && (
+                    <p className="a-span-2 small muted" style={{ margin: 0 }}>
+                      مثال: منتج بسعر {formatMoney(10000, store.currency)} يظهر للعميل {formatMoney(10000, cfg)}
+                      {convertMoney(10000, cfg) <= 0 ? ' — تحقق من سعر الصرف' : ''}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          <button type="button" className="a-btn" disabled={busy} onClick={() => save('store')}>
+            حفظ العملات
+          </button>
         </div>
       )}
       {tab === 'orders' && (

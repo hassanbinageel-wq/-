@@ -394,16 +394,17 @@ export function SortableList<T>({ items, getId, onReorder, render, grid }: { ite
 }
 
 /** مدير صور متعددة مع الرفع والسحب للترتيب */
-type ManagedImage = { mediaId: number; url: string; alt?: string | null; optionValue?: string | null; role?: 'rail' | 'back' | null }
+type ManagedImage = { mediaId: number; url: string; alt?: string | null; optionValue?: string | null; role?: 'rail' | 'rail_photo' | 'back' | null }
 
 export function ImagesManager({ images, onChange, optionValues }: {
   images: ManagedImage[]
   onChange: (imgs: ManagedImage[]) => void
   optionValues: string[]
 }) {
-  // صورة واحدة فقط لكل دور (الشماعة / الخلف)
+  // صورة واحدة فقط لكل دور (الشماعة بنوعيها / الخلف)
+  const group = (r: ManagedImage['role']) => (r === 'rail_photo' ? 'rail' : r)
   const setRole = (id: number, role: ManagedImage['role']) =>
-    onChange(images.map((x) => (x.mediaId === id ? { ...x, role } : role && x.role === role ? { ...x, role: null } : x)))
+    onChange(images.map((x) => (x.mediaId === id ? { ...x, role } : role && group(x.role) === group(role) ? { ...x, role: null } : x)))
   const { toast } = useAdmin()
   const [busy, setBusy] = useState(0)
   const [over, setOver] = useState(false)
@@ -437,12 +438,13 @@ export function ImagesManager({ images, onChange, optionValues }: {
           render={(im, handle, i) => (
             <div className={`a-image ${im.role === 'rail' ? 'a-image--rail' : ''}`}>
               {i === 0 && im.role !== 'rail' && <span className="main-tag">الرئيسية</span>}
-              {im.role && <span className="main-tag main-tag--role">{im.role === 'rail' ? 'الشماعة' : 'الخلف'}</span>}
+              {im.role && <span className="main-tag main-tag--role">{im.role === 'rail' ? 'الشماعة (مفرغة)' : im.role === 'rail_photo' ? 'الشماعة (صورة حقيقية)' : 'الخلف'}</span>}
               <img src={im.url} alt="" />
               <select className="a-image__role" aria-label="استخدام الصورة" value={im.role || ''} onChange={(e) => setRole(im.mediaId, (e.target.value || null) as ManagedImage['role'])}>
                 <option value="">صورة عادية</option>
-                <option value="rail">صورة الشماعة (الأمام بخلفية شفافة)</option>
-                <option value="back">صورة الخلف</option>
+                <option value="rail_photo">صورة الشماعة: القطعة معلقة على شماعتها (صورة حقيقية)</option>
+                <option value="rail">صورة الشماعة: القطعة مفرغة بدون شماعة (نرسم لها شماعة خشبية)</option>
+                <option value="back">صورة الخلف (في صفحة المنتج فقط)</option>
               </select>
               <div className="a-image__bar">
                 {handle}

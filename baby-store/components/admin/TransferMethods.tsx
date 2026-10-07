@@ -5,13 +5,13 @@ import { Plus, Pencil, Trash2, Landmark } from 'lucide-react'
 import { api, useAction, PageHead, SortableList, Modal, Field, Switch, ImageUpload, confirmAction } from './ui'
 import { TRANSFER_TYPE_LABELS } from '@/lib/shared/constants'
 
-type M = { id: number; name: string; type: 'bank' | 'wallet' | 'exchange' | 'other'; beneficiary: string; accountNumber: string; extraInfo: string; currency: string; instructions: string; qrMediaId: number | null; qrUrl: string | null; active: boolean }
+type M = { id: number; name: string; type: 'bank' | 'wallet' | 'exchange' | 'other'; beneficiary: string; accountNumber: string; extraInfo: string; currency: string; instructions: string; qrMediaId: number | null; qrUrl: string | null; logoMediaId: number | null; logoUrl: string | null; active: boolean }
 
 export function TransferMethods({ initial }: { initial: M[] }) {
   const [items, setItems] = useState(initial)
   const [edit, setEdit] = useState<M | null>(null)
   const { run } = useAction()
-  const blank: M = { id: 0, name: '', type: 'bank', beneficiary: '', accountNumber: '', extraInfo: '', currency: '', instructions: '', qrMediaId: null, qrUrl: null, active: true }
+  const blank: M = { id: 0, name: '', type: 'bank', beneficiary: '', accountNumber: '', extraInfo: '', currency: '', instructions: '', qrMediaId: null, qrUrl: null, logoMediaId: null, logoUrl: null, active: true }
   return (
     <>
       <PageHead title="وسائل التحويل" subtitle="البنوك والمحافظ وجهات التحويل التي تظهر للعميل بعد إنشاء الطلب">
@@ -33,7 +33,12 @@ export function TransferMethods({ initial }: { initial: M[] }) {
           render={(m, handle) => (
             <div className="a-sortable-item">
               {handle}
-              <Landmark size={20} />
+              {m.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={m.logoUrl} alt="" width={36} height={36} style={{ objectFit: 'contain', borderRadius: 8, background: '#fff', border: '1px solid var(--a-border, #e5e5e5)' }} />
+              ) : (
+                <Landmark size={20} />
+              )}
               <span className="a-grow">
                 <b>{m.name}</b> <span className="a-badge">{TRANSFER_TYPE_LABELS[m.type]}</span> {!m.active && <span className="a-badge a-badge--danger">معطلة</span>}
                 <div className="small muted">
@@ -81,7 +86,10 @@ export function TransferMethods({ initial }: { initial: M[] }) {
             <Field label="تعليمات التحويل" className="a-span-2">
               <textarea className="a-textarea" rows={3} value={edit.instructions} onChange={(e) => setEdit({ ...edit, instructions: e.target.value })} placeholder="مثل: اكتب رقم الطلب في خانة الملاحظات" />
             </Field>
-            <Field label="رمز QR (اختياري)" className="a-span-2">
+            <Field label="شعار البنك أو المحفظة (اختياري)" hint="يفضل صورة مربعة بخلفية شفافة أو بيضاء (PNG)">
+              <ImageUpload value={edit.logoMediaId} url={edit.logoUrl} purpose="transfer-logo" label="رفع الشعار" onChange={(id, url) => setEdit({ ...edit, logoMediaId: id, logoUrl: url })} />
+            </Field>
+            <Field label="رمز QR (اختياري)">
               <ImageUpload value={edit.qrMediaId} url={edit.qrUrl} purpose="qr" label="رفع رمز QR" onChange={(id, url) => setEdit({ ...edit, qrMediaId: id, qrUrl: url })} />
             </Field>
             <Switch checked={edit.active} onChange={(v) => setEdit({ ...edit, active: v })} label="مفعلة وتظهر للعملاء" />
@@ -92,7 +100,7 @@ export function TransferMethods({ initial }: { initial: M[] }) {
             style={{ marginTop: 12 }}
             onClick={() =>
               run(async () => {
-                const body = { name: edit.name, type: edit.type, beneficiary: edit.beneficiary, accountNumber: edit.accountNumber, extraInfo: edit.extraInfo, currency: edit.currency, instructions: edit.instructions, qrMediaId: edit.qrMediaId, active: edit.active }
+                const body = { name: edit.name, type: edit.type, beneficiary: edit.beneficiary, accountNumber: edit.accountNumber, extraInfo: edit.extraInfo, currency: edit.currency, instructions: edit.instructions, qrMediaId: edit.qrMediaId, logoMediaId: edit.logoMediaId, active: edit.active }
                 if (edit.id) await api('PUT', `transfer-methods/${edit.id}`, body)
                 else await api('POST', 'transfer-methods', body)
                 window.location.reload()

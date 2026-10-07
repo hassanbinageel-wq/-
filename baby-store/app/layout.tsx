@@ -20,7 +20,14 @@ export async function generateMetadata(): Promise<Metadata> {
           icon: [{ url: `/media/${fav.path}-32.png`, sizes: '32x32', type: 'image/png' }, { url: `/media/${fav.path}-512.png`, sizes: '512x512', type: 'image/png' }],
           apple: `/media/${fav.path}-180.png`,
         }
-      : { icon: [{ url: '/brand/favicon.svg', type: 'image/svg+xml' }] },
+      : {
+          icon: [
+            { url: '/brand/favicon.svg', type: 'image/svg+xml' },
+            { url: '/brand/icon-32.png', sizes: '32x32', type: 'image/png' },
+            { url: '/brand/icon-192.png', sizes: '192x192', type: 'image/png' },
+          ],
+          apple: '/brand/apple-touch-icon.png',
+        },
     openGraph: { siteName: a.brand.name, locale: 'ar_YE', type: 'website' },
     formatDetection: { telephone: false },
   }

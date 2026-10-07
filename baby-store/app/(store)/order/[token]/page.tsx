@@ -6,6 +6,7 @@ import { getOrderByToken } from '@/lib/server/orders'
 import { publicItems, publicEvents } from '@/lib/server/order-view'
 import { getSetting, storeWhatsapp } from '@/lib/server/settings'
 import { formatMoney } from '@/lib/shared/money'
+import { orderCurrency } from '@/lib/server/currency'
 import { formatDateTime } from '@/lib/shared/dates'
 import { maskName, maskPhone, waLink } from '@/lib/shared/phone'
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS, FULFILLMENT_LABELS } from '@/lib/shared/constants'
@@ -26,7 +27,7 @@ export default async function TrackOrderPage({ params }: { params: Promise<{ tok
   const o = await getOrderByToken(token)
   if (!o) notFound()
   const store = await getSetting('store')
-  const cur = { ...store.currency, symbol: o.currency_symbol }
+  const cur = orderCurrency(o, store)
   const items = await publicItems(o)
   const events = await publicEvents(o.id)
   const stepIdx = FLOW.findIndex((s) => s.key === o.status)

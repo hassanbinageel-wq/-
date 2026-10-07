@@ -232,6 +232,19 @@ export function OrderDetail(p: Props) {
                   {money(o.total)} <span className="small muted">{o.currency}</span>
                 </b>
               </dd>
+              {o.display_currency && o.display_total != null && o.display_rate ? (
+                <>
+                  <dt>اختار العميل العرض بـ</dt>
+                  <dd className="num">
+                    <b>
+                      {new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(o.display_total / 100)} {o.display_symbol}
+                    </b>{' '}
+                    <span className="small muted">
+                      ({o.display_label}، سعر الصرف: {o.display_rate})
+                    </span>
+                  </dd>
+                </>
+              ) : null}
             </dl>
             {(o.prep_days_max != null || o.eta_text) && (
               <p className="small muted" style={{ marginBottom: 0 }}>

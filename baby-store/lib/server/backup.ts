@@ -15,7 +15,7 @@ const gunzip = promisify(zlib.gunzip)
 export const BACKUP_TABLES = [
   'settings', 'counters', 'media', 'admin_users', 'audit_log', 'notifications', 'appearance_versions', 'pages', 'faqs',
   'categories', 'tag_groups', 'tags', 'size_guides', 'products', 'product_images', 'variants', 'product_tags', 'product_relations',
-  'bundle_items', 'stock_movements', 'gift_wraps', 'shipping_zones', 'transfer_methods', 'coupons', 'customers', 'orders',
+  'bundle_items', 'stock_movements', 'gift_wraps', 'shipping_zones', 'transfer_methods', 'coupons', 'customers', 'customer_accounts', 'orders',
   'order_items', 'order_stock_lines', 'order_attachments', 'payments', 'refunds', 'order_returns', 'order_notes', 'order_events',
 ] as const
 
