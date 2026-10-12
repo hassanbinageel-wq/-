@@ -1,0 +1,8 @@
+{
+  "appId": "com.hsnpmt.fabricstore",
+  "appName": "دفتر الأقمشة",
+  "webDir": "dist",
+  "plugins": {
+    "SystemBars": { "insetsHandling": "native" }
+  }
+}
