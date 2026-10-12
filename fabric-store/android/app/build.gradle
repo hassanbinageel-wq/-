@@ -18,7 +18,7 @@ android {
     }
     // مفتاح توقيع ثابت داخل المستودع: يضمن أن كل نسخة جديدة تُثبَّت فوق القديمة دون حذف البيانات
     signingConfigs {
-        store {
+        fabric {
             storeFile file('fabric-store.keystore')
             storePassword 'fabricstore2026'
             keyAlias 'fabricstore'
@@ -27,10 +27,10 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.store
+            signingConfig signingConfigs.getByName("fabric")
         }
         release {
-            signingConfig signingConfigs.store
+            signingConfig signingConfigs.getByName("fabric")
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
