@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Heart, Menu, Search, ShoppingBag, X, ChevronLeft, PackageSearch, UserRound } from 'lucide-react'
 import { CurrencySwitch } from './CurrencySwitch'
 import { useStore } from './StoreProvider'
@@ -47,6 +47,8 @@ export function Header({ name, logoUrl, menu, categories, announcement, whatsapp
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const menuBtn = useRef<HTMLButtonElement>(null)
+  const searchBtn = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8)
@@ -59,6 +61,20 @@ export function Header({ name, logoUrl, menu, categories, announcement, whatsapp
     setMenuOpen(false)
     setSearchOpen(false)
   }, [pathname])
+
+  // Escape يغلق القائمة والبحث ويعيد التركيز للزر الذي فتحهما
+  useEffect(() => {
+    if (!menuOpen && !searchOpen) return
+    const opener = menuOpen ? menuBtn.current : searchBtn.current
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setMenuOpen(false)
+      setSearchOpen(false)
+      opener?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menuOpen, searchOpen])
 
   useEffect(() => {
     document.body.style.overflow = menuOpen || searchOpen ? 'hidden' : ''
@@ -79,7 +95,7 @@ export function Header({ name, logoUrl, menu, categories, announcement, whatsapp
       <header className={`header ${scrolled ? 'is-scrolled' : ''}`}>
         <div className="container header__bar">
           <div className="header__start">
-            <button type="button" className="icon-btn mobile-only" aria-label="القائمة" onClick={() => setMenuOpen(true)}>
+            <button ref={menuBtn} type="button" className="icon-btn mobile-only" aria-label="القائمة" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}>
               <Menu size={24} />
             </button>
             <span className="desktop-only">{logo}</span>
@@ -98,17 +114,17 @@ export function Header({ name, logoUrl, menu, categories, announcement, whatsapp
             <span className="desktop-only header__search">
               <SearchBox />
             </span>
-            <button type="button" className="icon-btn mobile-only" aria-label="بحث" onClick={() => setSearchOpen(true)}>
+            <button ref={searchBtn} type="button" className="icon-btn mobile-only" aria-label="بحث" aria-expanded={searchOpen} onClick={() => setSearchOpen(true)}>
               <Search size={22} />
             </button>
             <span className="desktop-only">
               <CurrencySwitch />
             </span>
-            <Link href="/account" className="icon-btn desktop-only" aria-label={config.account ? `حسابي (${config.account.name})` : 'تسجيل الدخول أو إنشاء حساب'}>
+            <Link href="/account" className="icon-btn" aria-label={config.account ? `حسابي (${config.account.name})` : 'تسجيل الدخول أو إنشاء حساب'}>
               <UserRound size={22} />
               {config.account && <span className="dot-on" aria-hidden="true" />}
             </Link>
-            <Link href="/favorites" className="icon-btn" aria-label="المفضلة">
+            <Link href="/favorites" className="icon-btn desktop-only" aria-label="المفضلة">
               <Heart size={22} />
               {hydrated && favorites.length > 0 && <span className="count">{favorites.length}</span>}
             </Link>

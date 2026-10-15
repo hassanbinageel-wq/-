@@ -152,8 +152,9 @@ export function PaymentActions({
               const on = selected === m.id
               return (
                 <div key={m.id} className={`method ${on ? 'is-selected' : ''}`}>
-                  <button type="button" className="method__head" onClick={() => choose(m.id)} aria-expanded={on}>
-                    <input type="radio" readOnly checked={on} tabIndex={-1} style={{ accentColor: 'var(--c-primary)', width: 20, height: 20 }} aria-hidden="true" />
+                  <button type="button" className="method__head" onClick={() => choose(m.id)} aria-expanded={on} aria-pressed={on}>
+                    {/* دائرة الاختيار رسم فقط؛ الزر نفسه هو عنصر التحكم */}
+                    <span className={`method__radio ${on ? 'is-on' : ''}`} aria-hidden="true" />
                     {m.logo ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img className="method__logo" src={m.logo} alt={`شعار ${m.name}`} width={44} height={44} />

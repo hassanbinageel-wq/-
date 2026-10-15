@@ -75,6 +75,8 @@ export const FONTS: { key: string; label: string; family: string }[] = [
 ]
 
 export const DEFAULT_LABELS: Record<string, string> = {
+  homeIntroTitle: 'ملابس وهدايا المواليد',
+  homeIntroText: 'نعومة البدايات · اطلبوا من المتجر وادفعوا بالتحويل',
   addToCart: 'أضف إلى السلة',
   outOfStock: 'غير متوفر حالياً',
   selectOptions: 'اختر الخيارات أولاً',
@@ -94,6 +96,8 @@ export const DEFAULT_LABELS: Record<string, string> = {
 }
 
 export const LABEL_NAMES: Record<string, string> = {
+  homeIntroTitle: 'عنوان الصفحة الرئيسية (أول ما يراه الزائر)',
+  homeIntroText: 'السطر تحت عنوان الصفحة الرئيسية',
   addToCart: 'زر الإضافة للسلة',
   outOfStock: 'نص عدم التوفر',
   selectOptions: 'تنبيه اختيار الخيارات',

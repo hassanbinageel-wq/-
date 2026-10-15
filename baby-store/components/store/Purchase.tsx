@@ -1,5 +1,6 @@
 'use client'
 
+import { CurrencySwitch } from './CurrencySwitch'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Heart, Share2, Ruler, ShoppingBag, AlertCircle, Check } from 'lucide-react'
 import type { BundleComponentPublic, ProductDetail, ProductOption, VariantPublic } from '@/lib/shared/types'
@@ -219,6 +220,8 @@ export function Purchase({ p, compact, onFocusValue, productUrl }: { p: ProductD
       <div className="pdp__price row">
         <Price price={price} compareAt={compareAt} from={p.type === 'variable' && !match && p.priceFrom} />
         {compareAt != null && compareAt > price && <span className="pdp__save">وفّر {money(compareAt - price)}</span>}
+        {/* اختيار عملة العرض بجانب السعر (يظهر فقط عند تفعيل أكثر من عملة) */}
+        <CurrencySwitch />
       </div>
       {p.type === 'bundle' && p.bundleValue && (
         <p className="small muted" style={{ marginTop: -6 }}>

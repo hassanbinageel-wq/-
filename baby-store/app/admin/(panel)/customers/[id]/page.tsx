@@ -10,6 +10,8 @@ import { PageHead, OrderStatusBadge, PaymentStatusBadge } from '@/components/adm
 import { CustomerNotes, CustomerAccountBox } from '@/components/admin/CustomerNotes'
 import type { OrderRow } from '@/lib/server/orders'
 
+export const metadata = { title: 'بيانات العميل' }
+
 export default async function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
   await requirePage('orders')
   const id = Number((await params).id)

@@ -484,7 +484,7 @@ export function OrderDetail(p: Props) {
             <h2>حالة الطلب</h2>
             {p.perms.orders && o.status !== 'cancelled' ? (
               <div className="a-form">
-                <select className="a-select" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+                <select className="a-select" aria-label="حالة الطلب" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
                   {ORDER_STATUSES.filter((s) => s !== 'cancelled').map((s) => (
                     <option key={s} value={s}>
                       {ORDER_STATUS_LABELS[s]}
@@ -881,7 +881,7 @@ function MessageModal({ o, templates, onClose }: { o: OrderRow; templates: Props
     <Modal title="رسالة واتساب للعميل" onClose={onClose} large>
       <div className="a-form">
         <div className="a-row">
-          <select className="a-select" style={{ width: 'auto' }} value={key} onChange={(e) => load(e.target.value)}>
+          <select className="a-select" style={{ width: 'auto' }} aria-label="قالب الرسالة" value={key} onChange={(e) => load(e.target.value)}>
             {templates.map((t) => (
               <option key={t.key} value={t.key}>
                 {t.title}

@@ -26,7 +26,14 @@ export function LoginForm({ noUsers }: { noUsers: boolean }) {
           setErr(null)
           try {
             await post('auth/login', { username, password })
-            window.location.href = '/admin'
+            // الرجوع للصفحة المطلوبة إن وُجدت (روابط داخل لوحة التحكم فقط)
+            const next = new URLSearchParams(window.location.search).get('next') || ''
+            if (next === '/admin/login/done') {
+              window.close()
+              document.body.innerHTML = '<p style="padding:2rem;font:16px system-ui;text-align:center">تم تسجيل الدخول. ارجع للنافذة السابقة واضغط «سجّلت الدخول، أكمل».</p>'
+              return
+            }
+            window.location.href = /^\/admin(\/[\w\-/?=&%.]*)?$/.test(next) ? next : '/admin'
           } catch (x) {
             setErr((x as Error).message)
             setBusy(false)

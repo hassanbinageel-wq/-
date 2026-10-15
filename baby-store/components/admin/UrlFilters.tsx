@@ -63,6 +63,30 @@ export function DateFilter({ param, label }: { param: string; label: string }) {
   )
 }
 
+/** فترات جاهزة بضغطة واحدة بدل كتابة التاريخ */
+export function DatePresets() {
+  const { sp, set } = useUrlParams()
+  const day = (offset: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() - offset)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  const opts: [string, string | null][] = [['اليوم', day(0)], ['آخر 7 أيام', day(6)], ['آخر 30 يوماً', day(29)], ['كل الفترات', null]]
+  const cur = sp.get('from')
+  return (
+    <div className="a-row" role="group" aria-label="فترة الطلبات" style={{ gap: 4 }}>
+      {opts.map(([label, from]) => {
+        const on = from ? cur === from && !sp.get('to') : !cur && !sp.get('to')
+        return (
+          <button key={label} type="button" className={`a-btn a-btn--sm ${on ? '' : 'a-btn--ghost'}`} aria-pressed={on} onClick={() => set({ from, to: null })}>
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function RangePicker() {
   const { sp, set } = useUrlParams()
   const r = sp.get('range') || '30d'

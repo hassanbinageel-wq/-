@@ -68,3 +68,16 @@ export async function themeCss(a: Appearance): Promise<string> {
 export function adminFontCss(): string {
   return bundledFace('tajawal')
 }
+
+/** ملفات الخط العربي الأساسية للتحميل المسبق: تقلّل تبدّل الخط بعد ظهور الصفحة (وما يسببه من تحرك العناصر) */
+export function fontPreloads(a: Appearance): string[] {
+  const out = new Set<string>()
+  for (const k of [a.theme.fontBody, a.theme.fontHeading]) {
+    // خط مخصص أو غير مضمّن: Tajawal هو البديل في سلسلة الخطوط
+    const f = BUNDLED[k] || (k === 'system' ? null : BUNDLED.tajawal)
+    if (!f) continue
+    out.add(`/fonts/${f.file}-arabic-400-normal.woff2`)
+    out.add(`/fonts/${f.file}-arabic-700-normal.woff2`)
+  }
+  return [...out]
+}

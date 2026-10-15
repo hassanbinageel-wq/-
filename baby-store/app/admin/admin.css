@@ -7,11 +7,15 @@
   font-family: 'Tajawal', system-ui, sans-serif;
   background: var(--a-bg); color: var(--a-text); min-height: 100vh; font-size: 15px; line-height: 1.6;
 }
-.adm *:focus-visible { outline: 3px solid color-mix(in srgb, var(--a-primary) 45%, transparent); outline-offset: 2px; }
+.adm *:focus-visible { outline: 3px solid var(--a-primary); outline-offset: 2px; }
 .adm h1 { font-size: 1.45rem; margin: 0; font-weight: 700; }
 .adm h2 { font-size: 1.12rem; margin: 0 0 0.8rem; font-weight: 700; }
 .adm h3 { font-size: 1rem; margin: 0 0 0.5rem; font-weight: 700; }
 .adm a { color: inherit; }
+/* الروابط بشكل زر تأخذ لون نص الزر لا لون الرابط */
+.adm a.a-btn { color: #fff; }
+.adm a.a-btn--ghost { color: var(--a-text); }
+.adm a.a-btn--soft { color: var(--a-primary); }
 .adm .muted { color: var(--a-muted); }
 .adm .small { font-size: 0.85rem; }
 .adm .num, .adm bdi { font-variant-numeric: tabular-nums; }
@@ -67,7 +71,7 @@ a.a-stat:hover { border-color: var(--a-primary); }
 .a-btn--soft { background: var(--a-primary-soft); color: var(--a-primary); }
 .a-btn--danger { background: var(--a-danger); }
 .a-btn--ok { background: var(--a-ok); }
-.a-btn--wa { background: #1f8f4e; }
+.a-btn--wa { background: #1a7a43; color: #fff; }
 .a-btn--sm { min-height: 32px; padding: 0.2rem 0.7rem; font-size: 0.85rem; border-radius: 8px; }
 .a-btn--icon { width: 38px; padding: 0; }
 .a-btn--block { width: 100%; }
@@ -116,6 +120,19 @@ a.a-stat:hover { border-color: var(--a-primary); }
 .a-table a.rowlink { text-decoration: none; font-weight: 700; }
 .a-table bdi { white-space: nowrap; }
 .a-table a.rowlink:hover { color: var(--a-primary); }
+@media (max-width: 720px) {
+  .a-table-wrap:has(> .a-table--cards) { overflow: visible; border: 0; background: transparent; }
+  .a-table--cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .a-table--cards, .a-table--cards tbody { display: block; }
+  .a-table--cards tr { display: block; background: #fff; border: 1px solid var(--a-border); border-radius: var(--a-radius); padding: 0.4rem 0.75rem; margin-bottom: 0.6rem; }
+  .a-table--cards tbody tr:hover { background: #fff; }
+  .a-table--cards td { display: flow-root; padding: 0.45rem 0; border-bottom: 1px dashed var(--a-border); text-align: end; }
+  .a-table--cards tr td:last-child { border-bottom: 0; }
+  .a-table--cards td[data-label]::before { content: attr(data-label); float: inline-start; margin-inline-end: 0.75rem; color: var(--a-muted); font-size: 0.78rem; font-weight: 700; line-height: 1.6; }
+  .a-table--cards td .a-row { justify-content: flex-end; }
+  .a-table--cards td[data-cell] { display: inline-block; border-bottom: 0; vertical-align: middle; margin-inline-end: 0.5rem; }
+  .a-table--cards td[data-cell]:last-child { display: flex; justify-content: flex-end; margin: 0; }
+}
 
 .a-tabs { display: flex; gap: 0.3rem; border-bottom: 1px solid var(--a-border); margin-bottom: 1rem; overflow-x: auto; }
 .a-tabs button, .a-tabs a { border: 0; background: none; padding: 0.6rem 0.9rem; font: inherit; cursor: pointer; border-bottom: 2.5px solid transparent; color: var(--a-muted); white-space: nowrap; text-decoration: none; }
@@ -144,7 +161,7 @@ a.a-stat:hover { border-color: var(--a-primary); }
 .a-image__bar { display: flex; gap: 2px; padding: 4px; background: #fff; align-items: center; }
 .a-image__bar select { font-size: 0.75rem; min-height: 26px; padding: 0 2px; flex: 1; min-width: 0; border: 1px solid var(--a-border); border-radius: 6px; }
 .a-image .main-tag { position: absolute; top: 6px; inset-inline-start: 6px; background: var(--a-primary); color: #fff; font-size: 0.7rem; border-radius: 99px; padding: 0 6px; }
-.a-drag { cursor: grab; color: var(--a-muted); display: inline-grid; place-items: center; touch-action: none; }
+.a-drag { cursor: grab; color: var(--a-muted); display: inline-grid; place-items: center; touch-action: none; min-width: 32px; min-height: 32px; border-radius: 8px; }
 .a-sortable-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem; border: 1px solid var(--a-border); border-radius: 10px; background: #fff; }
 .a-sortable-item + .a-sortable-item { margin-top: 0.45rem; }
 .a-sortable-item.is-dragging { box-shadow: 0 10px 30px rgb(0 0 0 / 15%); opacity: 0.9; }

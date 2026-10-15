@@ -237,7 +237,7 @@ export function Toolbar({ total, facets, categories, showCategories }: { total: 
             </div>
             <div className="drawer__foot">
               <button type="button" className="btn btn--block" onClick={() => setOpen(false)}>
-                عرض النتائج (<span className="num">{total}</span>)
+                {total === 0 ? 'لا توجد نتائج' : <>عرض <span className="num">{total}</span> {total === 1 ? 'منتج' : total === 2 ? 'منتجين' : total <= 10 ? 'منتجات' : 'منتجاً'}</>}
               </button>
             </div>
           </aside>

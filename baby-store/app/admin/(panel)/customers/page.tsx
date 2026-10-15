@@ -26,7 +26,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       </Suspense>
       {r.rows.length ? (
         <div className="a-table-wrap">
-          <table className="a-table">
+          <table className="a-table a-table--cards">
             <thead>
               <tr>
                 <th>العميل</th>
@@ -41,17 +41,17 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             <tbody>
               {r.rows.map((c) => (
                 <tr key={c.id}>
-                  <td>
+                  <td data-label="العميل">
                     <Link className="rowlink" href={`/admin/customers/${c.id}`}>
                       {c.name}
                     </Link>
                   </td>
-                  <td><bdi className="num">{formatIntl(c.phone)}</bdi></td>
-                  <td>{c.city || '—'}</td>
-                  <td className="num">{c.orders_count}</td>
-                  <td className="num">{formatMoney(c.orders_total, store.currency)}</td>
-                  <td className="small muted">{formatDate(c.last_order_at, store.timezone)}</td>
-                  <td>
+                  <td data-label="الهاتف"><bdi className="num">{formatIntl(c.phone)}</bdi></td>
+                  <td data-label="المدينة">{c.city || '—'}</td>
+                  <td data-label="الطلبات" className="num">{c.orders_count}</td>
+                  <td data-label="قيمة الطلبات" className="num">{formatMoney(c.orders_total, store.currency)}</td>
+                  <td data-label="آخر طلب" className="small muted">{formatDate(c.last_order_at, store.timezone)}</td>
+                  <td data-cell="aux">
                     <a className="a-btn a-btn--wa a-btn--sm" href={waLink(c.phone)} target="_blank" rel="noopener noreferrer">
                       واتساب
                     </a>

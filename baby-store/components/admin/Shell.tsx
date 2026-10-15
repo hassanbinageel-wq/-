@@ -173,7 +173,9 @@ function Notifications() {
         }
         lastId.current = d.latestId
         setData(d)
-        document.title = d.unread ? `(${d.unread}) لوحة التحكم` : 'لوحة التحكم'
+        // نضيف عدد الإشعارات قبل عنوان الصفحة الحالي بدل استبداله
+        const base = document.title.replace(/^\(\d+\)\s*/, '')
+        document.title = d.unread ? `(${d.unread}) ${base}` : base
       } catch {}
     }
     load()
@@ -207,7 +209,7 @@ function Notifications() {
       <button type="button" className="a-icon-btn" aria-label={sound ? 'إيقاف صوت الإشعارات' : 'تشغيل صوت الإشعارات'} title={sound ? 'الصوت مفعل' : 'الصوت متوقف'} onClick={toggleSound}>
         {sound ? <Volume2 size={19} /> : <VolumeX size={19} />}
       </button>
-      <button type="button" className="a-icon-btn" aria-label="الإشعارات" onClick={toggleOpen}>
+      <button type="button" className="a-icon-btn" aria-label={data?.unread ? `الإشعارات، ${data.unread} غير مقروءة` : 'الإشعارات'} aria-expanded={open} onClick={toggleOpen}>
         {data?.unread ? <BellRing size={20} /> : <Bell size={20} />}
         {!!data?.unread && <span className="dot num">{data.unread}</span>}
       </button>

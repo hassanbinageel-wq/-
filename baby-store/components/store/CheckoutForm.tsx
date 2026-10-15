@@ -224,7 +224,9 @@ export function CheckoutForm(props: CheckoutProps) {
   const focusFirst = (e: Record<string, string>) => {
     const first = Object.keys(e)[0]
     if (!first) return
-    const el = document.querySelector<HTMLElement>(`[data-field="${first}"] input, [data-field="${first}"] select, [data-field="${first}"] textarea`)
+    // نفضّل حقل الكتابة (مثل رقم الجوال) على قائمة مفتاح الدولة
+    const box = `[data-field="${first}"]`
+    const el = document.querySelector<HTMLElement>(`${box} input`) || document.querySelector<HTMLElement>(`${box} textarea`) || document.querySelector<HTMLElement>(`${box} select`)
     el?.focus()
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }

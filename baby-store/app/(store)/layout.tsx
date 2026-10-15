@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getStoreContext, visibleCategories, announcementFor, logoUrl, sweep } from '@/lib/server/storefront'
 import { getSetting, storeWhatsapp } from '@/lib/server/settings'
-import { themeCss } from '@/lib/server/theme-css'
+import { themeCss, fontPreloads } from '@/lib/server/theme-css'
 import { StoreProvider } from '@/components/store/StoreProvider'
 import { Header } from '@/components/store/Header'
 import { Footer } from '@/components/store/Footer'
@@ -16,12 +16,14 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   const { a } = ctx
   const maintenance = await getSetting('maintenance')
   const css = await themeCss(a)
+  const fonts = fontPreloads(a).map((href) => <link key={href} rel="preload" href={href} as="font" type="font/woff2" crossOrigin="anonymous" />)
   const wa = await storeWhatsapp()
 
   if (maintenance.enabled && !ctx.isAdmin) {
     return (
       <>
-        <style dangerouslySetInnerHTML={{ __html: css }} />
+        {fonts}
+      <style dangerouslySetInnerHTML={{ __html: css }} />
         <main className="maintenance">
           <SkyDecor enabled />
           <div className="card stack">
@@ -42,6 +44,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   const cats = (await visibleCategories()).map((c) => ({ name: c.name, slug: c.slug }))
   return (
     <>
+      {fonts}
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <StoreProvider config={ctx.config}>
         <a href="#main" className="sr-only">

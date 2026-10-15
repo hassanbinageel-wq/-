@@ -196,10 +196,19 @@ async function renderSection(s: HomeSection, decorations: boolean, hangerImageId
 export default async function HomePage() {
   const { a } = await getStoreContext()
   const sections = a.home.sections.filter((s) => s.enabled && isScheduledActive(s.startsAt, s.endsAt))
-  const hasHero = sections.some((s) => s.type === 'hero')
+  const title = a.labels.homeIntroTitle?.trim()
+  const text = a.labels.homeIntroText?.trim()
   return (
     <>
-      {!hasHero && <h1 className="sr-only">{a.brand.name}</h1>}
+      {/* أول ما يراه الزائر: ماذا يبيع المتجر وكيف يطلب */}
+      {title ? (
+        <div className="container home-intro">
+          <h1>{title}</h1>
+          {text && <p>{text}</p>}
+        </div>
+      ) : (
+        <h1 className="sr-only">{a.brand.name}</h1>
+      )}
       {sections.map((s) => renderSection(s, a.theme.decorations, a.theme.hangerImageId))}
     </>
   )

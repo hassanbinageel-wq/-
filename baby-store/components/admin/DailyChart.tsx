@@ -32,7 +32,7 @@ export function DailyChart({ data }: { data: Point[] }) {
   const h = hover != null ? data[hover] : null
   return (
     <div style={{ position: 'relative' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="قيمة الطلبات اليومية" style={{ display: 'block', overflow: 'visible' }} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="group" aria-label="قيمة الطلبات اليومية" style={{ display: 'block', overflow: 'visible' }} onMouseLeave={() => setHover(null)}>
         {ticks.map((t) => (
           <g key={t}>
             <line x1={padSide} x2={W - padSide} y1={y(t)} y2={y(t)} stroke="#ece8ef" strokeWidth={1} />
@@ -48,7 +48,7 @@ export function DailyChart({ data }: { data: Point[] }) {
           const r = Math.min(4, bh, bw / 2)
           const path = bh > 0 ? `M${bx},${by + bh} L${bx},${by + r} Q${bx},${by} ${bx + r},${by} L${bx + bw - r},${by} Q${bx + bw},${by} ${bx + bw},${by + r} L${bx + bw},${by + bh} Z` : ''
           return (
-            <g key={d.date} onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} tabIndex={0} aria-label={`${d.date}: ${money(d.value)}`}>
+            <g key={d.date} onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} tabIndex={0} role="img" aria-label={`${d.date}: ${money(d.value)}`}>
               <rect x={W - padSide - slot * (i + 1)} y={padTop} width={slot} height={plotH} fill="transparent" />
               {path && <path d={path} fill="#8a3f5f" opacity={hover == null || hover === i ? 1 : 0.55} />}
               {i === maxIdx && d.value > 0 && hover == null && (

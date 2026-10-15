@@ -31,6 +31,8 @@ export async function Listing({
     if (k === 'page' || v === undefined) continue
     qp.set(k, Array.isArray(v) ? v[0] : v)
   }
+  const noResults = !r.items.length
+  const allCats = noResults ? (await visibleCategories()).filter((c) => c.count > 0).map((c) => ({ name: c.name, slug: c.slug })) : []
   const hasFilters = ['q', 't', 'size', 'color', 'min', 'max', 'stock', 'sale'].some((k) => searchParams[k])
   return (
     <div className="container">
@@ -49,13 +51,16 @@ export async function Listing({
         </h1>
         {description && <p>{description}</p>}
       </div>
-      <div className="listing">
-        <Suspense>
-          <FilterSidebar facets={r.facets} categories={cats} showCategories={showCategories} />
-        </Suspense>
+      <div className={`listing ${noResults ? 'listing--empty' : ''}`}>
+        {/* بلا نتائج: نخفي الفلاتر والترتيب ونعرض بحثاً جديداً بدلها */}
+        {!noResults && (
+          <Suspense fallback={<div className="desktop-only" aria-hidden="true" />}>
+            <FilterSidebar facets={r.facets} categories={cats} showCategories={showCategories} />
+          </Suspense>
+        )}
         <div>
-          <Suspense>
-            <Toolbar total={r.total} facets={r.facets} categories={cats} showCategories={showCategories} />
+          <Suspense fallback={noResults ? null : <div className="toolbar" style={{ minHeight: 42 }} aria-hidden="true" />}>
+            {!noResults && <Toolbar total={r.total} facets={r.facets} categories={cats} showCategories={showCategories} />}
             <ActiveFilters facets={r.facets} />
           </Suspense>
           {r.items.length ? (
@@ -65,6 +70,21 @@ export async function Listing({
               <EmptyIllustration kind="search" />
               <h2 style={{ fontSize: '1.2rem' }}>{hasFilters ? 'لا توجد منتجات مطابقة' : 'لا توجد منتجات هنا بعد'}</h2>
               <p>{hasFilters ? 'جرّب إزالة بعض الفلاتر أو البحث بكلمة أخرى أو برقم المنتج.' : 'سنضيف منتجات جديدة قريباً بإذن الله.'}</p>
+              {hasFilters && (
+                <form action="/products" method="get" role="search" className="input-group" style={{ maxWidth: 420, margin: '0 auto 1rem' }}>
+                  <input className="input" type="search" name="q" defaultValue={typeof searchParams.q === 'string' ? searchParams.q : ''} aria-label="ابحث بكلمة أخرى" placeholder="ابحث بكلمة أخرى…" enterKeyHint="search" />
+                  <button type="submit" className="btn">بحث</button>
+                </form>
+              )}
+              {!!allCats.length && (
+                <div className="suggest__chips" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
+                  {allCats.map((c) => (
+                    <Link key={c.slug} className="chip" href={`/category/${encodeURIComponent(c.slug)}`}>
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
               <Link className="btn btn--ghost" href="/products">
                 تصفح جميع المنتجات
               </Link>

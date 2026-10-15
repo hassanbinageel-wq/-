@@ -48,7 +48,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
           الرصيد المعروض هو الكمية المتاحة للبيع؛ الكميات المحجوزة لطلبات بانتظار التحويل مخصومة منه مسبقاً، وتعود تلقائياً عند انتهاء المهلة أو الإلغاء.
         </div>
         <div className="a-table-wrap">
-          <table className="a-table">
+          <table className="a-table a-table--cards">
             <thead>
               <tr>
                 <th>المنتج</th>
@@ -60,19 +60,19 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
             <tbody>
               {rows.map((r) => (
                 <tr key={`${r.product_id}-${r.variant_id}`}>
-                  <td>
+                  <td data-label="المنتج">
                     <Link className="rowlink" href={`/admin/products/${r.product_id}`}>
                       {r.name}
                     </Link>
                     {r.label && <div className="small muted">{r.label}</div>}
                   </td>
-                  <td><bdi className="small">{r.sku}</bdi></td>
-                  <td>
+                  <td data-label="الرقم"><bdi className="small">{r.sku}</bdi></td>
+                  <td data-label="الرصيد">
                     <span className={`a-badge ${r.stock <= 0 ? 'a-badge--danger' : r.stock <= r.threshold ? 'a-badge--warn' : 'a-badge--ok'}`}>
                       <span className="num">{r.stock}</span>
                     </span>
                   </td>
-                  <td>
+                  <td data-cell="aux">
                     <StockAdjust productId={r.product_id} variantId={r.variant_id} label={`${r.name}${r.label ? ` (${r.label})` : ''}`} current={r.stock} />
                   </td>
                 </tr>
@@ -113,7 +113,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
           </Toolbar>
         </Suspense>
         <div className="a-table-wrap">
-          <table className="a-table">
+          <table className="a-table a-table--cards">
             <thead>
               <tr>
                 <th>التاريخ</th>
@@ -127,16 +127,16 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
             <tbody>
               {rows.map((m) => (
                 <tr key={m.id}>
-                  <td className="small">{formatDateTime(m.created_at, store.timezone)}</td>
-                  <td>
+                  <td data-label="التاريخ" className="small">{formatDateTime(m.created_at, store.timezone)}</td>
+                  <td data-label="المنتج">
                     {m.product_name} <bdi className="small muted">{m.sku}</bdi>
                   </td>
-                  <td className="num" style={{ color: m.change > 0 ? 'var(--a-ok)' : 'var(--a-danger)', fontWeight: 700 }}>
+                  <td data-label="التغيير" className="num" style={{ color: m.change > 0 ? 'var(--a-ok)' : 'var(--a-danger)', fontWeight: 700 }}>
                     {m.change > 0 ? '+' : ''}
                     {m.change}
                   </td>
-                  <td className="num">{m.stock_after}</td>
-                  <td className="small">
+                  <td data-label="الرصيد بعدها" className="num">{m.stock_after}</td>
+                  <td data-label="السبب" className="small">
                     {MOVEMENT_REASON_LABELS[m.reason] || m.reason}
                     {m.order_id && (
                       <>
@@ -146,7 +146,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                     )}
                     {m.note && <div className="muted">{m.note}</div>}
                   </td>
-                  <td className="small">{m.user_name || 'النظام'}</td>
+                  <td data-label="بواسطة" className="small">{m.user_name || 'النظام'}</td>
                 </tr>
               ))}
             </tbody>

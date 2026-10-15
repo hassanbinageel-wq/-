@@ -46,7 +46,7 @@ export function Hero({ slides, decorations }: { slides: HeroSlide[]; decorations
                 </div>
               )}
               <div className={`hero__content hero__content--${s.align}`}>
-                {s.title && (k === 0 ? <h1 style={{ fontSize: 'clamp(1.5rem, 1.1rem + 2vw, 2.6rem)', marginBottom: '0.3rem' }}>{s.title}</h1> : <h2>{s.title}</h2>)}
+                {s.title && (k === 0 ? <h2 style={{ fontSize: 'clamp(1.5rem, 1.1rem + 2vw, 2.6rem)', marginBottom: '0.3rem' }}>{s.title}</h2> : <h2>{s.title}</h2>)}
                 {s.text && <p>{s.text}</p>}
                 {s.buttonText && s.link && (
                   <Link className="btn" href={s.link} tabIndex={k === i ? 0 : -1}>

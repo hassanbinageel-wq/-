@@ -10,6 +10,8 @@ import { formatDateTime } from '@/lib/shared/dates'
 import { RangePicker } from '@/components/admin/UrlFilters'
 import { OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/ui'
 
+export const metadata = { title: 'الرئيسية' }
+
 export default async function Dashboard({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const user = await requirePage()
   const sp = await searchParams

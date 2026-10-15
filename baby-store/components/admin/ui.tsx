@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Upload, GripVertical, Search, Trash2, ImagePlus } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
@@ -34,9 +34,33 @@ export function AdminProvider({ user, currency, children }: { user: AdminCtx['us
     [user.permissions],
   )
   const money = useCallback((c: number) => formatMoney(c, currency), [currency])
+  const [expired, setExpired] = useState(false)
+  useEffect(() => {
+    const on = () => setExpired(true)
+    window.addEventListener('admin-session-expired', on)
+    return () => window.removeEventListener('admin-session-expired', on)
+  }, [])
   return (
     <Ctx.Provider value={{ user, currency, toast, can, money }}>
       {children}
+      {expired && (
+        <div className="a-modal-bg" style={{ zIndex: 120 }}>
+          <div className="a-modal" role="alertdialog" aria-modal="true" aria-labelledby="sess-t" aria-describedby="sess-d">
+            <h2 id="sess-t" style={{ marginTop: 0 }}>انتهت جلستك</h2>
+            <p id="sess-d">
+              لحماية حسابك انتهت جلسة الدخول. ما كتبته في هذه الصفحة باقٍ: سجّل الدخول من نافذة جديدة، ثم ارجع هنا واضغط الحفظ مرة أخرى.
+            </p>
+            <div className="a-row">
+              <a className="a-btn" href="/admin/login?next=/admin/login/done" target="_blank" rel="noopener" autoFocus>
+                تسجيل الدخول في نافذة جديدة
+              </a>
+              <button type="button" className="a-btn a-btn--ghost" onClick={() => setExpired(false)}>
+                سجّلت الدخول، أكمل
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="a-toasts" role="status" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`a-toast ${t.type === 'error' ? 'a-toast--error' : ''}`}>
@@ -67,8 +91,9 @@ export async function api<T = Record<string, unknown>>(method: string, path: str
     data = await r.json()
   } catch {}
   if (r.status === 401) {
-    window.location.href = '/admin/login'
-    throw new Error('انتهت الجلسة')
+    // لا ننقل الصفحة حتى لا يضيع ما كتبه المستخدم؛ نعرض نافذة لتسجيل الدخول من تبويب آخر
+    window.dispatchEvent(new Event('admin-session-expired'))
+    throw new Error('انتهت الجلسة. سجّل الدخول ثم أعد المحاولة')
   }
   if (!r.ok) {
     const e = new Error((data.error as string) || 'حدث خطأ') as Error & { data?: Record<string, unknown> }
@@ -117,8 +142,20 @@ export function PageHead({ title, subtitle, children }: { title: string; subtitl
 }
 
 export function Field({ label, hint, error, children, className = '', htmlFor }: { label: ReactNode; hint?: ReactNode; error?: string; children: ReactNode; className?: string; htmlFor?: string }) {
+  // يربط العنوان بأول حقل داخله تلقائياً حتى يقرأه قارئ الشاشة ويحدده الضغط على العنوان
+  const auto = useId()
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const box = ref.current
+    if (!box || htmlFor) return
+    const lab = box.querySelector(':scope > label') as HTMLLabelElement | null
+    const el = box.querySelector('input:not([type=hidden]):not([type=file]), select, textarea') as HTMLElement | null
+    if (!lab || !el) return
+    if (!el.id) el.id = `f${auto.replace(/[^\w-]/g, '')}`
+    lab.htmlFor = el.id
+  })
   return (
-    <div className={`a-field ${className}`}>
+    <div className={`a-field ${className}`} ref={ref}>
       <label htmlFor={htmlFor}>{label}</label>
       {children}
       {hint && !error && <span className="hint">{hint}</span>}

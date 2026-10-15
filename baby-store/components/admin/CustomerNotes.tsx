@@ -9,7 +9,7 @@ export function CustomerNotes({ id, notes }: { id: number; notes: string }) {
   return (
     <div className="a-card a-form">
       <h2 style={{ margin: 0 }}>ملاحظات داخلية عن العميل</h2>
-      <textarea className="a-textarea" value={v} onChange={(e) => setV(e.target.value)} />
+      <textarea className="a-textarea" aria-label="ملاحظات داخلية عن العميل" value={v} onChange={(e) => setV(e.target.value)} />
       <button type="button" className="a-btn a-btn--soft" disabled={busy || v === notes} onClick={() => run(() => api('POST', `customers/${id}/notes`, { notes: v }), 'تم الحفظ')}>
         حفظ
       </button>

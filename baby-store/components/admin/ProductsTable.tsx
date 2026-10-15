@@ -38,7 +38,7 @@ export function ProductsTable({ rows, categories }: { rows: Row[]; categories: {
       )}
       {rows.length ? (
         <div className="a-table-wrap">
-          <table className="a-table">
+          <table className="a-table a-table--cards">
             <thead>
               <tr>
                 <th><input type="checkbox" aria-label="تحديد الكل" checked={all} onChange={() => setSel(all ? [] : rows.map((r) => r.id))} /></th>
@@ -54,25 +54,25 @@ export function ProductsTable({ rows, categories }: { rows: Row[]; categories: {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><input type="checkbox" aria-label={`تحديد ${r.name}`} checked={sel.includes(r.id)} onChange={() => toggle(r.id)} /></td>
-                  <td>{r.thumb ? <img className="thumb" src={r.thumb} alt="" /> : <span className="thumb" style={{ display: 'block' }} />}</td>
-                  <td>
+                  <td data-cell="aux"><input type="checkbox" aria-label={`تحديد ${r.name}`} checked={sel.includes(r.id)} onChange={() => toggle(r.id)} /></td>
+                  <td data-cell="aux">{r.thumb ? <img className="thumb" src={r.thumb} alt="" /> : <span className="thumb" style={{ display: 'block' }} />}</td>
+                  <td data-label="المنتج">
                     <Link className="rowlink" href={`/admin/products/${r.id}`}>{r.name}</Link>
                     <div className="small muted">
                       <bdi>{r.sku}</bdi> · {TYPE[r.type]}{r.type === 'variable' ? ` (${r.variants_count})` : ''} {r.is_demo ? <span className="a-badge">تجريبي</span> : null}
                     </div>
                   </td>
-                  <td className="small">{r.category_name || '—'}</td>
-                  <td className="num">
+                  <td data-label="القسم" className="small">{r.category_name || '—'}</td>
+                  <td data-label="السعر" className="num">
                     {r.sale_price != null ? <><b style={{ color: 'var(--a-danger)' }}>{money(r.sale_price)}</b> <s className="small muted">{money(r.price)}</s></> : money(r.price)}
                   </td>
-                  <td className="num">
+                  <td data-label="المخزون" className="num">
                     {r.type === 'bundle' ? <span className="small muted">من المكونات</span> : !r.track_stock ? <span className="small muted">بدون تتبع</span> : (
                       <span className={`a-badge ${r.stock_total <= 0 ? 'a-badge--danger' : r.stock_total <= 3 ? 'a-badge--warn' : 'a-badge--ok'}`}>{r.stock_total}</span>
                     )}
                   </td>
-                  <td><span className={`a-badge ${STATUS[r.status]?.[1] || ''}`}>{STATUS[r.status]?.[0]}</span></td>
-                  <td>
+                  <td data-label="الحالة"><span className={`a-badge ${STATUS[r.status]?.[1] || ''}`}>{STATUS[r.status]?.[0]}</span></td>
+                  <td data-cell="aux">
                     <div className="a-row" style={{ flexWrap: 'nowrap', gap: 2 }}>
                       <button type="button" className="a-icon-btn" title="نسخ المنتج برقم جديد" aria-label="نسخ" disabled={busy} onClick={() => run(async () => {
                         const res = await api<{ id: number }>('POST', `products/${r.id}/duplicate`)
