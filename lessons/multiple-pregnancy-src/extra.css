@@ -1,0 +1,199 @@
+/* ---------- slide-specific pieces ---------- */
+.arc { stroke-dasharray: 0 100; stroke-dashoffset: var(--o); }
+.play .arc { animation: arc 1.3s var(--ease) forwards; animation-delay: var(--dl, .4s); }
+@keyframes arc { to { stroke-dasharray: var(--v) 100; } }
+
+.mult { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 22px; }
+.mult svg { width: 100%; flex: 1; min-height: 0; overflow: visible; }
+.mult h3 { font-size: 22px; margin-top: 6px; }
+.mult p { color: var(--cc); font-weight: 700; }
+
+#dotgrid circle { fill: var(--line); transition: fill .4s; }
+.play #dotgrid circle.a { animation: dotA .5s var(--back) forwards; animation-delay: calc(.6s + var(--i) * .25s); }
+.play #dotgrid circle.b { animation: dotB .5s var(--back) forwards; animation-delay: 1.6s; }
+@keyframes dotA { from { fill: var(--line); r: 6; } to { fill: var(--p2); r: 14; } }
+@keyframes dotB { from { fill: var(--line); r: 6; } to { fill: var(--p6); r: 14; } }
+
+.cls { display: flex; flex-direction: column; gap: 6px; }
+.cls svg { width: 100%; height: auto; margin: 6px 0; }
+.cls .pill { align-self: flex-start; }
+.cls h3 { font-size: 20px; }
+
+.zyg { width: 100%; height: auto; }
+
+.chorTag { position: absolute; left: 14px; top: 12px; padding: 8px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); display: grid; }
+.chorTag b { font: 700 24px var(--fd); color: var(--tc, var(--p3)); line-height: 1.1; }
+.chorTag span { font-size: 12.5px; color: var(--muted); }
+.dayaxis { position: relative; display: grid; grid-template-columns: auto 1fr 1fr 1fr auto; align-items: center; font-size: 12px; color: var(--muted); height: 28px; padding: 0 2px; }
+.dayaxis i { display: none; }
+.dayaxis::before { content: ""; position: absolute; left: 40px; right: 30px; top: 50%; height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--p3), var(--p4), var(--p2), var(--p6)); opacity: .5; }
+.dayaxis span { position: relative; background: var(--paper); padding: 0 6px; justify-self: center; font-weight: 700; }
+.dayaxis span:first-child { justify-self: start; } .dayaxis span:last-of-type { justify-self: end; }
+.dayaxis .mk2 { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--tc, var(--p3)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tc, var(--p3)) 25%, transparent); left: var(--x, 18%); transition: left .7s var(--ease), background .4s; }
+.abg { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 3px 10px; font-size: 13.5px; align-items: baseline; }
+.abg b { font: 700 13.5px var(--fb); color: var(--pc); }
+.abg span { color: var(--ink2); }
+
+.pvc { display: flex; flex-direction: column; gap: 8px; }
+.pvc svg { width: 100%; height: auto; flex: 1; }
+.pvc h3 { font-size: 18px; }
+
+.sign svg { width: 100%; height: auto; border-radius: 12px; }
+.sign h3 { font-size: 18px; }
+.sign p { font-size: 14px; }
+
+.pph { display: flex; align-items: center; gap: 12px; }
+.pph svg { width: 112px; flex: none; height: auto; }
+.pph h3 { font-size: 17px; margin-bottom: 3px; }
+.pph p { font-size: 14px; }
+.breathe { animation: breathe 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes breathe { 50% { transform: scale(1.08); } }
+.peel { animation: peel 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin: top center; }
+@keyframes peel { 0%, 40% { transform: none; } 70%, 100% { transform: translateY(8px) rotate(-3deg); } }
+
+.pu { display: flex; flex-direction: column; gap: 8px; }
+.pu h3 { font-size: 22px; }
+.pu svg { width: 100%; height: auto; margin-top: auto; }
+.invol { animation: invol 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes invol { 0%, 15% { transform: scale(1.32); } 70%, 100% { transform: scale(1); } }
+
+.sv { display: flex; flex-direction: column; gap: 10px; justify-content: space-between; }
+.sv svg { width: 100%; height: auto; }
+.sv h3 { font-size: 18px; }
+.wavey { animation: wavey 2.4s ease-in-out infinite; }
+@keyframes wavey { 50% { transform: translateY(-5px); } }
+
+.supp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.supp div { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: color-mix(in srgb, var(--p6) 5%, var(--card)); }
+.supp b { display: block; font-size: 15.5px; }
+.supp span { font: 700 15px var(--fd); color: var(--p6); }
+.mini { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; background: color-mix(in srgb, var(--cc, var(--pc)) 9%, var(--card)); border: 1px solid color-mix(in srgb, var(--cc, var(--pc)) 25%, transparent); font-weight: 700; font-size: 14.5px; color: var(--ink); }
+.mini .ico { width: 30px; height: 30px; }
+
+.team { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 12px 14px; }
+.team .ico { grid-row: span 2; }
+.team b { font-size: 15.5px; line-height: 1.2; }
+.team small { color: var(--muted); font-size: 13px; }
+
+.flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; position: relative; }
+.flow::before { content: ""; position: absolute; left: 4%; right: 4%; top: 15px; height: 3px; background: linear-gradient(90deg, var(--p3), var(--p4), var(--p2), var(--p5), var(--p7), var(--p6)); border-radius: 3px; }
+.flow .st { position: relative; padding-top: 34px; display: flex; flex-direction: column; gap: 3px; }
+.flow .st::before { content: ""; position: absolute; left: 50%; top: 7px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 0 5px var(--paper); }
+.flow .t { align-self: center; font-size: 12px; font-weight: 700; color: var(--cc); background: color-mix(in srgb, var(--cc) 12%, transparent); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.flow b { font-size: 14.5px; text-align: center; line-height: 1.2; margin-top: 4px; }
+.flow small { font-size: 12.5px; text-align: center; color: var(--muted); line-height: 1.25; }
+
+.cond { display: flex; flex-direction: column; gap: 8px; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: transform .25s var(--ease), border-color .25s; }
+.cond:hover { transform: translateY(-4px); border-color: var(--cc); }
+.cond .pill { align-self: flex-start; }
+.cond svg, .c24 svg { width: 100%; height: auto; max-height: 230px; }
+.cond .more { margin-top: auto; font-size: 13.5px; font-weight: 700; color: var(--cc); }
+.c24 { display: flex; flex-direction: column; gap: 8px; }
+.c24 .pill { align-self: flex-start; }
+.c24 svg { max-height: 200px; }
+
+.ts { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding-top: 24px; }
+.ts .sn { position: absolute; left: 14px; top: 10px; font: 700 30px var(--fd); color: var(--cc); opacity: .35; }
+.ts .clk { width: 120px; height: 120px; }
+.ts h3 { font-size: 20px; }
+.ts p { font-size: 15.5px; }
+
+.prg { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 22px 16px; }
+.prg h3 { font-size: 24px; }
+
+.vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
+.vsh { display: flex; align-items: center; gap: 14px; }
+.vsh.r { justify-content: flex-end; }
+.vsh svg { width: 110px; height: 110px; flex: none; }
+.vsh h3 { font-size: 24px; }
+.vsmid { text-align: center; color: var(--muted); font-size: 12px; }
+.vsmid svg { width: 140px; height: 70px; }
+.flowline { animation: flowl 1s linear infinite; }
+@keyframes flowl { to { stroke-dashoffset: -32; } }
+.pairs { display: grid; gap: 8px; }
+.pr { display: grid; grid-template-columns: 1fr 170px 1fr; align-items: center; gap: 12px; }
+.pr span { padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 17px; }
+.pr .l { background: color-mix(in srgb, var(--p6) 11%, var(--card)); color: var(--ink); border: 1px solid color-mix(in srgb, var(--p6) 26%, transparent); text-align: right; }
+.pr .r { background: color-mix(in srgb, var(--p4) 11%, var(--card)); color: var(--ink); border: 1px solid color-mix(in srgb, var(--p4) 26%, transparent); }
+.pr .m { text-align: center; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 0; position: relative; }
+.pr .m::before, .pr .m::after { content: ""; position: absolute; top: 50%; width: 18px; height: 2px; background: var(--line2); }
+.pr .m::before { left: -6px; } .pr .m::after { right: -6px; }
+
+.tilt { transform-box: view-box; transform-origin: 210px 110px; }
+.play .tilt { animation: tilt 1.6s var(--back) forwards .5s; }
+@keyframes tilt { to { transform: rotate(-9deg); } }
+
+.lockA { animation: lockA 5s ease-in-out infinite; }
+.lockB { animation: lockB 5s ease-in-out infinite; }
+@keyframes lockA { 0% { transform: translateY(80px); } 45%, 100% { transform: translateY(0); } }
+@keyframes lockB { 0% { transform: translate(-40px, -60px); } 45%, 100% { transform: none; } }
+.flash { opacity: 0; animation: flash 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes flash { 0%, 45% { opacity: 0; transform: scale(.4); } 55% { opacity: 1; transform: scale(1.15); } 70%, 100% { opacity: .9; transform: scale(1); } }
+
+.vanish { animation: vanish 4.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes vanish { 0%, 15% { opacity: 1; transform: scale(1); } 75%, 100% { opacity: 0; transform: scale(.3); } }
+.grow2 > * { animation: grow2 4.5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes grow2 { 0%, 20% { transform: scale(.85); } 80%, 100% { transform: scale(1); } }
+
+.snip { animation: snip 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 20% 50%; }
+@keyframes snip { 50% { transform: rotate(-6deg); } }
+.nono { color: var(--ink) !important; }
+.nono::before { background: var(--p6) !important; }
+
+ol.steps.sm2 { gap: 5px; }
+ol.steps.sm2 li { font-size: 15px; padding-left: 32px; min-height: 22px; }
+ol.steps.sm2 li::before { width: 22px; height: 22px; font-size: 11.5px; top: 0; }
+ol.steps.sm li { font-size: 14.5px; }
+.tl1 { width: 100%; height: auto; }
+.sweep { animation: sweep 3.2s ease-in-out infinite alternate; transform-box: view-box; transform-origin: 180px 18px; }
+@keyframes sweep { from { transform: rotate(-30deg); } to { transform: rotate(30deg); } }
+
+.pf { display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 22px; }
+.pf h3 { font-size: 23px; }
+.pf .ico.lg { width: 64px; height: 64px; border-radius: 18px; }
+.pf .ico.lg svg { width: 34px; height: 34px; }
+
+/* end slide */
+.s-end { align-items: center; justify-content: center; text-align: center; }
+.endw { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.endart { width: 300px; height: 200px; }
+.s-end h1 { font-size: 96px; font-weight: 700; letter-spacing: -.03em; color: var(--p1); font-style: italic; }
+.s-end .sub { font-size: 20px; color: var(--ink2); margin: 0 0 18px; }
+.s-end .cred { grid-template-columns: auto auto; }
+
+#blackout { position: fixed; inset: 0; background: #000; z-index: 80; display: none; }
+body.black #blackout { display: block; }
+@media print { #blackout { display: none !important; } }
+
+/* ---------- larger reading sizes: A4 slides are projected ---------- */
+.card p, ul.mk li, ol.steps li, .callout { font-size: 17.5px; }
+ul.mk.sm li, ol.steps.sm li { font-size: 16px; }
+.card h3 { font-size: 21px; }
+ul.mk { gap: 8px; }
+ol.steps.sm2 { gap: 9px; }
+ol.steps.sm2 li { font-size: 17px; min-height: 24px; }
+.mid { justify-content: center; }
+.toc { flex: 1; grid-auto-rows: 1fr; }
+.toc .no { font-size: 54px; }
+.toc b { font-size: 22px; }
+.cls { justify-content: center; }
+.cls svg { height: 210px; }
+.pvc { justify-content: center; }
+.pvc svg { flex: none; height: 250px; }
+.sv svg { flex: 1; min-height: 0; }
+.pu svg { height: 200px; }
+.zcard { flex: 1; display: flex; flex-direction: column; }
+.zcard svg { flex: 1; min-height: 0; }
+.bigtb td, .bigtb th { padding: 13px 18px; font-size: 17px; }
+.pph svg { width: 130px; }
+.mids > .card { display: flex; flex-direction: column; justify-content: center; }
+.sumc ol.steps.sm2 { gap: 13px; }
+ul.mk.xs li { font-size: 15px; } ul.mk.xs { gap: 5px; }
+.ts { justify-content: center; }
+.cond svg { max-height: 250px; }
+.c24 svg { max-height: 240px; }
+.c24 { justify-content: center; }
+@keyframes lockB { 0% { transform: translate(30px, -70px); } 45%, 100% { transform: none; } }
+.pairs { gap: 12px; }
+.pr span { padding: 14px 18px; font-size: 19px; }
+.mini { font-size: 16px; }
