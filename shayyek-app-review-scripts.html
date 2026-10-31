@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>سكربتات مراجعة Meta — شيّك</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4fd;--card:#fff;--ink:#16122b;--muted:#6b6489;--line:#e6e1f5;--brand:#7c4dff;--brand2:#ff4f8b;--ok:#0f9d58;--warn:#b26a00;--warnbg:#fff6e5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13101f;--card:#1d1930;--ink:#f1eefc;--muted:#a39dc0;--line:#2e2847;--warnbg:#2e2412;--warn:#ffc266}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;line-height:1.75}
+.wrap{max-width:860px;margin:0 auto;padding:28px 16px 60px}
+header{margin-bottom:22px}
+h1{font-size:28px;margin:0 0 4px}
+h1 span{background:linear-gradient(90deg,var(--brand),var(--brand2),#ff8a3d);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;margin:16px 0;break-inside:avoid}
+.card h2{margin:0 0 6px;font-size:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.num{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-size:16px;flex:none}
+code{direction:ltr;unicode-bidi:embed;background:color-mix(in srgb,var(--brand) 12%,transparent);color:var(--brand);padding:1px 7px;border-radius:7px;font-size:.88em;font-family:ui-monospace,Menlo,Consolas,monospace}
+.dur{font-size:13px;color:var(--muted);font-weight:400}
+ol,ul{margin:8px 0 0;padding-inline-start:22px}
+li{margin:5px 0}
+.check{list-style:none;padding:0}
+.check li{display:flex;gap:10px;align-items:flex-start}
+.check input{margin-top:7px;width:18px;height:18px;accent-color:var(--brand);flex:none}
+.note{background:var(--warnbg);color:var(--warn);border-radius:12px;padding:10px 14px;margin-top:10px;font-size:14.5px}
+.tag{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 10px;color:var(--muted)}
+.phone{color:var(--brand2);font-weight:600}
+footer{color:var(--muted);font-size:13px;text-align:center;margin-top:28px}
+@media print{body{background:#fff}.card{border-color:#ccc}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>سكربتات فيديو مراجعة Meta — <span>شيّك</span></h1>
+  <p class="sub">فيديو منفصل لكل صلاحية · تطبيق shayyek.sa (1703468354087092) · نشاط «كوره»</p>
+</header>
+
+<section class="card">
+  <h2>قبل التصوير</h2>
+  <ul class="check">
+    <li><input type="checkbox"><span>حساب إنستقرام احترافي للتجربة (مثل <code>shayyek.demo</code>) — ليس حساب عميل حقيقي.</span></li>
+    <li><input type="checkbox"><span>أضفته كمختبِر: Meta ← الأدوار بالتطبيق ← مختبِرو Instagram، وقبلت الدعوة من إنستقرام: الإعدادات ← التطبيقات والمواقع ← دعوات المختبِر.</span></li>
+    <li><input type="checkbox"><span>حساب ثاني يمثّل «الزبون» (يعلّق ويرسل رسائل).</span></li>
+    <li><input type="checkbox"><span>حساب في شيّك باقته فيها كل الميزات (تعليقات، رسائل وقائمة، جدولة ونشر، تحليلات).</span></li>
+    <li><input type="checkbox"><span>الحساب التجريبي <b>مفصول</b> من شيّك قبل فيديو 1 (عشان تظهر شاشة موافقة Meta كاملة).</span></li>
+    <li><input type="checkbox"><span>منشور في الحساب التجريبي عليه حملة شغّالة (رد تعليق + رسالة خاصة + قائمة).</span></li>
+    <li><input type="checkbox"><span>صورة جاهزة لاختبار النشر.</span></li>
+    <li><input type="checkbox"><span>زر «طلب صلاحية النشر من العملاء» يبقى <b>مقفل</b> (الإذن يُطلب من حسابك فقط — كافي للتجربة).</span></li>
+    <li><input type="checkbox"><span>تصوير الكمبيوتر بدقة 1080p، بدون صوت، الإشعارات مقفلة، ولا بيانات شخصية ظاهرة.</span></li>
+  </ul>
+  <div class="note">الإحصائيات تُجمع كل ساعة: اربط الحساب التجريبي قبل تصوير فيديو 5 بساعتين على الأقل، ويكون فيه 2–3 منشورات.</div>
+  <div class="note">كل فيديو يبدأ برابط <code>shayyek.sa</code> ظاهر في شريط المتصفح. لا قص ولا تسريع في وسط الفيديو — الترجمة الإنجليزية تُضاف بعدين.</div>
+</section>
+
+<section class="card">
+  <h2><span class="num">1</span> الربط <code>instagram_business_basic</code> <span class="dur">≈ دقيقة ونص</span></h2>
+  <ol>
+    <li>افتح <code>shayyek.sa</code> وسجّل دخول (كلمة المرور نقاط).</li>
+    <li>من القائمة اضغط <b>«الربط»</b> — يظهر أنه لا يوجد حساب مربوط.</li>
+    <li>اضغط زر <b>ربط إنستقرام</b>.</li>
+    <li>تفتح صفحة إنستقرام: سجّل دخول بالحساب التجريبي.</li>
+    <li><b>توقف 3 ثوانٍ على شاشة الموافقة</b> حتى تظهر كل الصلاحيات، ثم اضغط <b>«السماح»</b>.</li>
+    <li>ترجع لشيّك: <b>توقف على اسم الحساب وصورته</b> في صفحة الربط.</li>
+    <li>ادخل <b>«الحملات» ← حملة جديدة</b> وبيّن ظهور <b>منشورات الحساب</b> عند اختيار المنشور.</li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2><span class="num">2</span> التعليقات <code>instagram_business_manage_comments</code> <span class="dur">≈ دقيقتين</span></h2>
+  <ol>
+    <li>في شيّك افتح <b>«الحملات»</b>: بيّن الحملة الشغّالة على المنشور، الكلمة المفتاحية، ونص الرد على التعليق.</li>
+    <li><span class="phone">📱 بالجوال</span> من حساب «الزبون»: افتح نفس المنشور وعلّق بالكلمة المفتاحية.</li>
+    <li>انتظر حتى يظهر <b>الرد على التعليق</b> تحت تعليق الزبون، وبيّنه.</li>
+    <li>ارجع لشيّك ← <b>«الرئيسية»</b> أو <b>«الحملات»</b>: بيّن أن التعليق ظهر في النشاط / الإحصائية.</li>
+    <li><span class="tag">اختياري</span> إذا فيه إخفاء أو حذف تعليق في شيّك، بيّنه هنا.</li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2><span class="num">3</span> الرسائل <code>instagram_business_manage_messages</code> <span class="dur">≈ دقيقتين</span></h2>
+  <ol>
+    <li><span class="phone">📱 بالجوال</span> (استمرار لفيديو 2): حساب «الزبون» يفتح الخاص ويبيّن <b>الرسالة الخاصة</b> اللي وصلت من الحساب التجريبي.</li>
+    <li>إذا فيه <b>قائمة تفاعلية</b>: اضغط زر وبيّن الرد التالي.</li>
+    <li>ارجع لشيّك ← <b>«الرسائل»</b> وافتح المحادثة (تظهر رسائل الزبون والردود).</li>
+    <li><b>اكتب رد يدوي</b> من شيّك وأرسله.</li>
+    <li><span class="phone">📱 بالجوال</span>: بيّن أن <b>الرد اليدوي وصل</b> للزبون.</li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2><span class="num">4</span> النشر <code>instagram_business_content_publish</code> <span class="dur">≈ دقيقة ونص</span></h2>
+  <ol>
+    <li>في شيّك ← <b>«الجدولة»</b> ← منشور جديد.</li>
+    <li>ارفع الصورة واكتب وصف واضح (مثل <code>Shayyek test post</code>).</li>
+    <li>اختر <b>«نشر الآن»</b> أو موعد بعد دقيقتين وانتظر.</li>
+    <li>بيّن أن المنشور <b>تم نشره</b> في شيّك.</li>
+    <li><span class="phone">📱 بالجوال</span> أو instagram.com: افتح الحساب التجريبي وبيّن <b>المنشور الجديد</b>.</li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2><span class="num">5</span> الإحصائيات <code>instagram_business_manage_insights</code> <span class="dur">≈ دقيقة</span></h2>
+  <ol>
+    <li>في شيّك ← <b>«التحليلات»</b>.</li>
+    <li>بيّن <b>إحصائيات الحساب</b> (الوصول، المشاهدات، المتابعين — حسب اللي يظهر).</li>
+    <li>انزل وبيّن <b>إحصائيات المنشورات</b> (وصول ومشاهدات كل منشور).</li>
+    <li>توقف على رقم واحد واضح، وافتح نفس المنشور في إنستقرام ← «عرض الإحصائيات» ليظهر أن الرقم من إنستقرام.</li>
+  </ol>
+</section>
+
+<section class="card">
+  <h2>بعد التصوير</h2>
+  <ul class="check">
+    <li><input type="checkbox"><span>ارفع الفيديوهات الخمسة وسمّها 1 إلى 5 — أضيف ترجمة إنجليزية لكل خطوة.</span></li>
+    <li><input type="checkbox"><span>أكتب وصف الاستخدام لكل صلاحية وتعليمات المراجع بالإنجليزي.</span></li>
+    <li><input type="checkbox"><span>جهّز حساب شيّك خاص للمراجع، واكتب اسم المستخدم وكلمة المرور في نموذج المراجعة مباشرة — <b>لا ترسلها في المحادثة</b>.</span></li>
+  </ul>
+</section>
+
+<footer>شيّك — shayyek.sa · مؤسسة لمسة كورة للتجارة</footer>
+</div>
+</body>
+</html>
