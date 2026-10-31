@@ -2,7 +2,7 @@
 import json, os, subprocess, sys
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, '../../../.claude/skills/motion-studio/scripts'))
+sys.path.insert(0, os.path.join(HERE, '../../../.claude/skills/my-motion-graphic/scripts'))
 from audio_kit import Kit
 T = json.load(open(os.path.join(HERE, 'timing.json'))); P = T['phrases']
 at = lambda i, k='a': P[i][k]
