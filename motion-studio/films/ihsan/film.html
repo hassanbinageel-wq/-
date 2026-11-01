@@ -70,6 +70,7 @@
     <div id="book" class="paper">
       <svg id="pages" viewBox="0 0 1320 790" style="overflow:visible">
         <defs>
+          <clipPath id="cpL"><rect x="-20" y="-20" width="680" height="830"/></clipPath><clipPath id="cpR"><rect x="660" y="-20" width="680" height="830"/></clipPath>
           <linearGradient id="spine" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#7A5A30" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
           <radialGradient id="gl"><stop offset="0" stop-color="#FFE7A0" stop-opacity=".95"/><stop offset=".5" stop-color="#FFD36B" stop-opacity=".35"/><stop offset="1" stop-color="#FFD36B" stop-opacity="0"/></radialGradient>
         </defs>
@@ -277,16 +278,19 @@ window.renderAt = async function (t) {
   $('#cover').style.filter = `brightness(${1 + cg * .25})`;
   $('#cover .orn').style.opacity = oc < .5 ? 1 : 0;
   $('#cover').style.background = oc < .5 ? '#1F5C4A' : '#174636';
-  $('#cover').style.opacity = oc >= 1 ? 0 : 1;
+  $('#cover').style.opacity = oc < .5 ? 1 : 1 - ease.out3(clamp((oc - .5) / .3));   // بعد منتصف الفتح يذوب الغلاف بدل أن يغطي الصفحة اليسرى
   $('#leftHalf').style.opacity = clamp((oc - .45) / .3); $('#spinesh').style.opacity = clamp((oc - .45) / .3);
   const pin = sp(t, [120, 14]); $('#book').style.transform = `translateY(${(1 - pin) * 900}px)`;
   ['#bm1', '#bm2'].forEach((id, i) => { pop($(id), t, E.bm[i], { rot: -8 }); const o = 1 - ease.power4In(range(t, E.open - .3, E.open + .1)); if (t > E.bm[i]) $(id).style.opacity = o; });
 
   // ----- الصفحات: تقليب صفحة بين المشاهد
-  let cur = 0, fl = -1;
-  E.flips.forEach((f, i) => { const u = range(t, f, f + .9); if (u >= .5) cur = i + 1; if (u > 0 && u < 1) fl = u; });
-  SCN.forEach((id, i) => { $('#' + id).style.display = i === cur && oc > .5 ? '' : 'none'; });
-  if (fl >= 0) { const a = ease.inOut2 ? ease.inOut2(fl) : ease.inOut3(fl); $('#flip').style.opacity = 1; $('#flip').style.transform = `rotateY(${-180 * a}deg)`; $('#flip').style.filter = `brightness(${1 - .25 * Math.sin(Math.PI * a)})`; }
+  // أثناء التقليب: الصفحة اليمنى الجديدة تنكشف تحت الورقة، واليسرى القديمة تبقى حتى تغطيها الورقة ثم تذوب الورقة
+  let cur = 0, fl = -1, fi = -1;
+  E.flips.forEach((f, i) => { const u = range(t, f, f + .9); if (u >= 1) cur = i + 1; if (u > 0 && u < 1) { fl = u; fi = i; } });
+  SCN.forEach((id, i) => { const el = $('#' + id); let show = i === cur, clip = null;
+    if (fl >= 0) { const a = ease.inOut3(fl); if (i === fi) { show = a < .5; clip = 'url(#cpL)'; } if (i === fi + 1) { show = true; clip = a < .5 ? 'url(#cpR)' : null; } }
+    el.style.display = show && oc > .5 ? '' : 'none'; if (clip) el.setAttribute('clip-path', clip); else el.removeAttribute('clip-path'); });
+  if (fl >= 0) { const a = ease.inOut3(fl); $('#flip').style.opacity = a < .5 ? 1 : 1 - ease.out3(clamp((a - .5) / .45)); $('#flip').style.transform = `rotateY(${-180 * a}deg)`; $('#flip').style.filter = `brightness(${1 - .25 * Math.sin(Math.PI * a)})`; }
   else $('#flip').style.opacity = 0;
 
   // ----- المشهد ١: الواجب والمعلّم ينظر، ثم يخرج
