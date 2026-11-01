@@ -29,6 +29,32 @@ We only read data of the account its owner connected. The owner can disconnect a
 
 ---
 
+## 2) instagram_business_manage_comments
+
+**How will your app use this permission?**
+
+Businesses use Shayyek to answer comments on their own posts automatically. The owner creates a «campaign» on one of their posts with keywords (for example "price"). When someone comments with a keyword:
+
+1. Shayyek receives the comment through the `comments` webhook field.
+2. Shayyek reads the comment text to match the keyword.
+3. Shayyek posts one short public reply under that comment (for example "We sent you the details in DM").
+4. Shayyek sends one private reply to the commenter with the requested info (price and a link). The private reply uses instagram_business_manage_messages.
+
+The campaign page counts how many people commented and how many received the reply. We only act on comments on the connected account's own media. We reply once per comment and limit repeats per person.
+
+**Screencast:** `review-2-comments-instagram_business_manage_comments.mp4`
+
+1. The owner creates a comment campaign and picks one of @finjan.house's posts. Shayyek lists the account's media.
+2. The owner sets the keywords, the private-reply content with a link button, and the public reply.
+3. The owner activates the campaign. Its counters show 0.
+4. On a phone, another Instagram account comments the keyword.
+5. Shayyek replies publicly under the comment.
+6. The commenter receives the private reply with an "Open link" button.
+7. On instagram.com, the comment and Shayyek's public reply appear under the post.
+8. The campaign card shows 1 person, 1 delivered and a 100% delivery rate.
+
+---
+
 ## Test instructions (for the reviewer) — draft
 
 1. Open https://shayyek.sa and sign in with the test login provided in this form.
