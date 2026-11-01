@@ -40,6 +40,8 @@ Businesses use Shayyek to answer comments on their own posts automatically. The 
 3. Shayyek posts one short public reply under that comment (for example "We sent you the details in DM").
 4. Shayyek sends one private reply to the commenter with the requested info (price and a link). The private reply uses instagram_business_manage_messages.
 
+In the screencast the link is shayyek.sa because this is a test account. Real businesses put their own store or product link.
+
 The campaign page counts how many people commented and how many received the reply. We only act on comments on the connected account's own media. We reply once per comment and limit repeats per person.
 
 **Screencast:** `review-2-comments-instagram_business_manage_comments.mp4`
