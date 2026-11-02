@@ -57,6 +57,28 @@ The campaign page counts how many people commented and how many received the rep
 
 ---
 
+## 3) instagram_business_manage_messages
+
+**How will your app use this permission?**
+
+Shayyek lets a business handle Instagram Direct messages with its customers:
+
+1. **Private reply to a comment.** When a campaign matches a comment, Shayyek sends one private reply to the commenter (Send API with recipient.comment_id). The reply contains the information the person asked for, such as a price and a link button.
+2. **Inbox.** Shayyek's «Messages» page shows conversations with the connected account. The business owner reads them and sends manual replies from Shayyek. Manual replies are allowed only within the 24-hour messaging window, and Shayyek shows the time left.
+3. **Story replies and mentions.** Shayyek answers story replies and story mentions in the same way, inside the messaging window.
+
+Shayyek only messages people who contacted the business first: they commented, replied to a story or sent a message. It never sends unsolicited or promotional broadcasts. Incoming messages arrive through the `messages` and `messaging_postbacks` webhook fields.
+
+**Screencast:** `review-3-messages-instagram_business_manage_messages.mp4`
+
+1. On a phone, the customer's Instagram DMs show the private reply the campaign sent after the comment.
+2. In Shayyek, the owner opens «Messages» and the conversation.
+3. The owner sends a manual reply. It is within 24 hours of the customer's last message.
+4. On the phone, the reply arrives, and the customer answers "thanks".
+5. The customer's answer appears in the Shayyek inbox.
+
+---
+
 ## Test instructions (for the reviewer) — draft
 
 1. Open https://shayyek.sa and sign in with the test login provided in this form.
