@@ -102,6 +102,29 @@ Shayyek publishes only content the owner created and scheduled, only to the acco
 
 ---
 
+## 5) instagram_business_manage_insights
+
+**How will your app use this permission?**
+
+Shayyek's «Analytics» page helps a business see how its own Instagram content performs.
+Once an hour, Shayyek reads the connected account's insights from the Instagram Insights API:
+
+- Account level: views, reach (followers and non-followers), interactions and follower changes.
+- Per post, reel and story: views, reach, likes, comments, shares and saves.
+
+Shayyek shows these numbers next to the results of the business's own comment campaigns, so the owner can see which posts bring interactions and orders.
+We only read insights of the account its owner connected. We use them only to show these reports to that owner, and we never share or sell them.
+
+**Screencast:** `review-5-insights-instagram_business_manage_insights.mp4`
+
+1. The owner opens «Analytics».
+2. The «Instagram insights» card shows the account totals: 17 views, 2 comments, and reach split into followers and non-followers.
+3. «Post performance» lists each post's insights. The cold-coffee post has 10 views and 2 comments.
+4. The rest of the page combines campaign results with the posts' insights.
+5. On instagram.com, the same post's "View insights" shows 10 views, 2 interactions and 2 comments, the same numbers Shayyek shows.
+
+---
+
 ## Test instructions (for the reviewer) — draft
 
 1. Open https://shayyek.sa and sign in with the test login provided in this form.
