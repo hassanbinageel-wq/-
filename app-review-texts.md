@@ -79,6 +79,29 @@ Shayyek only messages people who contacted the business first: they commented, r
 
 ---
 
+## 4) instagram_business_content_publish
+
+**How will your app use this permission?**
+
+Shayyek has a «Scheduling» calendar where a business owner plans posts, reels and stories for their own Instagram professional account.
+
+1. The owner uploads the media and writes the caption.
+2. The owner picks a date and time.
+3. At that time Shayyek publishes it with the Content Publishing API: it creates a media container, then publishes it.
+4. The calendar shows the status: Scheduled, Publishing, Published or Failed.
+
+Shayyek publishes only content the owner created and scheduled, only to the account they connected, and never on its own initiative.
+
+**Screencast:** `review-4-publish-instagram_business_content_publish.mp4`
+
+1. The owner opens «Scheduling» and creates a post with an image and a caption.
+2. The owner sets it for 11:55 PM. The computer clock shows 11:49 PM.
+3. The post appears as Scheduled. The 6-minute wait was cut from the video.
+4. At 11:55 Shayyek publishes it, and the status turns Published. The clock shows 11:56 PM.
+5. On instagram.com, the new post is the first post on @finjan.house's profile.
+
+---
+
 ## Test instructions (for the reviewer) — draft
 
 1. Open https://shayyek.sa and sign in with the test login provided in this form.
