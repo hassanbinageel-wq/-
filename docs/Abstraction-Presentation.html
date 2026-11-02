@@ -262,10 +262,22 @@ table.cmp td:first-child{font-weight:800;color:var(--navy);white-space:nowrap}
 #prog i{overflow:hidden}
 #prog i:after{content:'';position:absolute;top:0;bottom:0;width:120px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:shim 2.6s linear infinite}
 @keyframes shim{from{right:-120px}to{right:100%}}
+
+/* ===== INFINITE ZOOM ===== */
+#world,.snap{position:absolute;inset:0;background:#fff;overflow:hidden}
+#world{z-index:2}
+.snap{pointer-events:none;will-change:transform}
+.zooming #world,.zooming .snap{box-shadow:0 0 0 4000px #fff}
+.zooming #world{will-change:transform,clip-path}
+#world.instant *,#world.instant{transition:none!important}
+#foot,#prog,#hint{z-index:10}
+#zrim{position:absolute;left:0;top:0;z-index:8;border-radius:50%;border:3px solid #0B1F44;box-shadow:0 0 0 10px rgba(11,31,68,.08),0 0 60px rgba(11,31,68,.25);pointer-events:none;opacity:0}
+#zflash{position:absolute;inset:0;z-index:9;pointer-events:none;background:radial-gradient(circle at var(--fx,50%) var(--fy,50%),rgba(11,31,68,0) 0,rgba(11,31,68,0) 30%,rgba(11,31,68,.22) 100%);opacity:0}
 </style>
 </head>
 <body>
 <div id="viewport"><div id="stage" class="is-title">
+<div id="world">
   <div id="bgfx"></div>
   <div id="parts"></div>
   <div id="par">
@@ -627,6 +639,9 @@ table.cmp td:first-child{font-weight:800;color:var(--navy);white-space:nowrap}
     <div class="endtxt"><div class="q a">أسئلة؟</div><div class="n a">إعداد الطالب: حسين جمال الليل بن عقيل · جامعة سيئون · كلية الحاسبات</div></div>
   </section>
 
+</div><!-- /world -->
+  <div id="zflash"></div>
+  <div id="zrim"></div>
   <div id="foot"><span class="who">التجريد في البرمجة · Abstraction &nbsp;|&nbsp; حسين جمال الليل بن عقيل</span>
     <div style="display:flex;gap:22px;align-items:center"><div class="btns"><button id="bPrev" title="السابق">‹</button><button id="bNext" title="التالي">›</button><button id="bFs" title="ملء الشاشة" style="font-size:16px">⛶</button></div><div id="count"><span class="n" id="cur">01</span><span>/</span><span id="tot">00</span></div></div>
   </div>
@@ -724,7 +739,7 @@ function applyRing(st) {
     s.parentNode.style.transform = pop ? `translate(${pop * Math.sin(m)}px, ${-pop * Math.cos(m)}px)` : '';
     lbls[i].g.style.transform = `rotate(${-st.r}deg)`;
   });
-  document.querySelectorAll('#center .c').forEach(c => c.classList.toggle('on', c.dataset.c === st.c));
+  ring.querySelectorAll('#center .c').forEach(c => c.classList.toggle('on', c.dataset.c === st.c));
   if (st.k) rollNum(String(st.k).padStart(2, '0'));
   setPulse(st);
   ring.classList.toggle('burst', st.c === 'end');
@@ -839,24 +854,91 @@ function typeTitle(on) {
 
 // --- navigation
 let cur = -1, busy = false;
-function go(i) {
-  if (i < 0 || i >= panels.length || i === cur) return;
-  const dir = i > cur ? 1 : -1;
-  stage.classList.toggle('back', dir < 0 && cur >= 0);
-  const old = panels[cur];
-  if (old) { old.classList.remove('on'); old.classList.add('out'); setTimeout(() => old.classList.remove('out'), 1000); }
-  cur = i;
-  const p = panels[i];
-  p.classList.remove('out'); void p.offsetWidth; p.classList.add('on');
-  const st = stateOf(p);
-  applyRing(st);
-  setHead(p);
+const world = document.getElementById('world');
+const zflash = document.getElementById('zflash');
+let curState = null;
+function stageKey(p) { return p.dataset.topic; }
+function focalOf(st) { return (st.op === 0) ? {x: 960, y: 540, r: 120} : {x: st.x, y: st.y, r: 140 * st.s}; }
+function finishShow(i, p) {
   stage.classList.toggle('is-title', p.dataset.topic === 'title');
   typeTitle(p.dataset.topic === 'title');
   document.getElementById('cur').textContent = String(i + 1).padStart(2, '0');
   document.querySelector('#prog i').style.width = ((i + 1) / panels.length * 100) + '%';
   if (i > 0) document.getElementById('hint').style.opacity = 0;
   try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {}
+}
+function go(i) {
+  if (busy || i < 0 || i >= panels.length || i === cur) return;
+  const dir = i > cur ? 1 : -1;
+  const old = panels[cur], p = panels[i];
+  const st = stateOf(p);
+  if (old && stageKey(old) !== stageKey(p)) { zoomTo(i, dir, old, p, st); return; }
+  stage.classList.toggle('back', dir < 0 && cur >= 0);
+  if (old) { old.classList.remove('on'); old.classList.add('out'); setTimeout(() => old.classList.remove('out'), 1000); }
+  cur = i;
+  p.classList.remove('out'); void p.offsetWidth; p.classList.add('on');
+  applyRing(st); curState = st;
+  setHead(p);
+  finishShow(i, p);
+}
+
+// ---- infinite zoom between stages
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function zoomTo(i, dir, old, p, st) {
+  busy = true;
+  const fromSt = curState;
+  // 1) freeze a snapshot of the current scene
+  const snap = world.cloneNode(true);
+  snap.removeAttribute('id'); snap.className = 'snap';
+  stage.insertBefore(snap, world.nextSibling);
+  // 2) compose the next scene instantly underneath
+  world.classList.add('instant');
+  old.classList.remove('on', 'out');
+  head.querySelectorAll('.h').forEach(h => h.remove()); headKey = null;
+  cur = i; stage.classList.toggle('back', dir < 0);
+  applyRing(st); curState = st;
+  void world.offsetWidth; world.classList.remove('instant');
+  stage.classList.add('zooming');
+  // 3) roles: forward = dive into the old ring; backward = pull out of the new ring
+  const fwd = dir > 0;
+  // outer scene zooms about its ring centre F; inner scene's ring centre G is nested inside that hole
+  const outSt = fwd ? fromSt : st, inSt = fwd ? st : fromSt;
+  const F = focalOf(outSt), G = focalOf(inSt);
+  const Z = 6, P = F.r * .9;                         // depth & portal radius on screen
+  const outer = fwd ? snap : world, inner = fwd ? world : snap;
+  outer.style.zIndex = 2; inner.style.zIndex = 3;
+  outer.style.transformOrigin = inner.style.transformOrigin = '0 0';
+  zflash.style.setProperty('--fx', F.x + 'px'); zflash.style.setProperty('--fy', F.y + 'px');
+  const rim = document.getElementById('zrim');
+  const D = window.__ZD || 1900, t0 = performance.now();
+  let shown = false;
+  const frame = () => {
+    const t = Math.min(1, (performance.now() - t0) / D), e = easeIO(t);
+    const v = fwd ? e : 1 - e;                       // 0 = outer full, 1 = inner full
+    const so = Math.pow(Z, v), si = Math.pow(Z, v - 1);
+    const w = v * v * (3 - 2 * v);                    // anchor glides from F to G
+    const Ax = F.x + (G.x - F.x) * w, Ay = F.y + (G.y - F.y) * w;
+    const g = 1 + Math.pow(Math.max(0, (v - .55) / .45), 2) * 14;
+    const rl = P * Z * g;                             // portal radius in inner-local px
+    outer.style.transform = `translate(${F.x * (1 - so)}px, ${F.y * (1 - so)}px) scale(${so})`;
+    outer.style.filter = `blur(${(Math.sin(Math.PI * t) * 2.5).toFixed(2)}px)`;
+    inner.style.transform = `translate(${Ax - si * G.x}px, ${Ay - si * G.y}px) scale(${si})`;
+    inner.style.clipPath = `circle(${rl.toFixed(1)}px at ${G.x}px ${G.y}px)`;
+    const rs = rl * si;                               // portal radius on screen
+    rim.style.width = rim.style.height = (2 * rs) + 'px';
+    rim.style.transform = `translate(${Ax - rs}px, ${Ay - rs}px)`;
+    rim.style.opacity = Math.max(0, Math.min(1, (0.75 - v) / .25)) * Math.min(1, t * 6, (1 - t) * 6);
+    zflash.style.opacity = (Math.sin(Math.PI * t) * .9).toFixed(3);
+    if (!shown && t > .42) { shown = true; p.classList.add('on'); setHead(p); }
+    if (t < 1) { requestAnimationFrame(frame); return; }
+    rim.style.opacity = 0;
+    snap.remove();
+    [world].forEach(w => { w.style.transform = ''; w.style.clipPath = ''; w.style.filter = ''; w.style.zIndex = ''; w.style.transformOrigin = ''; });
+    stage.classList.remove('zooming'); zflash.style.opacity = 0;
+    busy = false;
+  };
+  requestAnimationFrame(frame);
+  finishShow(i, p);
 }
 const next = () => go(cur + 1), prev = () => go(cur - 1);
 document.addEventListener('keydown', e => {
