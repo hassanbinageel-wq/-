@@ -125,16 +125,43 @@ We only read insights of the account its owner connected. We use them only to sh
 
 ---
 
-## Test instructions (for the reviewer) — draft
+## Test instructions (paste into Meta's "Test instructions" / "Reviewer instructions")
 
-1. Open https://shayyek.sa and sign in with the test login provided in this form.
-   The interface is in Arabic. The screencasts have English captions for every step.
-2. The test account is already connected to the Instagram professional account @finjan.house, which has the Instagram Tester role.
-3. To test comments and messages, comment the word "price" on one of @finjan.house's posts from any Instagram account.
-   - A public reply appears under the comment.
-   - A private message arrives with the price and a link.
-4. «الرسائل» (Messages) shows the conversation, and the reviewer can send a manual reply within 24 hours.
-5. «الجدولة» (Scheduling) publishes a post to @finjan.house.
-6. «التحليلات» (Analytics) shows the account's and posts' insights.
+Shayyek is a web app at https://shayyek.sa. Its interface is in Arabic, so every screencast has English captions.
 
-> The test login itself is entered in Meta's form only — never shared here.
+**Login**
+- Username: `<TEST USERNAME>`
+- Password: `<TEST PASSWORD>`
+
+The test account is connected to the Instagram professional account @finjan.house, a demo coffee shop that has the Instagram Tester role.
+
+**Main menu (right side)**
+- «الحملات» = Campaigns
+- «الجدولة» = Scheduling
+- «التحليلات» = Analytics
+- «الرسائل» = Messages
+- «الربط» = Connection
+
+**1. Comments and private replies** (instagram_business_manage_comments, instagram_business_manage_messages)
+1. From any Instagram account, comment `price` on @finjan.house's cold-coffee post (green background, SAR 18).
+2. Within about a minute, a public reply appears under the comment.
+3. A private reply arrives in the commenter's DMs with the price and an "Open link" button. If the commenter does not follow @finjan.house, it is in "Message requests".
+4. In Shayyek, «الحملات» (Campaigns) shows the campaign "تجربة" with the new person counted.
+
+**2. Inbox** (instagram_business_manage_messages)
+1. Open «الرسائل» (Messages) and the commenter's conversation.
+2. Type a reply and press «إرسال» (Send). Manual replies work within 24 hours of the person's last message.
+
+**3. Publishing** (instagram_business_content_publish)
+1. Open «الجدولة» (Scheduling) and create a post with an image and a caption.
+2. Choose "publish now" or a time a few minutes ahead.
+3. The post appears on @finjan.house, and its status becomes "Published" (green).
+
+**4. Insights** (instagram_business_manage_insights)
+1. Open «التحليلات» (Analytics) and scroll to «إحصاءات إنستقرام» (Instagram insights) and the per-post table.
+2. The numbers are collected hourly from the Insights API.
+
+**5. Basic profile** (instagram_business_basic)
+«الربط» (Connection) shows the connected account's username, picture and ID. The campaign editor lists the account's posts.
+
+Privacy policy: https://shayyek.sa/privacy · Terms: https://shayyek.sa/terms · Data deletion: https://shayyek.sa/data-deletion
