@@ -39,7 +39,10 @@
       if (!file) return;
       var url = URL.createObjectURL(file);
       prev.innerHTML = '';
-      var img = new Image(); img.src = url; prev.appendChild(img); prev.classList.add('has');
+      var el;
+      if (/^video\//.test(file.type)) { el = document.createElement('video'); el.muted = true; el.controls = true; el.playsInline = true; }
+      else { el = new Image(); }
+      el.src = url; prev.appendChild(el); prev.classList.add('has');
       var label = $('label.btn span', box); if (label) label.textContent = file.name.length > 22 ? file.name.slice(0, 20) + '…' : file.name;
     });
   });
@@ -55,6 +58,37 @@
         add.parentNode.insertBefore(d, add);
       });
     });
+  });
+
+  // Large uploads (videos): send with a progress bar
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (e.defaultPrevented || f.enctype !== 'multipart/form-data' || !window.XMLHttpRequest || !window.FormData) return;
+    var total = 0;
+    $$('input[type=file]', f).forEach(function (i) { Array.prototype.forEach.call(i.files || [], function (x) { total += x.size; }); });
+    if (total < 2 * 1024 * 1024) return;
+    e.preventDefault();
+    var fd;
+    try { fd = new FormData(f, e.submitter); } catch (err) { fd = new FormData(f); if (e.submitter && e.submitter.name) fd.append(e.submitter.name, e.submitter.value); }
+    var ov = document.createElement('div');
+    ov.className = 'upload-overlay';
+    ov.innerHTML = '<div class="upload-box"><strong>جاري رفع الملفات…</strong><div class="upload-bar"><span></span></div><small>0%</small></div>';
+    document.body.appendChild(ov);
+    var bar = $('.upload-bar span', ov), lbl = $('small', ov);
+    var mb = function (b) { return (b / 1048576).toFixed(1) + ' MB'; };
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', f.getAttribute('action') || location.href);
+    xhr.upload.onprogress = function (ev) {
+      if (!ev.lengthComputable) return;
+      var p = Math.round(ev.loaded / ev.total * 100);
+      bar.style.width = p + '%';
+      lbl.textContent = p + '% — ' + mb(ev.loaded) + ' من ' + mb(ev.total);
+      if (p >= 100) lbl.textContent = 'تم الرفع، جاري الحفظ…';
+    };
+    xhr.onload = function () { f.dataset.submitting = '1'; location.href = xhr.responseURL || location.href; };
+    xhr.onerror = function () { ov.remove(); alert('انقطع الاتصال أثناء الرفع، حاول مرة ثانية.'); };
+    f.dataset.submitting = '1';
+    xhr.send(fd);
   });
 
   // Color code

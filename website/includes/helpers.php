@@ -392,26 +392,31 @@ function normalize_files($f): array
     return $out;
 }
 
-/** Upload an image safely and return its relative path, or null when no file was sent */
-function handle_upload(?array $file): ?string
+/** Upload an image or video safely and return its relative path, or null when no file was sent */
+function handle_upload(?array $file, string $kind = 'image'): ?string
 {
     if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return null;
     }
+    $isVideo = $kind === 'video';
     if ($file['error'] !== UPLOAD_ERR_OK) {
         throw new RuntimeException($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE
-            ? 'حجم الصورة أكبر من المسموح في الاستضافة.' : 'فشل رفع الملف، حاول مرة ثانية.');
+            ? 'حجم الملف أكبر من المسموح في الاستضافة (' . ini_get('upload_max_filesize') . ').' : 'فشل رفع الملف، حاول مرة ثانية.');
     }
-    if ($file['size'] > 15 * 1024 * 1024) {
-        throw new RuntimeException('حجم الصورة كبير جداً (الحد 15 ميجا).');
+    $max = $isVideo ? 300 : 15;
+    if ($file['size'] > $max * 1024 * 1024) {
+        throw new RuntimeException('حجم الملف كبير جداً (الحد ' . $max . ' ميجا).');
     }
     if (!is_uploaded_file($file['tmp_name'])) {
         throw new RuntimeException('ملف غير صالح.');
     }
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-    $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif', 'image/avif' => 'avif', 'image/x-icon' => 'ico', 'image/vnd.microsoft.icon' => 'ico'][$mime] ?? null;
+    $types = $isVideo
+        ? ['video/mp4' => 'mp4', 'video/webm' => 'webm', 'video/quicktime' => 'mov', 'video/x-m4v' => 'm4v']
+        : ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif', 'image/avif' => 'avif', 'image/x-icon' => 'ico', 'image/vnd.microsoft.icon' => 'ico'];
+    $ext = $types[$mime] ?? null;
     if (!$ext) {
-        throw new RuntimeException('نوع الملف غير مدعوم. المسموح: JPG, PNG, WEBP, GIF, AVIF.');
+        throw new RuntimeException($isVideo ? 'نوع الفيديو غير مدعوم. المسموح: MP4, WEBM, MOV.' : 'نوع الملف غير مدعوم. المسموح: JPG, PNG, WEBP, GIF, AVIF.');
     }
     $dir = 'uploads/' . date('Y/m');
     if (!is_dir(ROOT . '/' . $dir) && !mkdir(ROOT . '/' . $dir, 0755, true)) {
@@ -440,11 +445,12 @@ function collect_fields(array $fields, array $old = []): array
                 $data[$name] = $v;
                 break;
             case 'image':
+            case 'video':
                 $cur = (string) ($old[$name] ?? '');
                 if (!empty($_POST[$name . '__remove'])) {
                     $cur = '';
                 }
-                $up = handle_upload($_FILES[$name] ?? null);
+                $up = handle_upload($_FILES[$name] ?? null, $f['type']);
                 $data[$name] = $up ?: $cur;
                 break;
             case 'gallery':

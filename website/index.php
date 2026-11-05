@@ -9,7 +9,16 @@ $titleHtml = e($s['hero_title']);
 if ($s['hero_highlight'] !== '' && str_contains($s['hero_title'], $s['hero_highlight'])) {
     $titleHtml = str_replace(e($s['hero_highlight']), '<span class="grad">' . e($s['hero_highlight']) . '</span>', $titleHtml);
 }
-$tools = csv_list($s['hero_tools']);
+$tools = items('tools');
+$heroTools = array_values(array_filter($tools, fn($t) => (int) $t['in_hero'] === 1));
+
+function tool_chip(array $t, string $class = 'tool-chip'): string
+{
+    $ic = $t['logo'] ? '<img src="' . e(media($t['logo'])) . '" alt="">' : icon($t['icon'] ?: 'sparkles');
+    $tag = $t['url'] ? 'a' : 'span';
+    $href = $t['url'] ? ' href="' . e($t['url']) . '" target="_blank" rel="noopener"' : '';
+    return '<' . $tag . ' class="' . $class . '"' . $href . '>' . $ic . '<span>' . e($t['name']) . '</span></' . $tag . '>';
+}
 ?>
 
 <!-- ============ HERO / BANNER ============ -->
@@ -43,13 +52,43 @@ $tools = csv_list($s['hero_tools']);
           <div class="orb"><span></span><span></span><span></span><?= icon('sparkles', 'ic orb-ic') ?></div>
         <?php endif; ?>
       </div>
-      <?php foreach (array_slice($tools, 0, 4) as $i => $t): ?>
-        <span class="float-chip fc<?= $i + 1 ?>"><?= icon('sparkles') ?><?= e($t) ?></span>
+      <?php foreach (array_slice($heroTools, 0, 4) as $i => $t): ?>
+        <?= tool_chip($t, 'float-chip fc' . ($i + 1)) ?>
       <?php endforeach; ?>
     </div>
   </div>
   <a class="scroll-hint" href="#<?= section_on('about') ? 'about' : 'works' ?>" aria-label="انزل للأسفل"><span></span></a>
 </section>
+
+<?php $stats = items('stats');
+if (section_on('stats') && ($stats || $tools)): ?>
+<!-- ============ STATS & TOOLS ============ -->
+<section class="section section-tight" id="stats" aria-label="الأرقام">
+  <div class="container">
+    <div class="stats-band reveal">
+      <div class="starfield" aria-hidden="true"></div>
+      <?php if ($stats): ?>
+        <?php $n = count($stats); $cols = $n <= 6 ? $n : ($n % 4 === 0 ? 4 : 3); ?>
+        <div class="stats-grid" style="--cols:<?= $cols ?>">
+          <?php foreach ($stats as $i => $st): ?>
+            <div class="stat" style="--i:<?= $i ?>">
+              <?php if ($st['icon']): ?><span class="stat-icon"><?= icon($st['icon']) ?></span><?php endif; ?>
+              <strong dir="ltr" data-count="<?= e($st['value']) ?>"><?= e($st['value']) ?></strong>
+              <span><?= e($st['label']) ?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+      <?php if ($tools): ?>
+        <div class="tools-row">
+          <?php if ($s['tools_label']): ?><span class="tools-label"><?= e($s['tools_label']) ?></span><?php endif; ?>
+          <?php foreach ($tools as $t) echo tool_chip($t); ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
 
 <?php if (section_on('about')): ?>
 <!-- ============ ABOUT ============ -->
@@ -59,31 +98,22 @@ $tools = csv_list($s['hero_tools']);
       <?php if ($s['about_image']): ?><img src="<?= e(media($s['about_image'])) ?>" alt="<?= e($s['site_name']) ?>" loading="lazy"><?php else: ?><?= placeholder('user') ?><?php endif; ?>
     </div>
     <div class="about-body">
-      <div class="section-head start reveal">
-        <span class="eyebrow"><?= icon('user') ?><?= e(setting('about_title')) ?></span>
-        <h2><?= e($s['about_heading']) ?></h2>
+      <div class="section-head reveal">
+        <div class="section-head-text">
+          <span class="eyebrow"><?= e(setting('about_title')) ?></span>
+          <h2><?= e($s['about_heading']) ?></h2>
+        </div>
       </div>
       <div class="about-text reveal"><?= nl2p($s['about_text']) ?></div>
       <?php if ($skills = lines($s['about_skills'])): ?>
         <ul class="skills reveal"><?php foreach ($skills as $sk): ?><li><?= icon('check') ?><?= e($sk) ?></li><?php endforeach; ?></ul>
       <?php endif; ?>
-      <?php if ($s['cv_url']): ?><a class="btn btn-ghost reveal" href="<?= e($s['cv_url']) ?>" target="_blank" rel="noopener"><?= icon('download') ?>السيرة الذاتية</a><?php endif; ?>
+      <div class="about-actions reveal">
+        <?php if (items('timeline', ['limit' => 1])): ?><a class="btn btn-primary" href="<?= url('story.php') ?>"><?= e($s['story_btn'] ?: 'اقرأ القصة كاملة') ?><?= icon('arrow-left') ?></a><?php endif; ?>
+        <?php if ($s['cv_url']): ?><a class="btn btn-ghost" href="<?= e($s['cv_url']) ?>" target="_blank" rel="noopener"><?= icon('download') ?>السيرة الذاتية</a><?php endif; ?>
+      </div>
     </div>
   </div>
-  <?php
-  $stats = [];
-  for ($i = 1; $i <= 4; $i++) {
-      if ($s["stat{$i}_num"] !== '') $stats[] = [$s["stat{$i}_num"], $s["stat{$i}_label"]];
-  }
-  if ($stats): ?>
-  <div class="container">
-    <div class="stats reveal">
-      <?php foreach ($stats as [$n, $l]): ?>
-        <div class="stat"><strong data-count="<?= e($n) ?>"><?= e($n) ?></strong><span><?= e($l) ?></span></div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-  <?php endif; ?>
 </section>
 <?php endif; ?>
 
@@ -113,7 +143,7 @@ $tools = csv_list($s['hero_tools']);
   <div class="container">
     <?php section_head('works', 'image'); ?>
     <?php filter_chips($works, 'worksGrid'); ?>
-    <div class="grid grid-3" id="worksGrid">
+    <div class="grid grid-3 works-grid" id="worksGrid">
       <?php foreach ($works as $i => $w) work_card($w, $i); ?>
     </div>
   </div>
@@ -124,11 +154,10 @@ $tools = csv_list($s['hero_tools']);
 <!-- ============ PROMPTS ============ -->
 <section class="section section-alt" id="prompts">
   <div class="container">
-    <?php section_head('prompts', 'sparkles'); ?>
+    <?php section_head('prompts', '', url('prompts.php'), 'كل البرومبتات'); ?>
     <div class="grid grid-3 masonry">
       <?php foreach (array_slice($prompts, 0, 6) as $i => $p) prompt_card($p, $i); ?>
     </div>
-    <?php if (count($prompts) > 6): ?><div class="center reveal"><a class="btn btn-ghost" href="<?= url('prompts.php') ?>">كل البرومبتات <?= icon('arrow-left') ?></a></div><?php endif; ?>
   </div>
 </section>
 <?php endif; ?>
@@ -212,11 +241,10 @@ $tools = csv_list($s['hero_tools']);
 <!-- ============ BLOG ============ -->
 <section class="section" id="blog">
   <div class="container">
-    <?php section_head('blog', 'newspaper'); ?>
+    <?php section_head('blog', '', url('blog.php'), 'كل المقالات'); ?>
     <div class="grid grid-3">
       <?php foreach ($posts as $i => $p) post_card($p, $i); ?>
     </div>
-    <div class="center reveal"><a class="btn btn-ghost" href="<?= url('blog.php') ?>">كل المقالات <?= icon('arrow-left') ?></a></div>
   </div>
 </section>
 <?php endif; ?>

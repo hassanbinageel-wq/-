@@ -248,6 +248,16 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 6px; fon
 .meta-note { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: .82rem; }
 .danger-zone { margin-top: 24px; }
 
+.upload-preview video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.no-icon { font-weight: 400; color: var(--muted); }
+.cell-icon.empty { background: var(--surface-2); color: var(--muted); }
+.upload-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(5, 10, 20, .75); backdrop-filter: blur(6px); }
+.upload-box { width: min(380px, calc(100% - 32px)); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 18px; padding: 24px; display: grid; gap: 12px; text-align: center; }
+.upload-box strong { font-size: 1.05rem; }
+.upload-bar { height: 8px; border-radius: 8px; background: var(--surface-2); overflow: hidden; }
+.upload-bar span { display: block; height: 100%; width: 0; border-radius: 8px; background: linear-gradient(90deg, #7c3aed, #3b82f6); transition: width .2s; }
+.upload-box small { color: var(--muted); font-variant-numeric: tabular-nums; }
+
 /* Settings */
 .tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 4px; scrollbar-width: thin; }
 .tabs a { display: inline-flex; align-items: center; gap: 8px; padding: .6em 1.1em; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-weight: 600; white-space: nowrap; transition: all .2s; }

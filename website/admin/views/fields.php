@@ -49,7 +49,7 @@ function render_field(string $name, array $f, $value): void
             case 'icon': ?>
               <div class="icon-picker">
                 <?php foreach ($f['options'] as $k => $l): ?>
-                  <label title="<?= e($l) ?>"><input type="radio" name="<?= e($name) ?>" value="<?= e($k) ?>" <?= (string) $value === (string) $k ? 'checked' : '' ?>><span><?= icon($k) ?></span></label>
+                  <label title="<?= e($l) ?>"><input type="radio" name="<?= e($name) ?>" value="<?= e($k) ?>" <?= (string) $value === (string) $k ? 'checked' : '' ?>><span><?= $k === '' ? '<b class="no-icon">—</b>' : icon($k) ?></span></label>
                 <?php endforeach; ?>
               </div>
             <?php break;
@@ -62,6 +62,18 @@ function render_field(string $name, array $f, $value): void
                   <label class="btn btn-sm btn-ghost"><?= icon('upload') ?><span><?= $value ? 'تغيير الصورة' : 'اختر صورة' ?></span><input type="file" name="<?= e($name) ?>" accept="image/*" hidden></label>
                   <?php if ($value): ?><label class="check-sm"><input type="checkbox" name="<?= e($name) ?>__remove" value="1"> حذف الصورة</label><?php endif; ?>
                 </div>
+              </div>
+            <?php break;
+            case 'video': ?>
+              <div class="upload" data-upload>
+                <div class="upload-preview <?= $value ? 'has' : '' ?>">
+                  <?php if ($value): ?><video src="<?= e(media($value)) ?>" muted controls playsinline preload="metadata"></video><?php else: ?><?= icon('video') ?><?php endif; ?>
+                </div>
+                <div class="upload-actions">
+                  <label class="btn btn-sm btn-ghost"><?= icon('upload') ?><span><?= $value ? 'تغيير الفيديو' : 'اختر فيديو' ?></span><input type="file" name="<?= e($name) ?>" accept="video/mp4,video/webm,video/quicktime" hidden></label>
+                  <?php if ($value): ?><label class="check-sm"><input type="checkbox" name="<?= e($name) ?>__remove" value="1"> حذف الفيديو</label><?php endif; ?>
+                </div>
+                <small class="hint">الحد الأقصى في استضافتك: <?= e(ini_get('upload_max_filesize')) ?></small>
               </div>
             <?php break;
             case 'gallery':
@@ -110,7 +122,9 @@ function cell_value(string $name, array $f, array $row): string
         case 'select':
             return e($f['options'][$v] ?? $v);
         case 'icon':
-            return '<span class="cell-icon">' . icon($v ?: 'sparkles') . '</span>';
+            return $v ? '<span class="cell-icon">' . icon($v) . '</span>' : '<span class="cell-icon empty">—</span>';
+        case 'video':
+            return $v ? '<span class="pill-yes">' . icon('video') . '</span>' : '<span class="muted">—</span>';
         case 'date':
             return e(ar_date($v));
         case 'url':

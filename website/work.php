@@ -30,7 +30,9 @@ site_head($w['title'], $w['summary'], $w['image']);
     </header>
   </div>
   <div class="container">
-    <?php if ($embed): ?>
+    <?php if ($w['video_file']): ?>
+      <div class="video-frame reveal"><video src="<?= e(media($w['video_file'])) ?>" <?= $w['image'] ? 'poster="' . e(media($w['image'])) . '"' : '' ?> controls playsinline preload="metadata"></video></div>
+    <?php elseif ($embed): ?>
       <div class="video-frame reveal"><iframe src="<?= e($embed) ?>" title="<?= e($w['title']) ?>" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>
     <?php elseif ($w['image']): ?>
       <figure class="detail-cover reveal"><img src="<?= e(media($w['image'])) ?>" alt="<?= e($w['title']) ?>"></figure>

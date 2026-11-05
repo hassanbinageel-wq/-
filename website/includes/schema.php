@@ -6,22 +6,24 @@
  * To add a new field to any section, add it here and it appears in the dashboard.
  */
 
+/** Icons available in icon pickers in the dashboard */
+function icon_choices(bool $withNone = false): array
+{
+    $list = [
+        'sparkles' => 'إبداع / AI', 'image' => 'صور', 'image-plus' => 'توليد صور', 'video' => 'فيديو', 'film' => 'أفلام',
+        'clapperboard' => 'إخراج', 'camera' => 'تصوير', 'wand' => 'سحر / تعديل', 'bot' => 'شات بوت', 'cpu' => 'ذكاء اصطناعي',
+        'code' => 'برمجة', 'pen' => 'تصميم', 'layers' => 'طبقات', 'megaphone' => 'تسويق', 'mic' => 'صوت',
+        'graduation' => 'تدريب', 'book' => 'كتاب', 'chart' => 'تحليلات', 'headset' => 'استشارات', 'users' => 'عملاء',
+        'star' => 'تقييم', 'eye' => 'مشاهدات', 'clock' => 'وقت', 'trophy' => 'إنجاز', 'award' => 'جائزة',
+        'rocket' => 'انطلاق', 'zap' => 'سرعة', 'heart' => 'حب', 'briefcase' => 'عمل', 'lightbulb' => 'فكرة',
+        'target' => 'هدف', 'flag' => 'بداية', 'globe' => 'عالمي',
+    ];
+    return $withNone ? ['' => 'بدون أيقونة'] + $list : $list;
+}
+
 function service_icons(): array
 {
-    return [
-        'sparkles'   => 'إبداع / AI',
-        'image'      => 'صور',
-        'video'      => 'فيديو',
-        'bot'        => 'شات بوت',
-        'cpu'        => 'ذكاء اصطناعي',
-        'code'       => 'برمجة',
-        'pen'        => 'تصميم',
-        'megaphone'  => 'تسويق',
-        'camera'     => 'تصوير',
-        'graduation' => 'تدريب',
-        'chart'      => 'تحليلات',
-        'headset'    => 'استشارات',
-    ];
+    return icon_choices();
 }
 
 function entities(): array
@@ -45,13 +47,50 @@ function entities(): array
                 'summary'   => ['label' => 'وصف مختصر', 'type' => 'textarea', 'full' => true],
                 'content'   => ['label' => 'تفاصيل العمل', 'type' => 'html', 'full' => true],
                 'image'     => ['label' => 'صورة الغلاف', 'type' => 'image'],
-                'video_url' => ['label' => 'رابط فيديو (YouTube / Vimeo)', 'type' => 'url'],
+                'video_file' => ['label' => 'ملف فيديو (يُعرض مباشرة في الموقع)', 'type' => 'video', 'hint' => 'MP4 يفضّل — يشتغل داخل موقعك بدون يوتيوب'],
+                'video_url' => ['label' => 'أو رابط فيديو (YouTube / Vimeo)', 'type' => 'url'],
                 'gallery'   => ['label' => 'معرض الصور', 'type' => 'gallery', 'full' => true],
                 'link'      => ['label' => 'رابط المشروع الخارجي', 'type' => 'url'],
                 'tools'     => ['label' => 'الأدوات المستخدمة', 'type' => 'text', 'hint' => 'افصل بينها بفاصلة: Midjourney, Runway, ChatGPT'],
                 'featured'  => ['label' => 'عمل مميز', 'type' => 'bool'],
             ] + $common,
             'columns' => ['image', 'title', 'category', 'featured', 'published'],
+        ],
+        'timeline' => [
+            'title' => 'قصتي', 'singular' => 'مرحلة', 'icon' => 'flag',
+            'desc'  => 'مراحل رحلتك — تظهر في صفحة «القصة كاملة» مرتبة بالسنة',
+            'order' => 'year ASC, sort_order ASC, id ASC',
+            'fields' => [
+                'year'        => ['label' => 'السنة', 'type' => 'text', 'required' => true, 'hint' => 'مثال: 2022'],
+                'title'       => ['label' => 'عنوان المرحلة', 'type' => 'text', 'required' => true],
+                'description' => ['label' => 'الوصف', 'type' => 'textarea', 'full' => true],
+                'icon'        => ['label' => 'الأيقونة', 'type' => 'icon', 'options' => icon_choices(true), 'default' => ''],
+                'image'       => ['label' => 'صورة (اختياري)', 'type' => 'image'],
+                'highlight'   => ['label' => 'مرحلة مميزة (تظهر بلون بارز)', 'type' => 'bool'],
+            ] + $common,
+            'columns' => ['year', 'title', 'icon', 'published'],
+        ],
+        'stats' => [
+            'title' => 'الأرقام', 'singular' => 'رقم', 'icon' => 'chart',
+            'desc'  => 'أرقام الإنجازات اللي تظهر تحت البنر',
+            'fields' => [
+                'value' => ['label' => 'الرقم', 'type' => 'text', 'required' => true, 'hint' => 'مثال: 48+ أو +2M أو 4.9 أو 24h'],
+                'label' => ['label' => 'الوصف', 'type' => 'text', 'required' => true, 'hint' => 'مثال: مشروع منجز'],
+                'icon'  => ['label' => 'الأيقونة', 'type' => 'icon', 'options' => icon_choices(true), 'default' => ''],
+            ] + $common,
+            'columns' => ['icon', 'value', 'label', 'published'],
+        ],
+        'tools' => [
+            'title' => 'الأدوات', 'singular' => 'أداة', 'icon' => 'wand',
+            'desc'  => 'أدوات الذكاء الاصطناعي اللي تستخدمها',
+            'fields' => [
+                'name'    => ['label' => 'اسم الأداة', 'type' => 'text', 'required' => true],
+                'icon'    => ['label' => 'الأيقونة', 'type' => 'icon', 'options' => icon_choices(), 'default' => 'sparkles'],
+                'logo'    => ['label' => 'شعار الأداة (اختياري — يحل محل الأيقونة)', 'type' => 'image'],
+                'url'     => ['label' => 'رابط الأداة', 'type' => 'url'],
+                'in_hero' => ['label' => 'تظهر عائمة حول صورة البنر', 'type' => 'bool', 'default' => 1],
+            ] + $common,
+            'columns' => ['icon', 'name', 'in_hero', 'published'],
         ],
         'partners' => [
             'title' => 'شركاء النجاح', 'singular' => 'شريك', 'icon' => 'landmark',
@@ -126,7 +165,7 @@ function entities(): array
             'desc'  => 'الخدمات اللي تقدمها',
             'fields' => [
                 'title'       => ['label' => 'اسم الخدمة', 'type' => 'text', 'required' => true],
-                'icon'        => ['label' => 'الأيقونة', 'type' => 'icon', 'options' => service_icons(), 'default' => 'sparkles'],
+                'icon'        => ['label' => 'الأيقونة', 'type' => 'icon', 'options' => icon_choices(), 'default' => 'sparkles'],
                 'description' => ['label' => 'الوصف', 'type' => 'textarea', 'full' => true],
                 'features'    => ['label' => 'المزايا (سطر لكل ميزة)', 'type' => 'textarea', 'full' => true],
                 'price_from'  => ['label' => 'السعر يبدأ من', 'type' => 'text', 'hint' => 'اختياري'],
@@ -140,6 +179,7 @@ function entities(): array
 function home_sections(): array
 {
     return [
+        'stats'    => ['الأرقام والأدوات', '', ''],
         'about'    => ['نبذة عني', 'من أنا', ''],
         'services' => ['الخدمات', 'خدماتي', 'حلول إبداعية مدعومة بالذكاء الاصطناعي'],
         'works'    => ['الأعمال', 'أعمالي', 'مختارات من مشاريعي في الذكاء الاصطناعي'],
@@ -157,6 +197,9 @@ function settings_schema(): array
     $sections = [];
     foreach (home_sections() as $k => [$nav, $title, $sub]) {
         $sections['show_' . $k] = ['label' => 'إظهار قسم «' . $nav . '»', 'type' => 'bool', 'default' => 1];
+        if ($title === '') {
+            continue;
+        }
         $sections[$k . '_title'] = ['label' => 'عنوان قسم «' . $nav . '»', 'type' => 'text', 'default' => $title];
         $sections[$k . '_subtitle'] = ['label' => 'وصف قسم «' . $nav . '»', 'type' => 'text', 'default' => $sub];
     }
@@ -182,7 +225,6 @@ function settings_schema(): array
             'hero_cta2_link'  => ['label' => 'رابط الزر الثانوي', 'type' => 'url', 'default' => '#contact'],
             'hero_image'      => ['label' => 'صورتك / صورة البنر', 'type' => 'image', 'hint' => 'يفضّل صورة عمودية أو مربعة'],
             'hero_bg'         => ['label' => 'خلفية البنر (اختياري)', 'type' => 'image'],
-            'hero_tools'      => ['label' => 'الأدوات العائمة حول الصورة', 'type' => 'text', 'default' => 'Midjourney, ChatGPT, Runway, Claude', 'hint' => 'افصل بينها بفاصلة'],
             'announce_on'     => ['label' => 'إظهار شريط الإعلان أعلى الموقع', 'type' => 'bool', 'default' => 0],
             'announce_text'   => ['label' => 'نص شريط الإعلان', 'type' => 'text', 'default' => '🎉 كتابي الجديد متوفر الآن'],
             'announce_link'   => ['label' => 'رابط شريط الإعلان', 'type' => 'url', 'default' => '#books'],
@@ -192,15 +234,15 @@ function settings_schema(): array
             'about_text'    => ['label' => 'النبذة', 'type' => 'textarea', 'full' => true, 'default' => "مبدع ومختص في توظيف الذكاء الاصطناعي لصناعة المحتوى والصور والفيديو.\nأساعد الأفراد والشركات يستفيدون من أدوات AI بطريقة عملية تختصر الوقت وتضاعف النتائج."],
             'about_image'   => ['label' => 'الصورة', 'type' => 'image'],
             'about_skills'  => ['label' => 'المهارات (سطر لكل مهارة)', 'type' => 'textarea', 'full' => true, 'default' => "توليد الصور بالذكاء الاصطناعي\nصناعة الفيديو بالـ AI\nهندسة البرومبتات\nأتمتة الأعمال\nصناعة المحتوى"],
-            'stat1_num'     => ['label' => 'إحصائية 1 — الرقم', 'type' => 'text', 'default' => '+150'],
-            'stat1_label'   => ['label' => 'إحصائية 1 — الوصف', 'type' => 'text', 'default' => 'مشروع منجز'],
-            'stat2_num'     => ['label' => 'إحصائية 2 — الرقم', 'type' => 'text', 'default' => '+60'],
-            'stat2_label'   => ['label' => 'إحصائية 2 — الوصف', 'type' => 'text', 'default' => 'عميل سعيد'],
-            'stat3_num'     => ['label' => 'إحصائية 3 — الرقم', 'type' => 'text', 'default' => '+3'],
-            'stat3_label'   => ['label' => 'إحصائية 3 — الوصف', 'type' => 'text', 'default' => 'سنوات خبرة'],
-            'stat4_num'     => ['label' => 'إحصائية 4 — الرقم', 'type' => 'text', 'default' => '+50K'],
-            'stat4_label'   => ['label' => 'إحصائية 4 — الوصف', 'type' => 'text', 'default' => 'متابع'],
             'cv_url'        => ['label' => 'رابط السيرة الذاتية (اختياري)', 'type' => 'url'],
+            'tools_label'   => ['label' => 'عنوان صف الأدوات (تحت الأرقام)', 'type' => 'text', 'default' => 'أدوات:'],
+        ]],
+        'story' => ['title' => 'صفحة القصة', 'icon' => 'flag', 'fields' => [
+            'story_btn'      => ['label' => 'نص زر القصة (في نبذة عني)', 'type' => 'text', 'default' => 'اقرأ القصة كاملة'],
+            'story_eyebrow'  => ['label' => 'العنوان الصغير', 'type' => 'text', 'default' => 'القصة'],
+            'story_title'    => ['label' => 'عنوان الصفحة', 'type' => 'text', 'default' => 'كيف وصلت لهنا'],
+            'story_intro'    => ['label' => 'مقدمة القصة', 'type' => 'textarea', 'full' => true, 'default' => 'رحلة بدأت بالكاميرا وانتهت بالذكاء الاصطناعي — وكل مرحلة فيها علمتني شي جديد.'],
+            'story_cta'      => ['label' => 'نص الدعوة في آخر الصفحة', 'type' => 'text', 'default' => 'جاهز نبدأ مشروعك القادم؟'],
         ]],
         'contact' => ['title' => 'التواصل والسوشال', 'icon' => 'contact', 'fields' => [
             'contact_email'    => ['label' => 'البريد الإلكتروني', 'type' => 'email', 'default' => 'hello@hsnpmt.com'],
@@ -218,7 +260,8 @@ function settings_schema(): array
             'social_github'    => ['label' => 'GitHub', 'type' => 'url'],
         ]],
         'appearance' => ['title' => 'المظهر', 'icon' => 'pen', 'fields' => [
-            'theme'         => ['label' => 'الوضع', 'type' => 'select', 'options' => ['dark' => 'داكن', 'light' => 'فاتح'], 'default' => 'dark'],
+            'theme'         => ['label' => 'الوضع الافتراضي للزائر', 'type' => 'select', 'options' => ['dark' => 'داكن', 'light' => 'فاتح', 'auto' => 'حسب جهاز الزائر'], 'default' => 'dark'],
+            'theme_toggle'  => ['label' => 'إظهار زر التبديل بين الفاتح والداكن', 'type' => 'bool', 'default' => 1],
             'accent_color'  => ['label' => 'اللون الأساسي', 'type' => 'color', 'default' => '#3b82f6'],
             'accent2_color' => ['label' => 'اللون الثانوي (للتدرّج)', 'type' => 'color', 'default' => '#8b5cf6'],
             'motion'        => ['label' => 'تفعيل الحركة (الموشن)', 'type' => 'bool', 'default' => 1],

@@ -7,7 +7,7 @@ $firstText = null;
 foreach ($cols as $c) {
     if (in_array($def['fields'][$c]['type'], ['text'], true)) { $firstText = $c; break; }
 }
-$viewUrl = ['works' => 'work.php?id=', 'posts' => 'post.php?id='][$page] ?? null;
+$viewUrl = ['works' => 'work.php?id=', 'posts' => 'post.php?id=', 'timeline' => 'story.php#'][$page] ?? null;
 ?>
 <div class="page-head">
   <div>

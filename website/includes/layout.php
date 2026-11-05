@@ -30,7 +30,8 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
     }
     $accent = safe_color($s['accent_color'], '#3b82f6');
     $accent2 = safe_color($s['accent2_color'], '#8b5cf6');
-    $theme = $s['theme'] === 'light' ? 'light' : 'dark';
+    $themeDefault = in_array($s['theme'], ['light', 'dark', 'auto'], true) ? $s['theme'] : 'dark';
+    $theme = $themeDefault === 'light' ? 'light' : 'dark';
     ?>
 <!doctype html>
 <html lang="ar" dir="rtl" data-theme="<?= $theme ?>" class="<?= $s['motion'] === '1' || $s['motion'] === 1 ? 'motion' : '' ?>">
@@ -44,14 +45,14 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
 <meta property="og:description" content="<?= e(excerpt($desc, 200)) ?>">
 <?php if ($img): ?><meta property="og:image" content="<?= e($img) ?>">
 <meta name="twitter:card" content="summary_large_image"><?php endif; ?>
-<meta name="theme-color" content="<?= $theme === 'light' ? '#f7f8fc' : '#070b16' ?>">
+<meta name="theme-color" content="<?= $theme === 'light' ? '#f6f8fc' : '#070b16' ?>">
 <?php if ($s['favicon']): ?><link rel="icon" href="<?= e(media($s['favicon'])) ?>"><?php endif; ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= asset('assets/css/site.css') ?>">
 <style>:root{--accent:<?= $accent ?>;--accent2:<?= $accent2 ?>}</style>
-<script>document.documentElement.classList.add('js')</script>
+<script>(function(){var d=document.documentElement,def=<?= json_encode($themeDefault) ?>,t=null;try{t=localStorage.getItem('hsn-theme')}catch(e){}if(t!=='light'&&t!=='dark'){t=def==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):def}d.setAttribute('data-theme',t);d.classList.add('js')})()</script>
 </head>
 <body class="<?= e($bodyClass) ?>">
 <?php if ((string) $s['announce_on'] === '1' && $s['announce_text']): ?>
@@ -68,7 +69,12 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
       <?php endforeach; ?>
       <?php if (section_on('contact')): ?><a class="btn btn-sm btn-primary nav-cta" href="<?= url('#contact') ?>">تواصل معي</a><?php endif; ?>
     </nav>
-    <button class="menu-btn" id="menuBtn" aria-label="فتح القائمة" aria-expanded="false"><?= icon('menu') ?></button>
+    <div class="header-tools">
+      <?php if ((string) $s['theme_toggle'] === '1'): ?>
+        <button class="icon-toggle" id="themeBtn" type="button" aria-label="التبديل بين الوضع الفاتح والداكن" title="فاتح / داكن"><?= icon('sun', 'ic i-sun') ?><?= icon('moon', 'ic i-moon') ?></button>
+      <?php endif; ?>
+      <button class="icon-toggle menu-btn" id="menuBtn" aria-label="فتح القائمة" aria-expanded="false"><?= icon('menu') ?></button>
+    </div>
   </div>
 </header>
 <main>
@@ -110,17 +116,38 @@ function site_foot(): void
 <?php
 }
 
-function section_head(string $key, string $eyebrowIcon = 'sparkles'): void
+function section_head(string $key, string $unused = '', string $link = '', string $linkText = ''): void
 {
     $title = setting($key . '_title');
     $sub = setting($key . '_subtitle');
     ?>
     <div class="section-head reveal">
-      <span class="eyebrow"><?= icon($eyebrowIcon) ?><?= e(home_sections()[$key][0]) ?></span>
-      <h2><?= e($title) ?></h2>
-      <?php if ($sub): ?><p><?= e($sub) ?></p><?php endif; ?>
+      <div class="section-head-text">
+        <span class="eyebrow"><?= e(home_sections()[$key][0]) ?></span>
+        <h2><?= e($title) ?></h2>
+        <?php if ($sub): ?><p><?= e($sub) ?></p><?php endif; ?>
+      </div>
+      <?php if ($link): ?><a class="head-link" href="<?= e($link) ?>"><?= e($linkText) ?><?= icon('arrow-left') ?></a><?php endif; ?>
     </div>
     <?php
+}
+
+/** Work media: uploaded video (plays inside the site), image, or placeholder */
+function work_media(array $w, bool $hoverPlay = true): string
+{
+    $out = '';
+    if (!empty($w['video_file'])) {
+        $out .= '<video src="' . e(media($w['video_file'])) . '#t=0.1"' . ($w['image'] ? ' poster="' . e(media($w['image'])) . '"' : '')
+            . ' muted loop playsinline preload="metadata"' . ($hoverPlay ? ' data-hover-play' : '') . '></video>';
+    } elseif ($w['image']) {
+        $out .= '<img src="' . e(media($w['image'])) . '" alt="' . e($w['title']) . '" loading="lazy">';
+    } else {
+        $out .= placeholder($w['video_url'] ? 'play' : 'image');
+    }
+    if (!empty($w['video_file']) || $w['video_url']) {
+        $out .= '<span class="play-badge">' . icon('play') . '</span>';
+    }
+    return $out;
 }
 
 function work_card(array $w, int $i = 0): void
@@ -128,8 +155,7 @@ function work_card(array $w, int $i = 0): void
     ?>
     <a class="card work-card reveal" style="--i:<?= $i % 6 ?>" href="<?= url('work.php?id=' . $w['id']) ?>" data-cat="<?= e($w['category']) ?>">
       <div class="work-media">
-        <?php if ($w['image']): ?><img src="<?= e(media($w['image'])) ?>" alt="<?= e($w['title']) ?>" loading="lazy"><?php else: ?><?= placeholder($w['video_url'] ? 'play' : 'image') ?><?php endif; ?>
-        <?php if ($w['video_url']): ?><span class="play-badge"><?= icon('play') ?></span><?php endif; ?>
+        <?= work_media($w) ?>
         <?php if ($w['category']): ?><span class="tag tag-float"><?= e($w['category']) ?></span><?php endif; ?>
       </div>
       <div class="work-body">

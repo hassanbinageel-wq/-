@@ -2,12 +2,13 @@
 /** @var string $page */
 /** @var array $def */
 /** @var array|null $row */
-$side = ['image', 'bool', 'number', 'select', 'date'];
+$side = ['image', 'video', 'bool', 'number', 'select', 'date'];
 $main = $aside = [];
 foreach ($def['fields'] as $k => $f) {
     if (in_array($f['type'], $side, true) && empty($f['full'])) $aside[$k] = $f; else $main[$k] = $f;
 }
 $viewUrl = ['works' => 'work.php?id=', 'posts' => 'post.php?id='][$page] ?? null;
+if ($page === 'timeline') $viewUrl = 'story.php#';
 ?>
 <form method="post" enctype="multipart/form-data" class="edit-form" data-dirty-check>
   <?= csrf_field() ?>

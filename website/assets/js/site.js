@@ -9,6 +9,53 @@
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
 
+  // Light / dark toggle (remembered in this browser)
+  var themeBtn = $('#themeBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      var d = document.documentElement, t = d.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      d.setAttribute('data-theme', t);
+      try { localStorage.setItem('hsn-theme', t); } catch (e) {}
+      var m = document.querySelector('meta[name=theme-color]');
+      if (m) m.setAttribute('content', t === 'dark' ? '#070b16' : '#f6f8fc');
+    });
+  }
+
+  // Work videos play inside the site: on hover (desktop) or when visible (phones)
+  var vids = $$('video[data-hover-play]');
+  if (vids.length) {
+    var canHover = window.matchMedia && matchMedia('(hover: hover)').matches;
+    var play = function (v) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); var c = v.closest('.work-card'); if (c) c.classList.add('playing'); };
+    var stop = function (v) { v.pause(); var c = v.closest('.work-card'); if (c) c.classList.remove('playing'); };
+    if (canHover) {
+      vids.forEach(function (v) {
+        var card = v.closest('.work-card') || v;
+        card.addEventListener('mouseenter', function () { play(v); });
+        card.addEventListener('mouseleave', function () { stop(v); });
+      });
+    } else if ('IntersectionObserver' in window) {
+      var vio = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) { if (en.intersectionRatio >= 0.6) play(en.target); else stop(en.target); });
+      }, { threshold: [0, 0.6] });
+      vids.forEach(function (v) { vio.observe(v); });
+    }
+  }
+
+  // Timeline: the line fills as you scroll through the story
+  var tl = $('#timeline');
+  if (tl) {
+    var tick = false;
+    var upd = function () {
+      tick = false;
+      var r = tl.getBoundingClientRect(), vh = window.innerHeight;
+      var p = Math.min(1, Math.max(0, (vh * 0.65 - r.top) / r.height));
+      tl.style.setProperty('--p', p.toFixed(3));
+    };
+    upd();
+    window.addEventListener('scroll', function () { if (!tick) { tick = true; requestAnimationFrame(upd); } }, { passive: true });
+    window.addEventListener('resize', upd);
+  }
+
   // Mobile menu
   var menuBtn = $('#menuBtn'), nav = $('#nav');
   if (menuBtn && nav) {

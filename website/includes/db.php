@@ -12,9 +12,11 @@ function db(): PDO
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     $pdo->exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA busy_timeout = 5000;');
-    migrate($pdo);
+    $created = migrate($pdo);
     if ($isNew) {
         seed($pdo);
+    } elseif ($created) {
+        seed($pdo, $created); // new sections added after install get sample content
     }
     return $pdo;
 }
@@ -25,14 +27,15 @@ function col_type(array $f): string
 }
 
 /** Create/update tables from the definitions (only runs when the definitions change) */
-function migrate(PDO $pdo): void
+function migrate(PDO $pdo): array
 {
     $pdo->exec('CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT)');
     $sig = md5(json_encode(array_map(fn($e) => array_map(fn($f) => $f['type'], $e['fields']), entities())) . 'v2');
     $cur = $pdo->query("SELECT value FROM settings WHERE name = '_schema'")->fetchColumn();
     if ($cur === $sig) {
-        return;
+        return [];
     }
+    $created = [];
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,6 +56,10 @@ function migrate(PDO $pdo): void
     $pdo->exec('CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT, at INTEGER)');
 
     foreach (entities() as $table => $def) {
+        $exists = $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = " . $pdo->quote($table))->fetchColumn();
+        if (!$exists) {
+            $created[] = $table;
+        }
         $pdo->exec("CREATE TABLE IF NOT EXISTS $table (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at TEXT, updated_at TEXT)");
         $existing = array_column($pdo->query("PRAGMA table_info($table)")->fetchAll(), 'name');
         foreach ($def['fields'] as $name => $f) {
@@ -69,13 +76,34 @@ function migrate(PDO $pdo): void
     if (!$secret) {
         $st->execute(['_secret', bin2hex(random_bytes(32))]);
     }
+    return $created;
 }
 
 /** Sample content on first run — edit or delete it from the dashboard */
-function seed(PDO $pdo): void
+function seed(PDO $pdo, ?array $only = null): void
 {
     $now = date('Y-m-d H:i:s');
     $rows = [
+        'stats' => [
+            ['value' => '48+', 'label' => 'مشروع منجز', 'sort_order' => 1],
+            ['value' => '25+', 'label' => 'عميل راضٍ', 'sort_order' => 2],
+            ['value' => '2', 'label' => 'منتجات تعليمية', 'sort_order' => 3],
+            ['value' => '+2M', 'label' => 'مشاهدة', 'sort_order' => 4],
+            ['value' => '4.9', 'label' => 'متوسط التقييم', 'sort_order' => 5],
+            ['value' => '24h', 'label' => 'متوسط وقت الرد', 'sort_order' => 6],
+        ],
+        'tools' => [
+            ['name' => 'Nano Banana', 'icon' => 'image-plus', 'in_hero' => 1, 'sort_order' => 1],
+            ['name' => 'Seedance', 'icon' => 'film', 'in_hero' => 1, 'sort_order' => 2],
+            ['name' => 'Kling', 'icon' => 'video', 'in_hero' => 1, 'sort_order' => 3],
+        ],
+        'timeline' => [
+            ['year' => '2015', 'title' => 'بداية الرحلة', 'description' => 'بدأت كمصور تقليدي في تصوير البرامج التلفزيونية.', 'icon' => 'camera'],
+            ['year' => '2019', 'title' => 'دخول عالم المونتاج', 'description' => 'تخصصت في تصوير الأفلام والإعلانات.', 'icon' => 'clapperboard'],
+            ['year' => '2022', 'title' => 'اكتشاف AI', 'description' => 'بدأت تجربة إنشاء الصور واكتشفت إمكانيات الذكاء الاصطناعي في الإنتاج البصري.', 'icon' => 'sparkles'],
+            ['year' => '2025', 'title' => 'التحول الكامل', 'description' => 'انتقلت للعمل بالكامل باستخدام AI مع الحفاظ على الجودة الاحترافية.', 'icon' => 'rocket'],
+            ['year' => '2026', 'title' => 'خبير معتمد', 'description' => '+48 مشروع منجز، +25 عميل، وكورس عن الإخراج السينمائي بالـ AI وكتاب منشور في مجال تعديل الصور بالـ AI.', 'icon' => 'award', 'highlight' => 1],
+        ],
         'services' => [
             ['title' => 'صناعة الصور بالذكاء الاصطناعي', 'icon' => 'image', 'description' => 'صور إعلانية وفنية احترافية لمنتجك أو علامتك التجارية باستخدام Midjourney وأدوات التوليد الحديثة.', 'features' => "صور منتجات\nهوية بصرية\nمحتوى سوشال ميديا", 'sort_order' => 1],
             ['title' => 'فيديو وإعلانات AI', 'icon' => 'video', 'description' => 'فيديوهات قصيرة وإعلانات سينمائية مولّدة بالذكاء الاصطناعي، من الفكرة حتى المونتاج.', 'features' => "ريلز وتيك توك\nإعلانات منتجات\nتعليق صوتي AI", 'sort_order' => 2],
@@ -112,6 +140,9 @@ function seed(PDO $pdo): void
         ],
     ];
     foreach ($rows as $table => $list) {
+        if ($only !== null && !in_array($table, $only, true)) {
+            continue;
+        }
         foreach ($list as $r) {
             $r['created_at'] = $now;
             $r['updated_at'] = $now;
