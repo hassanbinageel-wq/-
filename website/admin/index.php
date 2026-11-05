@@ -1,19 +1,19 @@
 <?php
-define('IN_ADMIN', true);
-require __DIR__ . '/../includes/bootstrap.php';
+
+require_once __DIR__ . '/../includes/bootstrap.php';
 require __DIR__ . '/views/fields.php';
 require __DIR__ . '/views/layout.php';
 
 start_session();
 if (!is_logged_in()) {
-    redirect(url('admin/login.php'));
+    redirect(admin_url('login'));
 }
 header('Cache-Control: no-store');
 
 $page = (string) ($_GET['p'] ?? 'dashboard');
 $action = (string) ($_GET['a'] ?? '');
 $ents = entities();
-$self = fn(array $q = []) => url('admin/') . ($q ? '?' . http_build_query($q) : '');
+$self = fn(array $q = []) => admin_url() . ($q ? '?' . http_build_query($q) : '');
 
 /* ================= POST actions ================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -62,6 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if ($page === 'settings' && $do === 'test_mail') {
+            $to = (string) (setting('admin_email') ?: setting('contact_email') ?: setting('smtp_user'));
+            [$ok, $err] = send_mail($to, 'تجربة البريد', mail_layout('البريد يشتغل ✓', '<p>إذا وصلك هذا الإيميل، فإعدادات البريد في موقعك صحيحة.</p>'));
+            flash($ok ? 'تم إرسال إيميل تجريبي إلى ' . $to . ' — شيك على بريدك ✓' : 'فشل الإرسال: ' . $err, $ok ? 'ok' : 'err');
+            redirect($self(['p' => 'settings', 'g' => 'mail']));
+        }
+
         if ($page === 'settings' && $do === 'save') {
             $schema = settings_schema();
             $g = (string) ($_POST['group'] ?? '');
@@ -83,6 +90,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($do === 'read_all') {
                 db()->exec('UPDATE messages SET is_read = 1');
                 flash('تم تعليم الكل كمقروء');
+            } elseif ($do === 'reply' && $id) {
+                $st = db()->prepare('SELECT * FROM messages WHERE id = ?');
+                $st->execute([$id]);
+                $m = $st->fetch();
+                $body = trim((string) ($_POST['body'] ?? ''));
+                if (!$m || !$m['email']) {
+                    throw new RuntimeException('ما فيه إيميل للمرسل عشان نرد عليه.');
+                }
+                if ($body === '') {
+                    throw new RuntimeException('اكتب ردك أول.');
+                }
+                $html = '<p>مرحباً ' . e($m['name']) . '،</p>' . nl2p($body)
+                    . '<div style="margin-top:22px;padding:12px 14px;border-inline-start:3px solid #cbd5e1;color:#64748b;font-size:13px">'
+                    . '<b>رسالتك:</b><br>' . nl2br(e(excerpt($m['message'], 600))) . '</div>';
+                [$ok, $err] = send_mail($m['email'], 'رد: ' . ($m['subject'] ?: 'رسالتك'), mail_layout('رد على رسالتك', $html), (string) setting('contact_email') ?: null);
+                if (!$ok) {
+                    throw new RuntimeException('ما انرسل الرد: ' . $err);
+                }
+                db()->prepare('INSERT INTO message_replies (message_id, body, created_at) VALUES (?, ?, ?)')->execute([$id, $body, date('Y-m-d H:i:s')]);
+                flash('تم إرسال الرد إلى ' . $m['email'] . ' ✓');
+                redirect($self(['p' => 'messages', 'id' => $id]));
             }
             redirect($self(['p' => 'messages']));
         }
@@ -105,6 +133,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('اسم المستخدم غير صالح.');
             }
             db()->prepare('UPDATE users SET username = ? WHERE id = ?')->execute([$username, $u['id']]);
+
+            $adminEmail = trim((string) ($_POST['admin_email'] ?? ''));
+            if ($adminEmail !== '' && !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('إيميل المدير غير صحيح.');
+            }
+            $twofa = isset($_POST['login_2fa']) ? '1' : '0';
+            if ($twofa === '1' && ($adminEmail === '' || !smtp_configured())) {
+                throw new RuntimeException('عشان تفعّل التحقق بخطوتين: اكتب إيميلك هنا، وكمّل إعدادات البريد (الإعدادات ← البريد والرسائل) وجرّبها.');
+            }
+            $slug = strtolower(trim((string) ($_POST['admin_slug'] ?? '')));
+            $reserved = ['about', 'story', 'services', 'works', 'prompts', 'store', 'blog', 'contact', 'partners', 'work', 'post', 'send', 'setup', 'admin', 'dashboard', 'assets', 'uploads', 'data', 'includes', 'pages', 'panel'];
+            if (!preg_match('/^[a-z0-9][a-z0-9-]{5,39}$/', $slug) || in_array($slug, $reserved, true)) {
+                throw new RuntimeException('الرابط السري لازم يكون 6 أحرف أو أكثر (حروف إنجليزية صغيرة وأرقام و -) ومو كلمة معروفة مثل dashboard.');
+            }
+            $slugChanged = $slug !== admin_slug();
+            save_settings(['admin_email' => $adminEmail, 'login_2fa' => $twofa, 'admin_slug' => $slug]);
             $new = (string) ($_POST['new'] ?? '');
             if ($new !== '') {
                 if (mb_strlen($new) < 8) {
@@ -116,8 +160,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($new, PASSWORD_DEFAULT), $u['id']]);
                 session_regenerate_id(true);
             }
-            flash('تم تحديث الحساب ✓');
-            redirect($self(['p' => 'account']));
+            flash($slugChanged ? 'تم تغيير رابط لوحة التحكم — احفظ الرابط الجديد: ' . admin_url() : 'تم تحديث الحساب ✓');
+            redirect(admin_url('?p=account'));
         }
     } catch (RuntimeException $ex) {
         flash($ex->getMessage(), 'err');

@@ -79,6 +79,14 @@ function icon(string $name, string $class = 'ic'): string
             'flag'       => '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
             'sun'        => '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
             'moon'       => '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+            'help'       => '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+            'chevron-down' => '<path d="m6 9 6 6 6-6"/>',
+            'shield'     => '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+            'key'        => '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/>',
+            'reply'      => '<path d="m9 17-5-5 5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>',
+            'facebook'   => ['<path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.33-.04-1.56-.14-2.86-.14C11.93 2 10 3.66 10 6.7v2.8H7v4h3V22h4z"/>'],
+            'threads'    => ['<path d="M16.7 11.1c-.1 0-.2-.1-.3-.1-.2-3-1.8-4.7-4.6-4.7h-.1c-1.7 0-3.1.7-3.9 2l1.5 1c.6-.9 1.5-1.1 2.4-1.1 1 0 1.8.3 2.2.9.3.4.5 1 .6 1.7-.8-.1-1.6-.2-2.5-.1-2.5.1-4.1 1.6-4 3.6.1 1 .6 1.9 1.4 2.4.7.5 1.6.7 2.6.6 1.3-.1 2.3-.6 3-1.5.5-.7.9-1.6 1-2.7.6.4 1.1.9 1.3 1.4.4 1 .5 2.6-.8 3.9-1.1 1.1-2.5 1.6-4.6 1.6-2.3 0-4.1-.8-5.2-2.2-1-1.3-1.6-3.2-1.6-5.6s.5-4.3 1.6-5.6C7.8 4.8 9.6 4 11.9 4c2.3 0 4.1.8 5.3 2.2.6.7 1 1.6 1.3 2.6l1.8-.5c-.4-1.3-.9-2.4-1.7-3.3C17.1 3.1 14.8 2.1 11.9 2h-.1C8.9 2.1 6.6 3.1 5.1 4.9c-1.4 1.7-2.1 4-2.1 7s.7 5.3 2.1 7c1.5 1.8 3.8 2.8 6.7 2.9h.1c2.6 0 4.4-.7 5.9-2.2 2-2 1.9-4.4 1.3-5.9-.5-1.1-1.4-2-2.4-2.6zm-4.5 4.2c-1.1.1-2.2-.4-2.2-1.4 0-.8.6-1.6 2.3-1.7h.6c.6 0 1.2.1 1.7.2-.2 2.4-1.3 2.8-2.4 2.9z"/>'],
+            'behance'    => ['<path d="M8.2 11.3c.8-.4 1.3-1.1 1.3-2.1C9.5 7.1 8 6 5.9 6H1v12h5.1c2.2 0 4-1.1 4-3.4 0-1.4-.7-2.6-1.9-3.3zM3.6 8.1h1.9c.8 0 1.5.2 1.5 1.1 0 .8-.5 1.1-1.3 1.1H3.6zm2.1 7.7H3.6v-2.9h2.2c1 0 1.7.4 1.7 1.5s-.8 1.4-1.8 1.4zM15 5.9h5.4v1.3H15zm2.8 2.8c-2.8 0-4.6 2-4.6 4.7 0 2.8 1.7 4.6 4.6 4.6 2.2 0 3.6-1 4.3-3.1h-2.2c-.2.8-1.2 1.2-2 1.2-1.5 0-2.2-.8-2.2-2.2h6.5c.2-2.9-1.4-5.2-4.4-5.2zm-2.1 3.6c.1-1.1.8-1.8 2-1.8s1.8.7 1.9 1.8z"/>'],
             // social
             'x-social'   => ['<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>'],
             'instagram'  => '<rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/>',
@@ -100,15 +108,15 @@ function icon(string $name, string $class = 'ic'): string
 function social_links(): array
 {
     $map = [
-        'social_x' => ['x-social', 'X'], 'social_instagram' => ['instagram', 'Instagram'],
-        'social_tiktok' => ['tiktok', 'TikTok'], 'social_youtube' => ['youtube', 'YouTube'],
-        'social_linkedin' => ['linkedin', 'LinkedIn'], 'social_snapchat' => ['snapchat', 'Snapchat'],
-        'social_telegram' => ['telegram', 'Telegram'], 'social_github' => ['github', 'GitHub'],
+        'x' => ['x-social', 'X'], 'instagram' => ['instagram', 'Instagram'], 'tiktok' => ['tiktok', 'TikTok'],
+        'snapchat' => ['snapchat', 'Snapchat'], 'youtube' => ['youtube', 'YouTube'], 'facebook' => ['facebook', 'Facebook'],
+        'linkedin' => ['linkedin', 'LinkedIn'], 'threads' => ['threads', 'Threads'], 'behance' => ['behance', 'Behance'],
+        'telegram' => ['telegram', 'Telegram'], 'github' => ['github', 'GitHub'],
     ];
     $out = [];
     foreach ($map as $k => [$ic, $label]) {
-        $u = setting($k);
-        if ($u) {
+        $u = setting('social_' . $k);
+        if ($u && (string) setting('social_' . $k . '_on', '1') === '1') {
             $out[] = ['url' => $u, 'icon' => $ic, 'label' => $label];
         }
     }

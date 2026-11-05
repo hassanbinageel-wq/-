@@ -3,22 +3,22 @@
 function admin_menu(): array
 {
     $e = entities();
+    $m = fn($k) => [$e[$k]['title'], $e[$k]['icon']];
+    // Strings starting with "#" are group headings
     return [
         'dashboard' => ['الرئيسية', 'layout-grid'],
-        'works'     => [$e['works']['title'], $e['works']['icon']],
-        'partners'  => [$e['partners']['title'], $e['partners']['icon']],
-        'books'     => [$e['books']['title'], $e['books']['icon']],
-        'clients'   => [$e['clients']['title'], $e['clients']['icon']],
-        'prompts'   => [$e['prompts']['title'], $e['prompts']['icon']],
-        'posts'     => [$e['posts']['title'], $e['posts']['icon']],
-        'services'  => [$e['services']['title'], $e['services']['icon']],
-        'timeline'  => [$e['timeline']['title'], $e['timeline']['icon']],
-        'stats'     => [$e['stats']['title'], $e['stats']['icon']],
-        'tools'     => [$e['tools']['title'], $e['tools']['icon']],
+        '#content'  => 'المحتوى',
+        'works' => $m('works'), 'services' => $m('services'), 'prompts' => $m('prompts'), 'posts' => $m('posts'),
+        '#about'    => 'عنّي',
+        'skills' => $m('skills'), 'timeline' => $m('timeline'), 'stats' => $m('stats'), 'tools' => $m('tools'),
+        'clients' => $m('clients'), 'partners' => $m('partners'),
+        '#store'    => 'المتجر',
+        'books' => ['المنتجات', 'cart'], 'store_features' => $m('store_features'), 'faqs' => $m('faqs'),
+        '#system'   => 'عام',
         'analytics' => ['التحليلات', 'chart'],
         'messages'  => ['التواصل', 'contact'],
         'settings'  => ['الإعدادات', 'settings'],
-        'account'   => ['الحساب', 'user-cog'],
+        'account'   => ['الحساب والأمان', 'user-cog'],
     ];
 }
 
@@ -50,13 +50,15 @@ function admin_start(string $title, string $active): void
 <body>
 <div class="shell">
   <aside class="sidebar" id="sidebar">
-    <a class="side-brand" href="<?= url('admin/') ?>">
+    <a class="side-brand" href="<?= admin_url() ?>">
       <span class="side-mark"><?= e(mb_substr($site, 0, 1)) ?></span>
       <span><strong><?= e($site) ?></strong><small>لوحة التحكم</small></span>
     </a>
     <nav class="side-nav">
-      <?php foreach (admin_menu() as $k => [$label, $ic]): ?>
-        <a href="<?= url('admin/') . ($k === 'dashboard' ? '' : '?p=' . $k) ?>" class="<?= $k === $active ? 'active' : '' ?>">
+      <?php foreach (admin_menu() as $k => $item):
+          if (is_string($item)) { echo '<span class="side-group">' . e($item) . '</span>'; continue; }
+          [$label, $ic] = $item; ?>
+        <a href="<?= admin_url($k === 'dashboard' ? '' : '?p=' . $k) ?>" class="<?= $k === $active ? 'active' : '' ?>">
           <?= icon($ic) ?><span><?= e($label) ?></span>
           <?php if ($k === 'messages' && unread_count()): ?><em class="badge"><?= unread_count() ?></em><?php endif; ?>
         </a>
@@ -64,7 +66,7 @@ function admin_start(string $title, string $active): void
     </nav>
     <div class="side-foot">
       <a href="<?= url() ?>" target="_blank"><?= icon('external') ?><span>عرض الموقع</span></a>
-      <form method="post" action="<?= url('admin/logout.php') ?>"><?= csrf_field() ?><button type="submit"><?= icon('logout') ?><span>تسجيل الخروج</span></button></form>
+      <form method="post" action="<?= admin_url('logout') ?>"><?= csrf_field() ?><button type="submit"><?= icon('logout') ?><span>تسجيل الخروج</span></button></form>
     </div>
   </aside>
   <div class="side-backdrop" id="sideBackdrop"></div>
@@ -73,8 +75,8 @@ function admin_start(string $title, string $active): void
       <button class="icon-btn menu-toggle" id="menuToggle" aria-label="القائمة"><?= icon('menu') ?></button>
       <h1><?= e($title) ?></h1>
       <div class="topbar-end">
-        <a class="icon-btn" href="<?= url('admin/?p=messages') ?>" aria-label="الرسائل"><?= icon('inbox') ?><?php if (unread_count()): ?><i class="dot-badge"></i><?php endif; ?></a>
-        <a class="user-chip" href="<?= url('admin/?p=account') ?>"><span class="avatar-sm"><?= e(mb_strtoupper(mb_substr($user['username'] ?? 'A', 0, 1))) ?></span><span><?= e($user['username'] ?? '') ?></span></a>
+        <a class="icon-btn" href="<?= admin_url('?p=messages') ?>" aria-label="الرسائل"><?= icon('inbox') ?><?php if (unread_count()): ?><i class="dot-badge"></i><?php endif; ?></a>
+        <a class="user-chip" href="<?= admin_url('?p=account') ?>"><span class="avatar-sm"><?= e(mb_strtoupper(mb_substr($user['username'] ?? 'A', 0, 1))) ?></span><span><?= e($user['username'] ?? '') ?></span></a>
       </div>
     </header>
     <main class="content">

@@ -47,14 +47,52 @@ function clean_url(?string $u): string
     return 'https://' . $u;
 }
 
-/** Internal links like #works always point to the homepage */
+/** Internal links (/works, #contact) are made relative to the site's base */
 function link_href(?string $u): string
 {
     $u = clean_url($u);
     if ($u !== '' && $u[0] === '#') {
         return url($u);
     }
+    if ($u !== '' && $u[0] === '/' && !str_starts_with($u, '//')) {
+        return url(substr($u, 1));
+    }
     return $u;
+}
+
+/* ---------- Pretty URLs ---------- */
+
+function page_url(string $slug): string
+{
+    return url($slug);
+}
+
+function work_url(int $id): string
+{
+    return url('work/' . $id);
+}
+
+function post_url(int $id): string
+{
+    return url('post/' . $id);
+}
+
+/** Secret dashboard address, e.g. /panel-3f9a1c2e/ */
+function admin_slug(): string
+{
+    $s = (string) setting('admin_slug');
+    return preg_match('/^[a-z0-9][a-z0-9-]{4,39}$/', $s) ? $s : 'panel';
+}
+
+function admin_url(string $rest = ''): string
+{
+    return url(admin_slug() . '/' . ltrim($rest, '/'));
+}
+
+/** Toggle settings that default to "on" */
+function on(string $key): bool
+{
+    return (string) setting($key, '1') === '1';
 }
 
 function is_external(string $u): bool
@@ -466,6 +504,10 @@ function collect_fields(array $fields, array $old = []): array
                 break;
             case 'url':
                 $data[$name] = clean_url($_POST[$name] ?? '');
+                break;
+            case 'password':
+                $v = (string) ($_POST[$name] ?? '');
+                $data[$name] = $v === '' ? (string) ($old[$name] ?? '') : $v;
                 break;
             case 'email':
                 $v = trim((string) ($_POST[$name] ?? ''));

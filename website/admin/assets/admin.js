@@ -156,3 +156,15 @@
     });
   });
 })();
+
+(function () {
+  // Copy buttons (secret dashboard link)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-copy-target]');
+    if (!b) return;
+    var el = document.querySelector(b.dataset.copyTarget), text = el ? el.textContent.trim() : '';
+    var done = function () { var s = b.querySelector('span'); if (s) { var o = s.textContent; s.textContent = 'تم ✓'; setTimeout(function () { s.textContent = o; }, 1600); } };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () {});
+    else { var r = document.createRange(); r.selectNodeContents(el); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); done(); } catch (x) {} }
+  });
+})();

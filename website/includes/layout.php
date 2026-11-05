@@ -5,15 +5,26 @@ function placeholder(string $iconName = 'sparkles', string $label = ''): string
     return '<div class="ph">' . icon($iconName, 'ic ph-ic') . ($label !== '' ? '<span>' . e($label) . '</span>' : '') . '</div>';
 }
 
+/** Menu items: each section opens its own page */
 function nav_items(): array
 {
     $items = [];
     foreach (['about', 'services', 'works', 'prompts', 'books', 'blog'] as $k) {
         if (section_on($k)) {
-            $items[$k] = home_sections()[$k][0];
+            $sec = home_sections()[$k];
+            $items[$sec[3]] = $sec[0];
         }
     }
     return $items;
+}
+
+function current_page(?string $set = null): string
+{
+    static $page = 'home';
+    if ($set !== null) {
+        $page = $set;
+    }
+    return $page;
 }
 
 function site_head(string $title = '', string $desc = '', string $image = '', string $bodyClass = ''): void
@@ -64,10 +75,10 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
       <?php if ($s['logo']): ?><img src="<?= e(media($s['logo'])) ?>" alt="<?= e($s['site_name']) ?>"><?php else: ?><span class="brand-mark"><?= e(mb_substr($s['site_name'], 0, 1)) ?></span><span class="brand-name"><?= e($s['site_name']) ?></span><?php endif; ?>
     </a>
     <nav class="nav" id="nav" aria-label="القائمة">
-      <?php foreach (nav_items() as $k => $label): ?>
-        <a href="<?= url('#' . $k) ?>" data-spy="<?= $k ?>"><?= e($label) ?></a>
+      <?php foreach (nav_items() as $slug => $label): ?>
+        <a href="<?= page_url($slug) ?>" class="<?= current_page() === $slug ? 'active' : '' ?>"<?= current_page() === $slug ? ' aria-current="page"' : '' ?>><?= e($label) ?></a>
       <?php endforeach; ?>
-      <?php if (section_on('contact')): ?><a class="btn btn-sm btn-primary nav-cta" href="<?= url('#contact') ?>">تواصل معي</a><?php endif; ?>
+      <?php if (section_on('contact')): ?><a class="btn btn-sm btn-primary nav-cta" href="<?= page_url('contact') ?>">تواصل معي</a><?php endif; ?>
     </nav>
     <div class="header-tools">
       <?php if ((string) $s['theme_toggle'] === '1'): ?>
@@ -95,7 +106,8 @@ function site_foot(): void
       <p><?= e($s['site_tagline']) ?></p>
     </div>
     <nav class="footer-nav">
-      <?php foreach (nav_items() as $k => $label): ?><a href="<?= url('#' . $k) ?>"><?= e($label) ?></a><?php endforeach; ?>
+      <?php foreach (nav_items() as $slug => $label): ?><a href="<?= page_url($slug) ?>"><?= e($label) ?></a><?php endforeach; ?>
+      <?php if (section_on('contact')): ?><a href="<?= page_url('contact') ?>">تواصل</a><?php endif; ?>
     </nav>
     <div class="socials">
       <?php foreach (social_links() as $sl): ?>
@@ -107,9 +119,23 @@ function site_foot(): void
     <span>© <?= date('Y') ?> <?= e($s['site_name']) ?> — <?= e($s['footer_text']) ?></span>
   </div>
 </footer>
-<?php if ($wa = wa_link()): ?>
+<?php if (on('wa_float') && on('show_whatsapp') && ($wa = wa_link())): ?>
 <a class="wa-float" href="<?= e($wa) ?>" target="_blank" rel="noopener" aria-label="واتساب"><?= icon('whatsapp') ?></a>
 <?php endif; ?>
+<div class="modal" id="workModal" hidden role="dialog" aria-modal="true" aria-labelledby="wmTitle">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-box">
+    <button class="modal-close" type="button" data-close aria-label="إغلاق"><?= icon('x') ?></button>
+    <div class="modal-media" id="wmMedia"></div>
+    <div class="modal-body">
+      <span class="tag" id="wmCat"></span>
+      <h3 id="wmTitle"></h3>
+      <p id="wmText"></p>
+      <div class="chips" id="wmTools"></div>
+      <a class="btn btn-primary" id="wmBtn" href="#"><span><?= e($s['work_btn'] ?: 'مشاهدة العمل') ?></span><?= icon('arrow-left') ?></a>
+    </div>
+  </div>
+</div>
 <script src="<?= asset('assets/js/site.js') ?>" defer></script>
 </body>
 </html>
@@ -121,7 +147,7 @@ function section_head(string $key, string $unused = '', string $link = '', strin
     $title = setting($key . '_title');
     $sub = setting($key . '_subtitle');
     ?>
-    <div class="section-head reveal">
+    <div class="section-head <?= $link ? '' : 'solo' ?> reveal">
       <div class="section-head-text">
         <span class="eyebrow"><?= e(home_sections()[$key][0]) ?></span>
         <h2><?= e($title) ?></h2>
@@ -150,10 +176,23 @@ function work_media(array $w, bool $hoverPlay = true): string
     return $out;
 }
 
+function work_type(array $w): string
+{
+    return (!empty($w['video_file']) || !empty($w['video_url'])) ? 'video' : 'image';
+}
+
 function work_card(array $w, int $i = 0): void
 {
+    $link = clean_url($w['link']);
+    $data = [
+        'title' => $w['title'], 'cat' => $w['category'], 'text' => $w['summary'],
+        'tools' => csv_list($w['tools']),
+        'img' => media($w['image']), 'video' => media($w['video_file']),
+        'embed' => video_embed($w['video_url']) ?: '',
+        'url' => $link ?: work_url((int) $w['id']), 'ext' => $link !== '' && is_external($link),
+    ];
     ?>
-    <a class="card work-card reveal" style="--i:<?= $i % 6 ?>" href="<?= url('work.php?id=' . $w['id']) ?>" data-cat="<?= e($w['category']) ?>">
+    <a class="card work-card reveal" style="--i:<?= $i % 6 ?>" href="<?= e(work_url((int) $w['id'])) ?>" data-cat="<?= work_type($w) ?>" data-work="<?= e(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>">
       <div class="work-media">
         <?= work_media($w) ?>
         <?php if ($w['category']): ?><span class="tag tag-float"><?= e($w['category']) ?></span><?php endif; ?>
@@ -191,7 +230,7 @@ function prompt_card(array $p, int $i = 0): void
 function post_card(array $p, int $i = 0): void
 {
     ?>
-    <a class="card post-card reveal" style="--i:<?= $i % 6 ?>" href="<?= url('post.php?id=' . $p['id']) ?>">
+    <a class="card post-card reveal" style="--i:<?= $i % 6 ?>" href="<?= e(post_url((int) $p['id'])) ?>">
       <div class="post-media">
         <?php if ($p['cover']): ?><img src="<?= e(media($p['cover'])) ?>" alt="<?= e($p['title']) ?>" loading="lazy"><?php else: ?><?= placeholder('newspaper') ?><?php endif; ?>
       </div>
@@ -217,4 +256,46 @@ function filter_chips(array $list, string $target): void
       <?php foreach ($cats as $c): ?><button data-f="<?= e($c) ?>"><?= e($c) ?></button><?php endforeach; ?>
     </div>
     <?php
+}
+
+/** Works filter: all / images / videos (decided automatically from each work) */
+function type_tabs(array $works, string $target): void
+{
+    if (!$works) {
+        return;
+    }
+    ?>
+    <div class="filters seg-filters reveal" data-filter="<?= e($target) ?>">
+      <button class="active" data-f="*"><?= icon('layout-grid') ?>الكل</button>
+      <button data-f="image"><?= icon('image') ?>صور</button>
+      <button data-f="video"><?= icon('play') ?>فيديو</button>
+    </div>
+    <?php
+}
+
+/** Page header for inner pages */
+function page_header(string $key, string $titleOverride = '', string $subOverride = ''): void
+{
+    $sec = home_sections()[$key];
+    $title = $titleOverride ?: setting($key . '_title');
+    $sub = $subOverride ?: setting($key . '_subtitle');
+    ?>
+    <header class="page-header">
+      <div class="container">
+        <a class="back-link" href="<?= url() ?>" data-anim><?= icon('arrow-right') ?> الرئيسية</a>
+        <span class="eyebrow" data-anim style="--d:1"><?= e($sec[0]) ?></span>
+        <h1 data-anim style="--d:1"><?= e($title) ?></h1>
+        <?php if ($sub): ?><p class="lead" data-anim style="--d:2"><?= e($sub) ?></p><?php endif; ?>
+      </div>
+    </header>
+    <?php
+}
+
+function highlight_title(string $title, string $word): string
+{
+    $html = e($title);
+    if ($word !== '' && str_contains($title, $word)) {
+        $html = str_replace(e($word), '<span class="grad">' . e($word) . '</span>', $html);
+    }
+    return $html;
 }

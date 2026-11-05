@@ -20,8 +20,8 @@ $greet = $hour < 12 ? 'صباح الخير' : 'مساء الخير';
     <p class="muted">من هنا تتحكم بكل شي في موقعك: البنر، الأعمال، المتجر، المدونة والإعدادات.</p>
   </div>
   <div class="welcome-actions">
-    <a class="btn btn-primary" href="<?= url('admin/?p=works&a=new') ?>"><?= icon('plus') ?>أضف عمل</a>
-    <a class="btn btn-ghost" href="<?= url('admin/?p=settings&g=hero') ?>"><?= icon('image') ?>عدّل البنر</a>
+    <a class="btn btn-primary" href="<?= admin_url('?p=works&a=new') ?>"><?= icon('plus') ?>أضف عمل</a>
+    <a class="btn btn-ghost" href="<?= admin_url('?p=settings&g=hero') ?>"><?= icon('image') ?>عدّل البنر</a>
     <a class="btn btn-ghost" href="<?= url() ?>" target="_blank"><?= icon('external') ?>عرض الموقع</a>
   </div>
 </div>
@@ -37,19 +37,19 @@ $greet = $hour < 12 ? 'صباح الخير' : 'مساء الخير';
 
 <div class="dash-grid">
   <div class="card">
-    <div class="card-head"><h3>الزيارات — آخر 14 يوم</h3><a class="link" href="<?= url('admin/?p=analytics') ?>">التفاصيل <?= icon('arrow-left') ?></a></div>
+    <div class="card-head"><h3>الزيارات — آخر 14 يوم</h3><a class="link" href="<?= admin_url('?p=analytics') ?>">التفاصيل <?= icon('arrow-left') ?></a></div>
     <?= bar_chart($days, 200) ?>
     <div class="legend"><span><i class="lg-v"></i>زيارات</span><span><i class="lg-u"></i>زوار</span></div>
   </div>
   <div class="card">
-    <div class="card-head"><h3>أحدث الرسائل</h3><a class="link" href="<?= url('admin/?p=messages') ?>">الكل <?= icon('arrow-left') ?></a></div>
+    <div class="card-head"><h3>أحدث الرسائل</h3><a class="link" href="<?= admin_url('?p=messages') ?>">الكل <?= icon('arrow-left') ?></a></div>
     <?php if (!$latest): ?>
       <p class="muted empty-sm">ما وصلتك رسائل للحين.</p>
     <?php else: ?>
       <ul class="msg-mini">
         <?php foreach ($latest as $m): ?>
           <li class="<?= $m['is_read'] ? '' : 'unread' ?>">
-            <a href="<?= url('admin/?p=messages&id=' . $m['id']) ?>">
+            <a href="<?= admin_url('?p=messages&id=' . $m['id']) ?>">
               <span class="avatar-sm"><?= e(mb_substr($m['name'], 0, 1)) ?></span>
               <span class="msg-mini-body"><strong><?= e($m['name']) ?></strong><small><?= e(excerpt($m['subject'] ?: $m['message'], 50)) ?></small></span>
               <time><?= e(time_ago($m['created_at'])) ?></time>
@@ -65,7 +65,7 @@ $greet = $hour < 12 ? 'صباح الخير' : 'مساء الخير';
 <div class="content-grid">
   <?php foreach (entities() as $k => $d):
       $total = (int) db()->query("SELECT COUNT(*) FROM $k")->fetchColumn(); ?>
-    <a class="card content-tile" href="<?= url('admin/?p=' . $k) ?>">
+    <a class="card content-tile" href="<?= admin_url('?p=' . $k) ?>">
       <span class="tile-ic"><?= icon($d['icon']) ?></span>
       <span><strong><?= e($d['title']) ?></strong><small><?= $total ?> عنصر</small></span>
       <span class="tile-add" title="إضافة"><?= icon('arrow-left') ?></span>

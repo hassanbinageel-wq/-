@@ -1,12 +1,12 @@
 <?php
-require __DIR__ . '/includes/bootstrap.php';
-require __DIR__ . '/includes/layout.php';
+/* Loaded by index.php (the router) */
 
+current_page('blog');
 $p = item('posts', (int) ($_GET['id'] ?? 0));
 if (!$p) {
     http_response_code(404);
     site_head('غير موجود');
-    echo '<section class="section page-top"><div class="container center"><h1>المقال غير موجود</h1><p><a class="btn btn-ghost" href="' . url('blog.php') . '">رجوع للمدونة</a></p></div></section>';
+    echo '<section class="section page-top"><div class="container center"><h1>المقال غير موجود</h1><p><a class="btn btn-ghost" href="' . page_url('blog') . '">رجوع للمدونة</a></p></div></section>';
     site_foot();
     exit;
 }
@@ -15,7 +15,7 @@ site_head($p['title'], $p['excerpt'], $p['cover']);
 ?>
 <article class="section page-top">
   <div class="container narrow">
-    <a class="back-link" href="<?= url('blog.php') ?>"><?= icon('arrow-right') ?> المدونة</a>
+    <a class="back-link" href="<?= page_url('blog') ?>"><?= icon('arrow-right') ?> المدونة</a>
     <header class="detail-head">
       <div class="post-meta" data-anim><?php if ($p['category']): ?><span class="tag"><?= e($p['category']) ?></span><?php endif; ?><span><?= icon('calendar') ?><?= e(ar_date($p['published_at'])) ?></span></div>
       <h1 data-anim style="--d:1"><?= e($p['title']) ?></h1>
@@ -25,7 +25,7 @@ site_head($p['title'], $p['excerpt'], $p['cover']);
     <div class="prose reveal"><?= $p['content'] /* written by admin */ ?></div>
     <div class="share reveal">
       <span>شارك المقال:</span>
-      <?php $link = (is_https() ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? '') . url('post.php?id=' . $p['id']); ?>
+      <?php $link = (is_https() ? 'https://' : 'http://') . ($_SERVER['HTTP_HOST'] ?? '') . post_url((int) $p['id']); ?>
       <a href="https://x.com/intent/post?text=<?= rawurlencode($p['title']) ?>&url=<?= rawurlencode($link) ?>" target="_blank" rel="noopener" aria-label="X"><?= icon('x-social') ?></a>
       <a href="https://wa.me/?text=<?= rawurlencode($p['title'] . ' ' . $link) ?>" target="_blank" rel="noopener" aria-label="واتساب"><?= icon('whatsapp') ?></a>
       <a href="https://www.linkedin.com/sharing/share-offsite/?url=<?= rawurlencode($link) ?>" target="_blank" rel="noopener" aria-label="LinkedIn"><?= icon('linkedin') ?></a>

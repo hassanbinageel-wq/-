@@ -1,12 +1,12 @@
 <?php
-require __DIR__ . '/includes/bootstrap.php';
-require __DIR__ . '/includes/layout.php';
+/* Loaded by index.php (the router) */
 
+current_page('works');
 $w = item('works', (int) ($_GET['id'] ?? 0));
 if (!$w) {
     http_response_code(404);
     site_head('غير موجود');
-    echo '<section class="section page-top"><div class="container center"><h1>العمل غير موجود</h1><p><a class="btn btn-ghost" href="' . url('#works') . '">رجوع للأعمال</a></p></div></section>';
+    echo '<section class="section page-top"><div class="container center"><h1>العمل غير موجود</h1><p><a class="btn btn-ghost" href="' . page_url('works') . '">رجوع للأعمال</a></p></div></section>';
     site_foot();
     exit;
 }
@@ -18,14 +18,14 @@ site_head($w['title'], $w['summary'], $w['image']);
 ?>
 <article class="section page-top">
   <div class="container narrow">
-    <a class="back-link" href="<?= url('#works') ?>"><?= icon('arrow-right') ?> كل الأعمال</a>
+    <a class="back-link" href="<?= page_url('works') ?>"><?= icon('arrow-right') ?> كل الأعمال</a>
     <header class="detail-head">
       <?php if ($w['category']): ?><span class="tag" data-anim><?= e($w['category']) ?></span><?php endif; ?>
       <h1 data-anim style="--d:1"><?= e($w['title']) ?></h1>
       <?php if ($w['summary']): ?><p class="lead" data-anim style="--d:2"><?= e($w['summary']) ?></p><?php endif; ?>
       <div class="detail-meta" data-anim style="--d:3">
         <?php if ($tools = csv_list($w['tools'])): ?><div class="chips"><?php foreach ($tools as $t): ?><span><?= e($t) ?></span><?php endforeach; ?></div><?php endif; ?>
-        <?php if ($w['link']): ?><a class="btn btn-sm btn-primary" href="<?= e($w['link']) ?>" target="_blank" rel="noopener">زيارة المشروع <?= icon('external') ?></a><?php endif; ?>
+        <?php if ($w['link']): ?><a class="btn btn-sm btn-primary" href="<?= e($w['link']) ?>" target="_blank" rel="noopener"><?= e(setting('work_btn') ?: 'مشاهدة العمل') ?> <?= icon('external') ?></a><?php endif; ?>
       </div>
     </header>
   </div>

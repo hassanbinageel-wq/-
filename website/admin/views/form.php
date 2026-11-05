@@ -7,8 +7,7 @@ $main = $aside = [];
 foreach ($def['fields'] as $k => $f) {
     if (in_array($f['type'], $side, true) && empty($f['full'])) $aside[$k] = $f; else $main[$k] = $f;
 }
-$viewUrl = ['works' => 'work.php?id=', 'posts' => 'post.php?id='][$page] ?? null;
-if ($page === 'timeline') $viewUrl = 'story.php#';
+$viewUrl = ['works' => 'work/', 'posts' => 'post/'][$page] ?? null;
 ?>
 <form method="post" enctype="multipart/form-data" class="edit-form" data-dirty-check>
   <?= csrf_field() ?>
@@ -16,7 +15,7 @@ if ($page === 'timeline') $viewUrl = 'story.php#';
   <input type="hidden" name="id" value="<?= (int) ($row['id'] ?? 0) ?>">
 
   <div class="page-head">
-    <a class="back" href="<?= url('admin/?p=' . $page) ?>"><?= icon('arrow-right') ?> <?= e($def['title']) ?></a>
+    <a class="back" href="<?= admin_url('?p=' . $page) ?>"><?= icon('arrow-right') ?> <?= e($def['title']) ?></a>
     <div class="page-actions">
       <?php if ($row && $viewUrl && !empty($row['published'])): ?><a class="btn btn-ghost" href="<?= url($viewUrl . $row['id']) ?>" target="_blank"><?= icon('eye') ?>معاينة</a><?php endif; ?>
       <button class="btn btn-ghost" type="submit" name="_stay" value="1">حفظ ومتابعة التعديل</button>

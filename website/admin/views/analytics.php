@@ -34,7 +34,7 @@ $peak = $st->fetch();
   <div class="page-actions">
     <div class="seg">
       <?php foreach ([7 => '7 أيام', 30 => '30 يوم', 90 => '90 يوم'] as $r => $l): ?>
-        <a href="<?= url('admin/?p=analytics&r=' . $r) ?>" class="<?= $r === $range ? 'active' : '' ?>"><?= $l ?></a>
+        <a href="<?= admin_url('?p=analytics&r=' . $r) ?>" class="<?= $r === $range ? 'active' : '' ?>"><?= $l ?></a>
       <?php endforeach; ?>
     </div>
   </div>

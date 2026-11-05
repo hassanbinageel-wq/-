@@ -127,6 +127,8 @@
         el.classList.toggle('is-hidden', !show);
         if (show) { el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); }
       });
+      var empty = grid.parentNode.querySelector('.filter-empty');
+      if (empty) empty.hidden = Array.prototype.some.call(grid.children, function (el) { return !el.classList.contains('is-hidden'); });
     });
   });
 
@@ -175,25 +177,110 @@
     document.addEventListener('keydown', esc);
   });
 
-  // Contact form
+  // Contact form (with optional email verification code)
   var form = $('#contactForm');
   if (form && window.fetch) {
+    var msg = $('.form-msg', form), token = '';
+    var steps = { form: $('.step-form', form), code: $('.step-code', form), done: $('.step-done', form) };
+    var show = function (k) { Object.keys(steps).forEach(function (x) { if (steps[x]) steps[x].hidden = x !== k; }); };
+    var say = function (t, err) { msg.textContent = t || ''; msg.classList.toggle('err', !!err); };
+    var post = function (data, btn) {
+      if (btn) btn.disabled = true;
+      return fetch(form.action, { method: 'POST', body: data, headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .catch(function () { return { ok: false, message: 'صار خطأ في الاتصال، حاول مرة ثانية.' }; })
+        .finally(function () { if (btn) btn.disabled = false; });
+    };
+    var finish = function () { form.reset(); show('done'); say(''); };
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var msg = $('.form-msg', form), btn = $('button[type=submit]', form);
-      msg.classList.remove('err');
-      if (!form.elements['name'].value.trim() || !form.elements['message'].value.trim()) {
-        msg.textContent = 'فضلاً اكتب اسمك ورسالتك.'; msg.classList.add('err'); return;
+      if (!steps.form.hidden) {
+        var el = form.elements;
+        if (!el['name'].value.trim() || !el['message'].value.trim()) { say('فضلاً اكتب اسمك ورسالتك.', true); return; }
+        if (form.dataset.verify === '1' && !el['email'].value.trim()) { say('فضلاً اكتب بريدك الإلكتروني عشان نرسل لك رمز التأكيد.', true); return; }
+        var fd = new FormData(form); fd.set('step', 'start'); fd.delete('code');
+        say('');
+        post(fd, $('button[type=submit]', steps.form)).then(function (d) {
+          if (!d.ok) { say(d.message, true); return; }
+          if (d.done) { finish(); return; }
+          token = d.token;
+          $('.code-email', form).textContent = d.email || '';
+          show('code'); say('');
+          var ci = $('.code-input', form); ci.value = ''; ci.focus();
+        });
+      } else if (!steps.code.hidden) {
+        verify();
       }
-      btn.disabled = true;
-      fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } })
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          msg.textContent = d.message; msg.classList.toggle('err', !d.ok);
-          if (d.ok) form.reset();
-        })
-        .catch(function () { msg.textContent = 'صار خطأ في الاتصال، حاول مرة ثانية.'; msg.classList.add('err'); })
-        .finally(function () { btn.disabled = false; });
     });
+
+    var verify = function () {
+      var code = ($('.code-input', form).value || '').replace(/\D/g, '');
+      if (code.length !== 6) { say('اكتب الرمز المكون من 6 أرقام.', true); return; }
+      var fd = new FormData(); fd.set('step', 'verify'); fd.set('token', token); fd.set('code', code);
+      post(fd, $('[data-act=verify]', form)).then(function (d) {
+        if (d.ok) { finish(); return; }
+        say(d.message, true);
+        if (d.restart) { show('form'); }
+      });
+    };
+    form.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      var act = b.dataset.act;
+      if (act === 'verify') verify();
+      if (act === 'back') { show('form'); say(''); }
+      if (act === 'resend') {
+        var fd = new FormData(); fd.set('step', 'resend'); fd.set('token', token);
+        post(fd, b).then(function (d) { say(d.message, !d.ok); if (d.restart) show('form'); });
+      }
+    });
+    var ci = $('.code-input', form);
+    if (ci) ci.addEventListener('input', function () { ci.value = ci.value.replace(/\D/g, '').slice(0, 6); if (ci.value.length === 6) verify(); });
+  }
+
+  // Work quick view: small window with the work and a "view work" button
+  var modal = $('#workModal');
+  if (modal) {
+    var lastFocus = null;
+    var closeModal = function () {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      setTimeout(function () { modal.hidden = true; $('#wmMedia').innerHTML = ''; }, 300);
+      if (lastFocus) lastFocus.focus();
+    };
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close]') && modal.contains(e.target)) { closeModal(); return; }
+      var card = e.target.closest('[data-work]');
+      if (!card || e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+      var d;
+      try { d = JSON.parse(card.dataset.work); } catch (x) { return; }
+      e.preventDefault();
+      lastFocus = card;
+      var media = $('#wmMedia'); media.innerHTML = '';
+      if (d.video) {
+        var v = document.createElement('video');
+        v.src = d.video; v.controls = true; v.playsInline = true; v.autoplay = true; v.muted = true; v.loop = true;
+        if (d.img) v.poster = d.img;
+        media.appendChild(v);
+      } else if (d.embed) {
+        var f = document.createElement('iframe');
+        f.src = d.embed; f.allow = 'autoplay; encrypted-media; picture-in-picture'; f.allowFullscreen = true; f.title = d.title;
+        media.appendChild(f);
+      } else if (d.img) {
+        var im = new Image(); im.src = d.img; im.alt = d.title; media.appendChild(im);
+      }
+      $('#wmCat').textContent = d.cat || '';
+      $('#wmTitle').textContent = d.title || '';
+      $('#wmText').textContent = d.text || '';
+      var tools = $('#wmTools'); tools.innerHTML = '';
+      (d.tools || []).forEach(function (t) { var sp = document.createElement('span'); sp.textContent = t; tools.appendChild(sp); });
+      var btn = $('#wmBtn'); btn.href = d.url;
+      if (d.ext) { btn.target = '_blank'; btn.rel = 'noopener'; } else { btn.removeAttribute('target'); btn.removeAttribute('rel'); }
+      modal.hidden = false;
+      document.body.classList.add('modal-open');
+      requestAnimationFrame(function () { modal.classList.add('open'); $('.modal-close', modal).focus(); });
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
   }
 })();

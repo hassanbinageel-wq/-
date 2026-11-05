@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/includes/bootstrap.php';
-require __DIR__ . '/includes/layout.php';
+/* Loaded by index.php (the router) */
 
+current_page('about');
 $s = settings_all();
 $steps = items('timeline');
 site_head($s['story_title'], $s['story_intro']);
@@ -10,7 +10,7 @@ $last = $steps ? end($steps)['year'] : '';
 ?>
 <section class="section page-top story">
   <div class="container narrow">
-    <a class="back-link" href="<?= url('#about') ?>"><?= icon('arrow-right') ?> الرئيسية</a>
+    <a class="back-link" href="<?= page_url('about') ?>"><?= icon('arrow-right') ?> نبذة عني</a>
     <header class="story-head">
       <span class="eyebrow" data-anim><?= e($s['story_eyebrow']) ?></span>
       <h1 data-anim style="--d:1"><?= e($s['story_title']) ?></h1>
@@ -50,8 +50,8 @@ $last = $steps ? end($steps)['year'] : '';
     <div class="story-cta reveal">
       <h3><?= e($s['story_cta']) ?></h3>
       <div class="hero-cta">
-        <?php if (section_on('contact')): ?><a class="btn btn-primary" href="<?= url('#contact') ?>">تواصل معي<?= icon('arrow-left') ?></a><?php endif; ?>
-        <?php if (section_on('works')): ?><a class="btn btn-ghost" href="<?= url('#works') ?>">شاهد أعمالي</a><?php endif; ?>
+        <?php if (section_on('contact')): ?><a class="btn btn-primary" href="<?= page_url('contact') ?>">تواصل معي<?= icon('arrow-left') ?></a><?php endif; ?>
+        <?php if (section_on('works')): ?><a class="btn btn-ghost" href="<?= page_url('works') ?>">شاهد أعمالي</a><?php endif; ?>
       </div>
     </div>
   </div>

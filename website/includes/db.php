@@ -54,6 +54,14 @@ function migrate(PDO $pdo): array
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS visits_created ON visits(created_at)');
     $pdo->exec('CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT, at INTEGER)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS pending_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT UNIQUE,
+        name TEXT, email TEXT, phone TEXT, subject TEXT, message TEXT,
+        code_hash TEXT, attempts INTEGER DEFAULT 0, ip_hash TEXT, sent_at INTEGER, expires_at INTEGER
+    )');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS message_replies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER, body TEXT, created_at TEXT
+    )');
 
     foreach (entities() as $table => $def) {
         $exists = $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = " . $pdo->quote($table))->fetchColumn();
@@ -76,6 +84,10 @@ function migrate(PDO $pdo): array
     if (!$secret) {
         $st->execute(['_secret', bin2hex(random_bytes(32))]);
     }
+    // Secret dashboard address (changeable from the dashboard: Account)
+    if (!$pdo->query("SELECT value FROM settings WHERE name = 'admin_slug'")->fetchColumn()) {
+        $st->execute(['admin_slug', 'panel-' . bin2hex(random_bytes(4))]);
+    }
     return $created;
 }
 
@@ -84,6 +96,23 @@ function seed(PDO $pdo, ?array $only = null): void
 {
     $now = date('Y-m-d H:i:s');
     $rows = [
+        'skills' => [
+            ['title' => 'توليد الصور بالذكاء الاصطناعي', 'icon' => 'image-plus', 'sort_order' => 1],
+            ['title' => 'صناعة الفيديو بالـ AI', 'icon' => 'film', 'sort_order' => 2],
+            ['title' => 'هندسة البرومبتات', 'icon' => 'code', 'sort_order' => 3],
+            ['title' => 'أتمتة الأعمال', 'icon' => 'zap', 'sort_order' => 4],
+            ['title' => 'صناعة المحتوى', 'icon' => 'pen', 'sort_order' => 5],
+            ['title' => 'الإخراج السينمائي', 'icon' => 'clapperboard', 'sort_order' => 6],
+        ],
+        'store_features' => [
+            ['title' => 'تحميل فوري', 'description' => 'احصل على ملفاتك مباشرة بعد الشراء', 'icon' => 'download', 'sort_order' => 1],
+            ['title' => 'دعم مباشر', 'description' => 'تواصل مباشر للأسئلة والاستفسارات', 'icon' => 'headset', 'sort_order' => 2],
+        ],
+        'faqs' => [
+            ['question' => 'ما صيغة الملفات؟', 'answer' => 'الكتب بصيغة PDF عالية الجودة، والفيديوهات بصيغة MP4.', 'sort_order' => 1],
+            ['question' => 'هل يمكنني طباعة الكتب؟', 'answer' => 'نعم! الكتب مرخّصة للاستخدام الشخصي ويمكن طباعتها.', 'sort_order' => 2],
+            ['question' => 'كيف أحصل على الملفات بعد الشراء؟', 'answer' => 'ستحصل على المحتوى مباشرة بعد إتمام الدفع.', 'sort_order' => 3],
+        ],
         'stats' => [
             ['value' => '48+', 'label' => 'مشروع منجز', 'sort_order' => 1],
             ['value' => '25+', 'label' => 'عميل راضٍ', 'sort_order' => 2],
@@ -133,6 +162,8 @@ function seed(PDO $pdo, ?array $only = null): void
         'partners' => [
             ['name' => 'شريك 1', 'sort_order' => 1], ['name' => 'شريك 2', 'sort_order' => 2],
             ['name' => 'شريك 3', 'sort_order' => 3], ['name' => 'شريك 4', 'sort_order' => 4],
+            ['name' => 'شريك 5', 'sort_order' => 5], ['name' => 'شريك 6', 'sort_order' => 6],
+            ['name' => 'شريك 7', 'sort_order' => 7], ['name' => 'شريك 8', 'sort_order' => 8],
         ],
         'posts' => [
             ['title' => 'كيف تبدأ في عالم الذكاء الاصطناعي؟', 'category' => 'بداية', 'excerpt' => 'خارطة طريق بسيطة للمبتدئين: الأدوات اللي تحتاجها وأول خطوة تبدأ فيها.', 'content' => '<p>اكتب محتوى مقالك هنا من لوحة التحكم.</p>', 'published_at' => date('Y-m-d')],

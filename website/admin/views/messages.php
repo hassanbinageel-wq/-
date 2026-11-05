@@ -10,6 +10,13 @@ if ($id) {
     }
 }
 $list = db()->query('SELECT * FROM messages ORDER BY id DESC LIMIT 300')->fetchAll();
+$replies = [];
+if ($msg) {
+    $st = db()->prepare('SELECT * FROM message_replies WHERE message_id = ? ORDER BY id');
+    $st->execute([$msg['id']]);
+    $replies = $st->fetchAll();
+}
+$canMail = smtp_configured();
 ?>
 <div class="page-head">
   <p class="muted">الرسائل اللي توصلك من نموذج «تواصل معي» في الموقع</p>
@@ -31,7 +38,7 @@ $list = db()->query('SELECT * FROM messages ORDER BY id DESC LIMIT 300')->fetchA
 <div class="inbox <?= $msg ? 'has-open' : '' ?>">
   <div class="card inbox-list" id="msgList">
     <?php foreach ($list as $m): ?>
-      <a class="inbox-item <?= $m['is_read'] || ($msg && $msg['id'] == $m['id']) ? '' : 'unread' ?> <?= $msg && $msg['id'] == $m['id'] ? 'active' : '' ?>" href="<?= url('admin/?p=messages&id=' . $m['id']) ?>">
+      <a class="inbox-item <?= $m['is_read'] || ($msg && $msg['id'] == $m['id']) ? '' : 'unread' ?> <?= $msg && $msg['id'] == $m['id'] ? 'active' : '' ?>" href="<?= admin_url('?p=messages&id=' . $m['id']) ?>">
         <span class="avatar-sm"><?= e(mb_substr($m['name'], 0, 1)) ?></span>
         <span class="inbox-body">
           <span class="inbox-top"><strong><?= e($m['name']) ?></strong><time><?= e(time_ago($m['created_at'])) ?></time></span>
@@ -45,7 +52,7 @@ $list = db()->query('SELECT * FROM messages ORDER BY id DESC LIMIT 300')->fetchA
     <?php if (!$msg): ?>
       <div class="empty"><span class="empty-ic"><?= icon('mail') ?></span><p class="muted">اختر رسالة لعرضها</p></div>
     <?php else: ?>
-      <a class="back only-mobile" href="<?= url('admin/?p=messages') ?>"><?= icon('arrow-right') ?> الرسائل</a>
+      <a class="back only-mobile" href="<?= admin_url('?p=messages') ?>"><?= icon('arrow-right') ?> الرسائل</a>
       <div class="msg-head">
         <span class="avatar-lg"><?= e(mb_substr($msg['name'], 0, 1)) ?></span>
         <div>
@@ -59,8 +66,22 @@ $list = db()->query('SELECT * FROM messages ORDER BY id DESC LIMIT 300')->fetchA
         <?php if ($msg['subject']): ?><div><dt>الموضوع</dt><dd><?= e($msg['subject']) ?></dd></div><?php endif; ?>
       </dl>
       <div class="msg-text"><?= nl2br(e($msg['message'])) ?></div>
+      <?php foreach ($replies as $r): ?>
+        <div class="msg-reply"><span class="reply-meta"><?= icon('reply') ?>ردّك — <?= e(time_ago($r['created_at'])) ?></span><?= nl2br(e($r['body'])) ?></div>
+      <?php endforeach; ?>
+      <?php if ($msg['email']): ?>
+        <?php if ($canMail): ?>
+          <form method="post" class="reply-form" data-dirty-check>
+            <?= csrf_field() ?><input type="hidden" name="_do" value="reply"><input type="hidden" name="id" value="<?= $msg['id'] ?>">
+            <label class="field-label" for="replyBody">ردّك (يوصل لـ <span class="ltr"><?= e($msg['email']) ?></span>)</label>
+            <textarea id="replyBody" name="body" rows="5" required placeholder="اكتب ردك هنا…"></textarea>
+            <button class="btn btn-primary" type="submit"><?= icon('send') ?>إرسال الرد</button>
+          </form>
+        <?php else: ?>
+          <div class="alert alert-warn">عشان ترد من هنا مباشرة، كمّل <a href="<?= admin_url('?p=settings&g=mail') ?>">إعدادات البريد</a> مرة وحدة.</div>
+        <?php endif; ?>
+      <?php endif; ?>
       <div class="msg-actions">
-        <?php if ($msg['email']): ?><a class="btn btn-primary" href="mailto:<?= e($msg['email']) ?>?subject=<?= rawurlencode('رد: ' . ($msg['subject'] ?: 'رسالتك')) ?>"><?= icon('mail') ?>رد بالإيميل</a><?php endif; ?>
         <?php if ($msg['phone'] && ($n = preg_replace('/\D/', '', $msg['phone']))): ?><a class="btn btn-ghost" href="https://wa.me/<?= e($n) ?>" target="_blank" rel="noopener"><?= icon('whatsapp') ?>واتساب</a><?php endif; ?>
         <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="_do" value="unread"><input type="hidden" name="id" value="<?= $msg['id'] ?>"><button class="btn btn-ghost"><?= icon('eye-off') ?>غير مقروءة</button></form>
         <form method="post" class="inline" data-confirm="حذف الرسالة؟"><?= csrf_field() ?><input type="hidden" name="_do" value="delete"><input type="hidden" name="id" value="<?= $msg['id'] ?>"><button class="btn btn-danger-ghost"><?= icon('trash') ?>حذف</button></form>

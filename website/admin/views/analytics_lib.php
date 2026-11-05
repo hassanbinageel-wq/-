@@ -28,10 +28,13 @@ function page_label(string $path): string
     if (isset($cache[$path])) return $cache[$path];
     $label = $path;
     if ($path === '/' || $path === '') $label = 'الصفحة الرئيسية';
-    elseif (preg_match('~^/work\.php\?id=(\d+)~', $path, $m)) $label = 'عمل: ' . (item('works', (int) $m[1], true)['title'] ?? '#' . $m[1]);
-    elseif (preg_match('~^/post\.php\?id=(\d+)~', $path, $m)) $label = 'مقال: ' . (item('posts', (int) $m[1], true)['title'] ?? '#' . $m[1]);
-    elseif ($path === '/blog.php') $label = 'المدونة';
-    elseif ($path === '/prompts.php') $label = 'البرومبتات';
+    elseif (preg_match('~^/work(?:\.php\?id=|/)(\d+)~', $path, $m)) $label = 'عمل: ' . (item('works', (int) $m[1], true)['title'] ?? '#' . $m[1]);
+    elseif (preg_match('~^/post(?:\.php\?id=|/)(\d+)~', $path, $m)) $label = 'مقال: ' . (item('posts', (int) $m[1], true)['title'] ?? '#' . $m[1]);
+    else {
+        $names = ['/about' => 'نبذة عني', '/story' => 'القصة', '/services' => 'الخدمات', '/works' => 'الأعمال', '/prompts' => 'البرومبتات',
+            '/store' => 'المتجر', '/blog' => 'المدونة', '/contact' => 'تواصل', '/partners' => 'شركاء النجاح'];
+        $label = $names[$path] ?? $path;
+    }
     return $cache[$path] = $label;
 }
 

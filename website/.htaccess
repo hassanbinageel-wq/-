@@ -3,13 +3,24 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  # Force HTTPS (enable after activating SSL in Hostinger — it's free)
+
+  # Force HTTPS (activate the free SSL in Hostinger first)
   RewriteCond %{HTTPS} off
   RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-  # Block private folders
-  RewriteRule ^(data|includes)(/|$) - [F,L]
+
+  # Private folders and files: never reachable from the browser
   RewriteRule (^|/)\. - [F,L]
+  RewriteRule ^(data|includes|pages)(/|$) - [F,L]
+
+  # Dashboard files only run through the secret address (assets stay public)
+  RewriteCond %{REQUEST_URI} !/admin/assets/
+  RewriteRule ^admin(/|$) index.php [L]
+
+  # Clean addresses: /works, /store, /work/12 … all go to the router
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ index.php [L,QSA]
 </IfModule>
 
 <IfModule mod_headers.c>
@@ -24,6 +35,7 @@ DirectoryIndex index.php
   ExpiresByType image/png "access plus 1 month"
   ExpiresByType image/webp "access plus 1 month"
   ExpiresByType image/gif "access plus 1 month"
+  ExpiresByType video/mp4 "access plus 1 month"
   ExpiresByType text/css "access plus 1 month"
   ExpiresByType application/javascript "access plus 1 month"
 </IfModule>
