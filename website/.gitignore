@@ -1,0 +1,6 @@
+# Live data (database + uploads) is created on the server — never upload it to Git
+data/*
+!data/.htaccess
+uploads/*
+!uploads/.htaccess
+!uploads/.gitkeep
