@@ -41,8 +41,7 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
     }
     $accent = safe_color($s['accent_color'], '#3b82f6');
     $accent2 = safe_color($s['accent2_color'], '#8b5cf6');
-    $themeDefault = in_array($s['theme'], ['light', 'dark', 'auto'], true) ? $s['theme'] : 'dark';
-    $theme = $themeDefault === 'light' ? 'light' : 'dark';
+    $theme = 'light'; // the site is light only
     ?>
 <!doctype html>
 <html lang="ar" dir="rtl" data-theme="<?= $theme ?>" class="<?= $s['motion'] === '1' || $s['motion'] === 1 ? 'motion' : '' ?>">
@@ -63,7 +62,7 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= asset('assets/css/site.css') ?>">
 <style>:root{--accent:<?= $accent ?>;--accent2:<?= $accent2 ?>}</style>
-<script>(function(){var d=document.documentElement,def=<?= json_encode($themeDefault) ?>,t=null;try{t=localStorage.getItem('hsn-theme')}catch(e){}if(t!=='light'&&t!=='dark'){t=def==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):def}d.setAttribute('data-theme',t);d.classList.add('js')})()</script>
+<script>document.documentElement.classList.add('js')</script>
 </head>
 <body class="<?= e($bodyClass) ?>">
 <?php if ((string) $s['announce_on'] === '1' && $s['announce_text']): ?>
@@ -82,9 +81,6 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
       <?php if (section_on('contact')): ?><a class="btn btn-sm btn-primary nav-cta" href="<?= page_url('contact') ?>">تواصل معي</a><?php endif; ?>
     </nav>
     <div class="header-tools">
-      <?php if ((string) $s['theme_toggle'] === '1'): ?>
-        <button class="icon-toggle" id="themeBtn" type="button" aria-label="التبديل بين الوضع الفاتح والداكن" title="فاتح / داكن"><?= icon('sun', 'ic i-sun') ?><?= icon('moon', 'ic i-moon') ?></button>
-      <?php endif; ?>
       <button class="icon-toggle menu-btn" id="menuBtn" aria-label="فتح القائمة" aria-expanded="false"><?= icon('menu') ?></button>
     </div>
   </div>

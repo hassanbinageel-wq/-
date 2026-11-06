@@ -46,12 +46,13 @@ function admin_start(string $title, string $active): void
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= asset('admin/assets/admin.css') ?>">
+<script>(function(){var t='light';try{t=localStorage.getItem('hsn-admin-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
 <body>
 <div class="shell">
   <aside class="sidebar" id="sidebar">
     <a class="side-brand" href="<?= admin_url() ?>">
-      <span class="side-mark"><?= e(mb_substr($site, 0, 1)) ?></span>
+      <?php if (setting('brand_photo')): ?><img class="side-photo" src="<?= e(media(setting('brand_photo'))) ?>" alt=""><?php else: ?><span class="side-mark"><?= e(mb_substr($site, 0, 1)) ?></span><?php endif; ?>
       <span><strong><?= e($site) ?></strong><small>لوحة التحكم</small></span>
     </a>
     <nav class="side-nav">
@@ -75,6 +76,7 @@ function admin_start(string $title, string $active): void
       <button class="icon-btn menu-toggle" id="menuToggle" aria-label="القائمة"><?= icon('menu') ?></button>
       <h1><?= e($title) ?></h1>
       <div class="topbar-end">
+        <button class="icon-btn" type="button" id="adminTheme" aria-label="الوضع الفاتح / الداكن" title="فاتح / داكن"><?= icon('sun', 'ic i-sun') ?><?= icon('moon', 'ic i-moon') ?></button>
         <a class="icon-btn" href="<?= admin_url('?p=messages') ?>" aria-label="الرسائل"><?= icon('inbox') ?><?php if (unread_count()): ?><i class="dot-badge"></i><?php endif; ?></a>
         <a class="user-chip" href="<?= admin_url('?p=account') ?>"><span class="avatar-sm"><?= e(mb_strtoupper(mb_substr($user['username'] ?? 'A', 0, 1))) ?></span><span><?= e($user['username'] ?? '') ?></span></a>
       </div>

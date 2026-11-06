@@ -259,7 +259,7 @@ function sec_clients(): void
 <section class="section section-alt" id="clients">
   <div class="container">
     <?php section_head('clients'); ?>
-    <div class="grid grid-3">
+    <div class="grid grid-3 testimonials-grid">
       <?php foreach ($clients as $i => $c): ?>
         <figure class="card testimonial reveal" style="--i:<?= $i ?>">
           <?= icon('quote', 'ic quote-ic') ?>
@@ -308,7 +308,7 @@ function sec_partners(): void
     </div>
   </div>
   <?php $speed = (int) setting('partners_speed', '60'); ?>
-  <div class="logo-rows reveal<?= $speed === 0 ? ' is-static' : '' ?><?= setting('partners_dark') === 'original' ? '' : ' dark-white' ?>" aria-label="شركاء النجاح" style="--logo-h:<?= (int) (setting('partners_size') ?: 60) ?>px;--speed:<?= max(10, $speed) ?>s">
+  <div class="logo-rows reveal<?= $speed === 0 ? ' is-static' : '' ?>" aria-label="شركاء النجاح" style="--logo-h:<?= (int) (setting('partners_size') ?: 60) ?>px;--speed:<?= max(10, $speed) ?>s">
     <?php foreach ($rows as $r => $row):
         $loop = $row;
         while (count($loop) < 8) $loop = array_merge($loop, $row); ?>
@@ -323,11 +323,6 @@ function sec_partners(): void
           <?php endfor; ?>
         </div>
       </div>
-    <?php endforeach; ?>
-  </div>
-  <div class="container logo-grid reveal<?= setting('partners_dark') === 'original' ? '' : ' dark-white' ?>">
-    <?php foreach (array_slice($partners, 0, 8) as $p): ?>
-      <span class="logo-cell" style="--scale:<?= max(50, min(160, (int) ($p['scale'] ?: 100))) / 100 ?>"><?= partner_logo($p) ?></span>
     <?php endforeach; ?>
   </div>
   <div class="center reveal"><a class="btn btn-outline" href="<?= page_url('partners') ?>"><?= e(setting('partners_btn') ?: 'معرفة المزيد') ?><?= icon('arrow-left') ?></a></div>
@@ -348,7 +343,7 @@ function sec_blog(bool $preview = true): void
     <?php else: ?>
       <?php filter_chips($posts, 'postsGrid'); ?>
     <?php endif; ?>
-    <div class="grid grid-3" id="postsGrid">
+    <div class="grid grid-3 posts-grid" id="postsGrid">
       <?php foreach ($posts as $i => $p) { echo '<div class="cell" data-cat="' . e($p['category']) . '">'; post_card($p, $i); echo '</div>'; } ?>
     </div>
   </div>

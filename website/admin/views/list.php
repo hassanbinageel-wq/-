@@ -11,9 +11,13 @@ $viewUrl = ['works' => 'work/', 'posts' => 'post/'][$page] ?? null;
 $canSort = isset($def['fields']['sort_order']) && !isset($def['order']) && count($rows) > 1;
 ?>
 <div class="page-head">
-  <div>
-    <p class="muted"><?= e($def['desc']) ?> — <?= count($rows) ?> عنصر</p>
+  <div class="page-intro">
+    <span class="intro-ic"><?= icon($def['icon']) ?></span>
+    <div>
+      <h2><?= e($def['title']) ?> <span class="count-pill"><?= count($rows) ?></span></h2>
+      <p class="muted"><?= e($def['desc']) ?></p>
     <?php if ($canSort): ?><p class="sort-hint"><?= icon('grip') ?> اسحب من المقبض لترتيب العناصر — نفس الترتيب يظهر في الموقع</p><?php endif; ?>
+    </div>
   </div>
   <div class="page-actions">
     <?php if ($rows): ?><div class="search"><?= icon('search') ?><input type="search" placeholder="بحث…" data-table-search="#tbl"></div><?php endif; ?>

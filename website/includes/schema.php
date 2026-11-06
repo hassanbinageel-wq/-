@@ -275,9 +275,6 @@ function settings_schema(): array
                 '90' => 'بطيئة جداً', '60' => 'بطيئة', '40' => 'متوسطة', '25' => 'سريعة', '0' => 'ثابتة (بدون حركة)',
             ], 'default' => '60'],
             'partners_size'  => ['label' => 'حجم الشعارات', 'type' => 'select', 'options' => ['48' => 'صغير', '60' => 'متوسط', '74' => 'كبير'], 'default' => '60'],
-            'partners_dark'  => ['label' => 'الشعارات في الوضع الداكن', 'type' => 'select', 'options' => [
-                'white' => 'أبيض موحّد (أوضح وأنظف) — تظهر ألوانها عند التمرير', 'original' => 'بألوانها الأصلية',
-            ], 'default' => 'white'],
         ]],
         'store' => ['title' => 'صفحة المتجر', 'icon' => 'cart', 'fields' => [
             'store_eyebrow'   => ['label' => 'العنوان الصغير', 'type' => 'text', 'default' => 'المتجر'],
@@ -345,8 +342,6 @@ function settings_schema(): array
             'notify_email'  => ['label' => 'أرسل لي إيميل عند وصول رسالة جديدة', 'type' => 'bool', 'default' => 1],
         ]],
         'appearance' => ['title' => 'المظهر', 'icon' => 'pen', 'fields' => [
-            'theme'         => ['label' => 'الوضع الافتراضي للزائر', 'type' => 'select', 'options' => ['dark' => 'داكن', 'light' => 'فاتح', 'auto' => 'حسب جهاز الزائر'], 'default' => 'dark'],
-            'theme_toggle'  => ['label' => 'إظهار زر التبديل بين الفاتح والداكن', 'type' => 'bool', 'default' => 1],
             'accent_color'  => ['label' => 'اللون الأساسي', 'type' => 'color', 'default' => '#3b82f6'],
             'accent2_color' => ['label' => 'اللون الثانوي (للتدرّج)', 'type' => 'color', 'default' => '#8b5cf6'],
             'motion'        => ['label' => 'تفعيل الحركة (الموشن)', 'type' => 'bool', 'default' => 1],

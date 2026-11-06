@@ -145,6 +145,7 @@ $titles = ['setup' => 'إنشاء حساب المدير', 'login' => 'لوحة �
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= asset('admin/assets/admin.css') ?>">
+<script>(function(){var t='light';try{t=localStorage.getItem('hsn-admin-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-theme',t)})()</script>
 </head>
 <body class="auth-body">
   <div class="auth-glow"></div>

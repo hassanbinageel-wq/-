@@ -6,7 +6,7 @@ page_header('partners');
 ?>
 <section class="section section-flush">
   <div class="container">
-    <div class="partner-grid<?= setting('partners_dark') === 'original' ? '' : ' dark-white' ?>">
+    <div class="partner-grid">
       <?php foreach ($partners as $i => $p):
           $tag = $p['url'] ? 'a' : 'div'; ?>
         <<?= $tag ?> class="card partner-card reveal" style="--i:<?= $i % 8 ?>"<?= $p['url'] ? ' href="' . e($p['url']) . '" target="_blank" rel="noopener"' : '' ?>>

@@ -61,14 +61,26 @@ $greet = $hour < 12 ? 'صباح الخير' : 'مساء الخير';
   </div>
 </div>
 
-<h3 class="block-title">المحتوى</h3>
-<div class="content-grid">
-  <?php foreach (entities() as $k => $d):
-      $total = (int) db()->query("SELECT COUNT(*) FROM $k")->fetchColumn(); ?>
-    <a class="card content-tile" href="<?= admin_url('?p=' . $k) ?>">
-      <span class="tile-ic"><?= icon($d['icon']) ?></span>
-      <span><strong><?= e($d['title']) ?></strong><small><?= $total ?> عنصر</small></span>
-      <span class="tile-add" title="إضافة"><?= icon('arrow-left') ?></span>
-    </a>
+<?php
+$groups = []; $g = null;
+foreach (admin_menu() as $k => $item) {
+    if (is_string($item)) { $g = $item; continue; }
+    if ($g && isset(entities()[$k]) && $g !== 'عام') $groups[$g][$k] = $item;
+}
+?>
+<div class="content-groups">
+  <?php foreach ($groups as $gname => $list): ?>
+    <section class="card content-group">
+      <h3 class="group-title"><?= e($gname) ?></h3>
+      <div class="group-list">
+        <?php foreach ($list as $k => [$label, $ic]):
+            $total = (int) db()->query("SELECT COUNT(*) FROM $k")->fetchColumn(); ?>
+          <div class="group-row">
+            <a class="group-link" href="<?= admin_url('?p=' . $k) ?>"><span class="tile-ic"><?= icon($ic) ?></span><span><strong><?= e($label) ?></strong><small><?= $total ?> عنصر</small></span></a>
+            <a class="icon-btn sm" href="<?= admin_url('?p=' . $k . '&a=new') ?>" title="إضافة"><?= icon('plus') ?></a>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </section>
   <?php endforeach; ?>
 </div>

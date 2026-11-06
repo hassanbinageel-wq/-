@@ -328,3 +328,14 @@
     });
   });
 })();
+
+(function () {
+  // Light / dark mode for the dashboard (remembered in this browser)
+  var b = document.getElementById('adminTheme');
+  if (!b) return;
+  b.addEventListener('click', function () {
+    var d = document.documentElement, t = d.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    d.setAttribute('data-theme', t);
+    try { localStorage.setItem('hsn-admin-theme', t); } catch (e) {}
+  });
+})();
