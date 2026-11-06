@@ -62,6 +62,13 @@
     if (r) r.addEventListener('input', function () { c.style.setProperty('--pos', r.value + '%'); });
   });
 
+  // Reading progress bar on articles
+  var readBar = document.getElementById('readBar'), art = document.getElementById('article');
+  if (readBar && art) {
+    var rp = function () { var r = art.getBoundingClientRect(), h = r.height - window.innerHeight; readBar.style.width = (h > 0 ? Math.min(100, Math.max(0, -r.top / h * 100)) : 100) + '%'; };
+    rp(); window.addEventListener('scroll', rp, { passive: true });
+  }
+
   // Mobile menu
   var menuBtn = $('#menuBtn'), nav = $('#nav');
   if (menuBtn && nav) {

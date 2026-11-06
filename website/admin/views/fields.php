@@ -24,21 +24,53 @@ function render_field(string $name, array $f, $value): void
               <textarea id="<?= $id ?>" class="mono" name="<?= e($name) ?>" rows="6" dir="auto"<?= $req ?>><?= e($value) ?></textarea>
             <?php break;
             case 'html': ?>
-              <div class="editor" data-editor>
-                <div class="editor-bar">
-                  <button type="button" data-wrap="h2" title="عنوان">H2</button>
-                  <button type="button" data-wrap="h3" title="عنوان فرعي">H3</button>
-                  <button type="button" data-wrap="p" title="فقرة">¶</button>
-                  <button type="button" data-wrap="strong" title="عريض"><b>B</b></button>
-                  <button type="button" data-wrap="em" title="مائل"><i>I</i></button>
-                  <button type="button" data-wrap="blockquote" title="اقتباس">❝</button>
-                  <button type="button" data-list title="قائمة">• —</button>
-                  <button type="button" data-link title="رابط"><?= icon('link') ?></button>
-                  <button type="button" data-img title="صورة برابط"><?= icon('image') ?></button>
-                  <button type="button" data-preview title="معاينة"><?= icon('eye') ?></button>
+              <div class="rich" data-rich data-upload-url="<?= e(admin_url('?p=upload')) ?>" data-csrf="<?= e(csrf_token()) ?>">
+                <div class="rich-bar" role="toolbar" aria-label="أدوات التنسيق">
+                  <span class="rb-group">
+                    <button type="button" data-block="h2" title="عنوان رئيسي">عنوان</button>
+                    <button type="button" data-block="h3" title="عنوان فرعي">فرعي</button>
+                    <button type="button" data-block="p" title="نص عادي">نص</button>
+                  </span>
+                  <span class="rb-group">
+                    <button type="button" data-cmd="bold" title="عريض"><b>B</b></button>
+                    <button type="button" data-cmd="italic" title="مائل"><i>I</i></button>
+                    <button type="button" data-cmd="underline" title="تسطير"><u>U</u></button>
+                  </span>
+                  <span class="rb-group rb-colors" title="لون النص">
+                    <button type="button" data-color="c-accent" class="sw" style="--sw:#3b82f6" title="أزرق"></button>
+                    <button type="button" data-color="c-purple" class="sw" style="--sw:#8b5cf6" title="بنفسجي"></button>
+                    <button type="button" data-color="c-green" class="sw" style="--sw:#22c55e" title="أخضر"></button>
+                    <button type="button" data-color="c-amber" class="sw" style="--sw:#f59e0b" title="ذهبي"></button>
+                    <button type="button" data-color="c-red" class="sw" style="--sw:#ef4444" title="أحمر"></button>
+                    <button type="button" data-color="c-grad" class="sw sw-grad" title="متدرج"></button>
+                    <button type="button" data-color="mark" title="تظليل"><span class="hl">ظلّل</span></button>
+                    <button type="button" data-cmd="removeFormat" title="مسح التنسيق"><?= icon('x') ?></button>
+                  </span>
+                  <span class="rb-group">
+                    <button type="button" data-block="blockquote" title="اقتباس">❝</button>
+                    <button type="button" data-insert="callout" title="صندوق ملاحظة">💡</button>
+                    <button type="button" data-cmd="insertUnorderedList" title="قائمة نقاط">• ≡</button>
+                    <button type="button" data-cmd="insertOrderedList" title="قائمة مرقمة">1. ≡</button>
+                    <button type="button" data-insert="hr" title="فاصل">—</button>
+                  </span>
+                  <span class="rb-group">
+                    <button type="button" data-act="link" title="رابط"><?= icon('link') ?></button>
+                    <button type="button" data-act="image" class="rb-img" title="أضف صورة"><?= icon('image-plus') ?><span>صورة</span></button>
+                    <button type="button" data-act="video" title="فيديو يوتيوب"><?= icon('youtube') ?></button>
+                  </span>
+                  <span class="rb-group rb-end"><button type="button" data-act="source" title="عرض الكود">&lt;/&gt;</button></span>
                 </div>
-                <textarea id="<?= $id ?>" name="<?= e($name) ?>" rows="12" class="mono-light"><?= e($value) ?></textarea>
-                <div class="editor-preview prose-admin" hidden></div>
+                <div class="rich-area prose-admin" contenteditable="true" dir="rtl" data-placeholder="ابدأ الكتابة هنا… اضغط «صورة» لإضافة صور داخل المحتوى"></div>
+                <textarea id="<?= $id ?>" name="<?= e($name) ?>" class="rich-src mono-light" rows="14" hidden><?= e($value) ?></textarea>
+                <input type="file" class="rich-file" accept="image/*" hidden>
+                <div class="fig-tools" hidden>
+                  <button type="button" data-fig="fig-full">عرض كامل</button>
+                  <button type="button" data-fig="fig-center">متوسط</button>
+                  <button type="button" data-fig="fig-right">يمين النص</button>
+                  <button type="button" data-fig="fig-left">يسار النص</button>
+                  <button type="button" data-fig="remove" class="danger"><?= icon('trash') ?></button>
+                </div>
+                <div class="rich-status" aria-live="polite"></div>
               </div>
             <?php break;
             case 'select': ?>

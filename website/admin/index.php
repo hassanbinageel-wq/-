@@ -19,6 +19,17 @@ $self = fn(array $q = []) => admin_url() . ($q ? '?' . http_build_query($q) : ''
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     check_csrf();
     $do = (string) ($_POST['_do'] ?? '');
+    if ($page === 'upload') { // image upload from the article editor
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            $path = handle_upload($_FILES['file'] ?? null);
+            echo json_encode(['ok' => (bool) $path, 'url' => media($path)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        } catch (Throwable $ex) {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'message' => $ex->getMessage()], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
     try {
         if (isset($ents[$page])) {
             $def = $ents[$page];

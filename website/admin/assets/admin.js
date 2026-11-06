@@ -170,42 +170,161 @@
 })();
 
 (function () {
-  // Drag rows by their handle to reorder (mouse and touch). Saves automatically.
+  // Drag rows by their handle to reorder (mouse and touch). The row lifts and follows
+  // the pointer; the other rows slide out of the way. Saves automatically.
   var body = document.querySelector('tbody[data-sortable]');
   if (!body) return;
   var toast = document.createElement('div'); toast.className = 'toast-mini'; document.body.appendChild(toast);
   var tt;
   var say = function (t, err) { toast.textContent = t; toast.classList.toggle('err', !!err); toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function () { toast.classList.remove('show'); }, 1800); };
-  var row = null, startOrder = '';
+  var row = null, startY = 0, startOrder = '', lastY = 0;
   var order = function () { return Array.prototype.map.call(body.querySelectorAll('tr[data-id]'), function (r) { return r.dataset.id; }).join(','); };
+  var mid = function (el) { var b = el.getBoundingClientRect(); return b.top + b.height / 2; };
+  // Move a neighbour across the dragged row and animate it into its new place
+  var slide = function (other, before) {
+    var top0 = other.getBoundingClientRect().top;
+    if (before) body.insertBefore(other, row); else body.insertBefore(other, row.nextSibling);
+    var shift = top0 - other.getBoundingClientRect().top;
+    startY += before ? other.offsetHeight : -other.offsetHeight;
+    other.style.transition = 'none';
+    other.style.transform = 'translateY(' + shift + 'px)';
+    requestAnimationFrame(function () { other.style.transition = 'transform .22s cubic-bezier(.2,.7,.2,1)'; other.style.transform = ''; });
+  };
+  var follow = function () {
+    row.style.transform = 'translateY(' + (lastY - startY) + 'px) scale(1.015)';
+  };
   body.addEventListener('pointerdown', function (e) {
     var g = e.target.closest('.grip');
     if (!g || e.button > 0) return;
     e.preventDefault();
-    row = g.closest('tr'); startOrder = order();
-    row.classList.add('dragging'); document.body.classList.add('is-sorting');
+    row = g.closest('tr'); startOrder = order(); startY = lastY = e.clientY;
+    row.style.transition = 'none';
+    row.classList.add('dragging'); body.classList.add('sorting'); document.body.classList.add('is-sorting');
+    follow();
   });
   document.addEventListener('pointermove', function (e) {
     if (!row) return;
-    var rows = Array.prototype.filter.call(body.querySelectorAll('tr[data-id]'), function (r) { return r !== row && !r.hidden; });
-    for (var i = 0; i < rows.length; i++) {
-      var b = rows[i].getBoundingClientRect();
-      if (e.clientY < b.top + b.height / 2) { if (rows[i].previousElementSibling !== row) body.insertBefore(row, rows[i]); return; }
-    }
-    if (rows.length && body.lastElementChild !== row) body.appendChild(row);
-    if (e.clientY < 60) window.scrollBy(0, -12); else if (e.clientY > window.innerHeight - 60) window.scrollBy(0, 12);
+    lastY = e.clientY;
+    var next = row.nextElementSibling, prev = row.previousElementSibling;
+    while (next && !next.hidden && lastY > mid(next)) { slide(next, true); next = row.nextElementSibling; }
+    while (prev && !prev.hidden && lastY < mid(prev)) { slide(prev, false); prev = row.previousElementSibling; }
+    follow();
+    if (e.clientY < 70) window.scrollBy(0, -14); else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
   });
   var end = function () {
     if (!row) return;
-    row.classList.remove('dragging'); document.body.classList.remove('is-sorting'); row = null;
+    var r = row; row = null;
+    r.style.transition = 'transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s';
+    r.style.transform = '';
+    setTimeout(function () { r.classList.remove('dragging'); r.style.transition = ''; }, 260);
+    body.classList.remove('sorting'); document.body.classList.remove('is-sorting');
     var ids = order();
     if (ids === startOrder) return;
+    r.classList.add('just-moved'); setTimeout(function () { r.classList.remove('just-moved'); }, 1200);
     var fd = new FormData(); fd.append('_csrf', body.dataset.csrf); fd.append('_do', 'reorder'); fd.append('ids', ids);
     fetch(location.href, { method: 'POST', body: fd, headers: { Accept: 'application/json' } })
-      .then(function (r) { return r.json(); })
+      .then(function (res) { return res.json(); })
       .then(function (d) { say(d.message || 'تم'); })
       .catch(function () { say('ما انحفظ الترتيب، حدّث الصفحة وحاول مرة ثانية', true); });
   };
   document.addEventListener('pointerup', end);
   document.addEventListener('pointercancel', end);
+})();
+
+(function () {
+  // Visual article editor: write and see the result, images with captions, colours, callouts.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rich]'), function (ed) {
+    var area = ed.querySelector('.rich-area'), src = ed.querySelector('.rich-src'), file = ed.querySelector('.rich-file');
+    var figTools = ed.querySelector('.fig-tools'), status = ed.querySelector('.rich-status');
+    var saved = null, curFig = null, sourceMode = false;
+    area.innerHTML = src.value;
+    var sync = function () { if (!sourceMode) src.value = area.innerHTML.replace(/<p><br><\/p>$/, '').trim(); };
+    var mark = function () { var f = src.closest('form'); if (f) f.dataset.dirty = '1'; };
+    var save = function () { var s = getSelection(); if (s.rangeCount && area.contains(s.getRangeAt(0).commonAncestorContainer)) saved = s.getRangeAt(0).cloneRange(); };
+    var restore = function () { area.focus(); if (saved) { var s = getSelection(); s.removeAllRanges(); s.addRange(saved); } };
+    var say = function (t, err) { status.textContent = t; status.classList.toggle('err', !!err); if (t) setTimeout(function () { if (status.textContent === t) status.textContent = ''; }, 3000); };
+    var insertHTML = function (html) { restore(); document.execCommand('insertHTML', false, html); sync(); mark(); };
+    var unwrap = function (el) { var p = el.parentNode; while (el.firstChild) p.insertBefore(el.firstChild, el); p.removeChild(el); };
+
+    area.addEventListener('input', function () { sync(); mark(); });
+    area.addEventListener('keyup', save); area.addEventListener('mouseup', save);
+    area.addEventListener('paste', function (e) { // paste as clean text
+      var t = (e.clipboardData || window.clipboardData).getData('text/plain');
+      if (t) { e.preventDefault(); document.execCommand('insertText', false, t); }
+    });
+    ed.querySelector('.rich-bar').addEventListener('mousedown', function (e) { if (e.target.closest('button')) e.preventDefault(); });
+    var form = src.closest('form'); if (form) form.addEventListener('submit', sync, true);
+
+    var colour = function (cls) {
+      restore();
+      var s = getSelection(); if (!s.rangeCount || s.isCollapsed) { say('حدد النص أول', true); return; }
+      var r = s.getRangeAt(0);
+      var el = document.createElement(cls === 'mark' ? 'mark' : 'span'); if (cls !== 'mark') el.className = cls;
+      el.appendChild(r.extractContents());
+      Array.prototype.forEach.call(el.querySelectorAll(cls === 'mark' ? 'mark' : 'span[class^="c-"]'), unwrap);
+      r.insertNode(el);
+      var nr = document.createRange(); nr.selectNodeContents(el); s.removeAllRanges(); s.addRange(nr); save();
+      sync(); mark();
+    };
+
+    ed.querySelector('.rich-bar').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (sourceMode && b.dataset.act !== 'source') { say('ارجع لوضع الكتابة أول', true); return; }
+      if (b.dataset.block) { restore(); document.execCommand('formatBlock', false, b.dataset.block); sync(); mark(); }
+      else if (b.dataset.cmd) {
+        restore(); document.execCommand(b.dataset.cmd, false, null);
+        if (b.dataset.cmd === 'removeFormat') { var s = getSelection(); if (s.rangeCount) Array.prototype.forEach.call(area.querySelectorAll('span[class^="c-"], mark'), function (x) { if (s.containsNode(x, true)) unwrap(x); }); }
+        sync(); mark();
+      }
+      else if (b.dataset.color) colour(b.dataset.color);
+      else if (b.dataset.insert === 'callout') insertHTML('<div class="callout"><p>💡 اكتب ملاحظتك المهمة هنا</p></div><p><br></p>');
+      else if (b.dataset.insert === 'hr') insertHTML('<hr><p><br></p>');
+      else if (b.dataset.act === 'link') { var u = prompt('الصق الرابط:', 'https://'); if (u && /^(https?:|mailto:|\/)/.test(u)) { restore(); document.execCommand('createLink', false, u); sync(); mark(); } }
+      else if (b.dataset.act === 'video') {
+        var v = prompt('الصق رابط فيديو يوتيوب:', 'https://'); if (!v) return;
+        var m = v.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+        if (!m) { say('الرابط غير صحيح', true); return; }
+        insertHTML('<figure class="fig-full fig-video"><iframe src="https://www.youtube-nocookie.com/embed/' + m[1] + '" allowfullscreen loading="lazy"></iframe></figure><p><br></p>');
+      }
+      else if (b.dataset.act === 'image') { save(); file.click(); }
+      else if (b.dataset.act === 'source') {
+        sourceMode = !sourceMode;
+        if (sourceMode) { sync(); src.hidden = false; area.hidden = true; } else { area.innerHTML = src.value; src.hidden = true; area.hidden = false; }
+        b.classList.toggle('on', sourceMode); figTools.hidden = true;
+      }
+    });
+
+    file.addEventListener('change', function () {
+      var f = file.files[0]; if (!f) return;
+      var fd = new FormData(); fd.append('_csrf', ed.dataset.csrf); fd.append('file', f);
+      say('جاري رفع الصورة…');
+      fetch(ed.dataset.uploadUrl, { method: 'POST', body: fd, headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) { say(d.message || 'فشل رفع الصورة', true); return; }
+          insertHTML('<figure class="fig-full"><img src="' + d.url + '" alt=""><figcaption>اكتب وصف الصورة هنا</figcaption></figure><p><br></p>');
+          say('تمت إضافة الصورة ✓ — اضغط عليها لتغيير حجمها ومكانها');
+        })
+        .catch(function () { say('فشل رفع الصورة', true); })
+        .finally(function () { file.value = ''; });
+    });
+
+    // Image tools: click an image to change its size/position or remove it
+    area.addEventListener('click', function (e) {
+      var fig = e.target.closest('figure');
+      if (!fig || e.target.tagName === 'FIGCAPTION') { figTools.hidden = true; curFig = null; return; }
+      curFig = fig;
+      var er = ed.getBoundingClientRect(), fr = fig.getBoundingClientRect();
+      figTools.style.top = (fr.top - er.top + 10) + 'px'; figTools.style.right = (er.right - fr.right + 10) + 'px';
+      figTools.hidden = false;
+      Array.prototype.forEach.call(figTools.querySelectorAll('[data-fig]'), function (x) { x.classList.toggle('on', fig.classList.contains(x.dataset.fig)); });
+    });
+    figTools.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b || !curFig) return;
+      if (b.dataset.fig === 'remove') { curFig.remove(); figTools.hidden = true; }
+      else { curFig.classList.remove('fig-full', 'fig-center', 'fig-right', 'fig-left'); curFig.classList.add(b.dataset.fig); }
+      sync(); mark();
+      Array.prototype.forEach.call(figTools.querySelectorAll('[data-fig]'), function (x) { x.classList.toggle('on', curFig && curFig.classList.contains(x.dataset.fig)); });
+    });
+  });
 })();

@@ -430,3 +430,62 @@ body.is-sorting, body.is-sorting * { cursor: grabbing !important; user-select: n
 .toast-mini.show { opacity: 1; }
 .toast-mini.err { background: #dc2626; }
 @media (max-width: 760px) { .table td.col-grip { grid-row: span 3; width: auto; } }
+
+/* Drag: lifted row follows the pointer */
+tbody[data-sortable] tr { position: relative; background: var(--surface); }
+tr.dragging { z-index: 5; background: #16274a !important; box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .65), 0 0 0 1.5px #3b82f6 !important; border-radius: 12px; }
+tr.dragging td { border-bottom-color: transparent; }
+tbody.sorting tr:not(.dragging) { opacity: .75; }
+tr.just-moved { animation: moved 1.2s ease; }
+@keyframes moved { 0% { background: rgba(34, 197, 94, .25); } 100% { background: var(--surface); } }
+.grip { cursor: grab; }
+.grip:active { cursor: grabbing; }
+
+/* Article content (shared by the editor and the site) */
+.rich-area .c-accent { color: #3b82f6; } .rich-area .c-purple { color: #8b5cf6; } .rich-area .c-green { color: #16a34a; }
+.rich-area .c-amber { color: #d97706; } .rich-area .c-red { color: #dc2626; }
+.rich-area .c-grad { background: linear-gradient(100deg, #3b82f6, #8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; }
+.rich-area mark { background: rgba(245, 158, 11, .28); color: inherit; padding: 0 .2em; border-radius: 4px; }
+.rich-area .callout { margin: 1.6em 0; padding: 1em 1.3em; border-radius: 14px; background: rgba(59, 130, 246, .1); border: 1px solid rgba(59, 130, 246, .28); }
+.rich-area .callout p:last-child { margin-bottom: 0; }
+.rich-area figure { margin: 2em 0; }
+.rich-area figure img { width: 100%; border-radius: 16px; margin: 0; display: block; }
+.rich-area figcaption { margin-top: .7em; text-align: center; font-size: .88rem; color: var(--muted); line-height: 1.7; }
+.rich-area .fig-center { max-width: 66%; margin-inline: auto; }
+.rich-area .fig-right { float: right; width: 44%; margin: .4em 0 1em 1.6em; }
+.rich-area .fig-left { float: left; width: 44%; margin: .4em 1.6em 1em 0; }
+.rich-area .fig-video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 16px; display: block; }
+.rich-area hr { border: 0; height: 1px; margin: 2.4em auto; width: 40%; background: linear-gradient(90deg, transparent, currentColor, transparent); opacity: .3; }
+.rich-area::after { content: ""; display: table; clear: both; }
+
+/* ---------- Visual editor ---------- */
+.rich { position: relative; border: 1px solid var(--border-strong); border-radius: 14px; background: var(--input); }
+.rich-bar { position: sticky; top: 70px; z-index: 4; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-bottom: 1px solid var(--border); background: var(--surface-2); border-radius: 14px 14px 0 0; }
+.rb-group { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 10px; background: var(--input); }
+.rb-end { margin-inline-start: auto; }
+.rich-bar button { min-width: 34px; height: 32px; padding: 0 9px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: .84rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.rich-bar button:hover, .rich-bar button.on { background: var(--surface); color: var(--text); }
+.rich-bar .ic { width: 16px; height: 16px; }
+.rb-img { background: var(--primary) !important; color: #fff !important; }
+.sw { min-width: 26px !important; width: 26px; padding: 0 !important; }
+.sw::before { content: ""; width: 16px; height: 16px; border-radius: 50%; background: var(--sw); box-shadow: 0 0 0 2px rgba(255, 255, 255, .12); }
+.sw-grad::before { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+.hl { background: rgba(245, 158, 11, .35); padding: 0 .3em; border-radius: 4px; color: var(--text); }
+.rich-area { min-height: 380px; padding: 22px 24px; outline: none; line-height: 2; font-size: 1.02rem; }
+.rich-area:empty::before { content: attr(data-placeholder); color: var(--muted); }
+.rich-area h2 { font-size: 1.45rem; margin: 1.2em 0 .5em; }
+.rich-area h3 { font-size: 1.2rem; margin: 1em 0 .4em; }
+.rich-area p { margin: 0 0 .9em; }
+.rich-area a { color: #60a5fa; text-decoration: underline; }
+.rich-area blockquote { margin: 1.2em 0; padding: .7em 1.1em; border-inline-start: 3px solid var(--primary); background: var(--surface); border-radius: 10px; }
+.rich-area figure { cursor: pointer; position: relative; }
+.rich-area figure:hover img { outline: 2px solid var(--primary); outline-offset: 3px; }
+.rich-area figcaption { cursor: text; outline: none; }
+.rich-src { width: 100%; min-height: 380px; border: 0 !important; border-radius: 0 0 14px 14px !important; padding: 18px !important; background: transparent !important; }
+.fig-tools { position: absolute; z-index: 5; display: flex; gap: 4px; padding: 5px; border-radius: 12px; background: #0b1324; border: 1px solid var(--border-strong); box-shadow: 0 12px 30px rgba(0, 0, 0, .5); }
+.fig-tools button { height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; }
+.fig-tools button:hover, .fig-tools button.on { background: var(--primary); color: #fff; }
+.fig-tools .danger:hover { background: #dc2626; }
+.fig-tools .ic { width: 15px; height: 15px; }
+.rich-status { position: absolute; bottom: 10px; left: 14px; font-size: .8rem; color: #4ade80; pointer-events: none; }
+.rich-status.err { color: #f87171; }

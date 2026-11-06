@@ -325,6 +325,11 @@ function sec_partners(): void
       </div>
     <?php endforeach; ?>
   </div>
+  <div class="container logo-grid reveal<?= setting('partners_dark') === 'original' ? '' : ' dark-white' ?>">
+    <?php foreach (array_slice($partners, 0, 8) as $p): ?>
+      <span class="logo-cell" style="--scale:<?= max(50, min(160, (int) ($p['scale'] ?: 100))) / 100 ?>"><?= partner_logo($p) ?></span>
+    <?php endforeach; ?>
+  </div>
   <div class="center reveal"><a class="btn btn-outline" href="<?= page_url('partners') ?>"><?= e(setting('partners_btn') ?: 'معرفة المزيد') ?><?= icon('arrow-left') ?></a></div>
 </section>
     <?php
