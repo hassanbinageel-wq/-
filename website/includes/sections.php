@@ -25,7 +25,7 @@ function sec_hero(): void
   </div>
   <div class="container hero-inner">
     <div class="hero-text">
-      <?php if ($s['hero_badge']): ?><span class="pill" data-anim><span class="dot"></span><?= e($s['hero_badge']) ?></span><?php endif; ?>
+      <?= hero_badge() ?>
       <h1 data-anim style="--d:1"><?= highlight_title($s['hero_title'], $s['hero_highlight']) ?></h1>
       <?php if ($s['hero_subtitle']): ?><p class="lead" data-anim style="--d:2"><?= e($s['hero_subtitle']) ?></p><?php endif; ?>
       <div class="hero-cta" data-anim style="--d:3">
@@ -59,8 +59,7 @@ function sec_hero(): void
 function sec_stats(): void
 {
     $stats = items('stats');
-    $tools = items('tools');
-    if (!section_on('stats') || (!$stats && !$tools)) {
+    if (!section_on('stats') || !$stats) {
         return;
     }
     $n = count($stats);
@@ -80,12 +79,6 @@ function sec_stats(): void
           <?php endforeach; ?>
         </div>
       <?php endif; ?>
-      <?php if ($tools): ?>
-        <div class="tools-row">
-          <?php if (setting('tools_label')): ?><span class="tools-label"><?= e(setting('tools_label')) ?></span><?php endif; ?>
-          <?php foreach ($tools as $t) echo tool_chip($t); ?>
-        </div>
-      <?php endif; ?>
     </div>
   </div>
 </section>
@@ -98,7 +91,6 @@ function sec_about(bool $preview = true): void
         return;
     }
     $s = settings_all();
-    $skills = items('skills');
     ?>
 <section class="section" id="about">
   <div class="container about">
@@ -118,13 +110,6 @@ function sec_about(bool $preview = true): void
         </div>
       </div>
       <div class="about-text reveal"><?= nl2p($s['about_text']) ?></div>
-      <?php if ($skills): ?>
-        <ul class="skills reveal">
-          <?php foreach ($skills as $i => $sk): ?>
-            <li style="--i:<?= $i ?>"><span class="skill-ic"><?= icon($sk['icon'] ?: 'check') ?></span><span><?= e($sk['title']) ?></span></li>
-          <?php endforeach; ?>
-        </ul>
-      <?php endif; ?>
       <div class="about-actions reveal">
         <?php if (items('timeline', ['limit' => 1])): ?><a class="btn btn-primary" href="<?= page_url('story') ?>"><?= e($s['story_btn'] ?: 'اقرأ القصة كاملة') ?><?= icon('arrow-left') ?></a><?php endif; ?>
         <?php if ($preview): ?><a class="btn btn-ghost" href="<?= page_url('about') ?>">المزيد عني</a><?php endif; ?>
@@ -194,7 +179,7 @@ function sec_prompts(bool $preview = true): void
       <div class="search-box reveal"><?= icon('search') ?><input type="search" id="promptSearch" placeholder="ابحث في البرومبتات…" aria-label="بحث"></div>
       <?php filter_chips($prompts, 'promptsGrid'); ?>
     <?php endif; ?>
-    <div class="grid grid-3 masonry" id="promptsGrid">
+    <div class="grid grid-3 masonry prompts-grid" id="promptsGrid">
       <?php foreach ($prompts as $i => $p) prompt_card($p, $i); ?>
     </div>
   </div>
@@ -322,7 +307,8 @@ function sec_partners(): void
       </div>
     </div>
   </div>
-  <div class="logo-rows reveal" aria-label="شركاء النجاح">
+  <?php $speed = (int) setting('partners_speed', '60'); ?>
+  <div class="logo-rows reveal<?= $speed === 0 ? ' is-static' : '' ?><?= setting('partners_dark') === 'original' ? '' : ' dark-white' ?>" aria-label="شركاء النجاح" style="--logo-h:<?= (int) (setting('partners_size') ?: 60) ?>px;--speed:<?= max(10, $speed) ?>s">
     <?php foreach ($rows as $r => $row):
         $loop = $row;
         while (count($loop) < 8) $loop = array_merge($loop, $row); ?>
@@ -331,7 +317,7 @@ function sec_partners(): void
           <?php for ($k = 0; $k < 2; $k++): ?>
             <div class="marquee-group"<?= $k ? ' aria-hidden="true"' : '' ?>>
               <?php foreach ($loop as $p): ?>
-                <span class="logo-item<?= $p['logo'] && !$p['logo_dark'] ? ' needs-tile' : '' ?>" title="<?= e($p['name']) ?>"><?= partner_logo($p) ?></span>
+                <span class="logo-item" title="<?= e($p['name']) ?>" style="--scale:<?= max(50, min(160, (int) ($p['scale'] ?: 100))) / 100 ?>"><?= partner_logo($p) ?></span>
               <?php endforeach; ?>
             </div>
           <?php endfor; ?>
@@ -380,7 +366,7 @@ function sec_contact(bool $preview = true): void
     <div class="contact<?= on('show_form') ? '' : ' no-form' ?>">
       <div class="contact-info reveal">
         <?php if (on('show_email') && $s['contact_email']): ?><a class="info-row" href="mailto:<?= e($s['contact_email']) ?>"><span class="info-ic"><?= icon('mail') ?></span><span><small>البريد الإلكتروني</small><strong dir="ltr"><?= e($s['contact_email']) ?></strong></span></a><?php endif; ?>
-        <?php if (on('show_whatsapp') && ($wa = wa_link())): ?><a class="info-row" href="<?= e($wa) ?>" target="_blank" rel="noopener"><span class="info-ic"><?= icon('whatsapp') ?></span><span><small>واتساب</small><strong>راسلني مباشرة</strong></span></a><?php endif; ?>
+        <?php if (on('show_whatsapp') && ($wa = wa_contact_link())): ?><a class="info-row" href="<?= e($wa) ?>" target="_blank" rel="noopener"><span class="info-ic"><?= icon('whatsapp') ?></span><span><small>واتساب</small><strong>راسلني مباشرة</strong></span></a><?php endif; ?>
         <?php if (on('show_phone') && $s['contact_phone']): ?><a class="info-row" href="tel:<?= e(preg_replace('/[^\d+]/', '', $s['contact_phone'])) ?>"><span class="info-ic"><?= icon('phone') ?></span><span><small>الجوال</small><strong dir="ltr"><?= e($s['contact_phone']) ?></strong></span></a><?php endif; ?>
         <?php if (on('show_location') && $s['location']): ?><div class="info-row"><span class="info-ic"><?= icon('map-pin') ?></span><span><small>الموقع</small><strong><?= e($s['location']) ?></strong></span></div><?php endif; ?>
         <?php if ($socials): ?><div class="socials"><?php foreach ($socials as $sl): ?><a href="<?= e($sl['url']) ?>" target="_blank" rel="noopener" aria-label="<?= e($sl['label']) ?>"><?= icon($sl['icon']) ?></a><?php endforeach; ?></div><?php endif; ?>

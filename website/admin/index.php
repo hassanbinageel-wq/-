@@ -44,6 +44,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('تم الحذف');
                 redirect($self(['p' => $page]));
             }
+            if ($do === 'reorder' && isset($def['fields']['sort_order']) && !isset($def['order'])) {
+                $ids = array_values(array_filter(array_map('intval', explode(',', (string) ($_POST['ids'] ?? '')))));
+                $st = db()->prepare("UPDATE $page SET sort_order = ?, updated_at = updated_at WHERE id = ?");
+                db()->beginTransaction();
+                foreach ($ids as $i => $rid) {
+                    $st->execute([$i + 1, $rid]);
+                }
+                db()->commit();
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['ok' => true, 'message' => 'تم حفظ الترتيب ✓'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
             if ($do === 'toggle' && $id && isset($def['fields']['published'])) {
                 db()->prepare("UPDATE $page SET published = 1 - published WHERE id = ?")->execute([$id]);
                 flash('تم تحديث الحالة');

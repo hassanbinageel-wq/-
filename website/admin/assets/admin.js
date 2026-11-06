@@ -168,3 +168,44 @@
     else { var r = document.createRange(); r.selectNodeContents(el); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); try { document.execCommand('copy'); done(); } catch (x) {} }
   });
 })();
+
+(function () {
+  // Drag rows by their handle to reorder (mouse and touch). Saves automatically.
+  var body = document.querySelector('tbody[data-sortable]');
+  if (!body) return;
+  var toast = document.createElement('div'); toast.className = 'toast-mini'; document.body.appendChild(toast);
+  var tt;
+  var say = function (t, err) { toast.textContent = t; toast.classList.toggle('err', !!err); toast.classList.add('show'); clearTimeout(tt); tt = setTimeout(function () { toast.classList.remove('show'); }, 1800); };
+  var row = null, startOrder = '';
+  var order = function () { return Array.prototype.map.call(body.querySelectorAll('tr[data-id]'), function (r) { return r.dataset.id; }).join(','); };
+  body.addEventListener('pointerdown', function (e) {
+    var g = e.target.closest('.grip');
+    if (!g || e.button > 0) return;
+    e.preventDefault();
+    row = g.closest('tr'); startOrder = order();
+    row.classList.add('dragging'); document.body.classList.add('is-sorting');
+  });
+  document.addEventListener('pointermove', function (e) {
+    if (!row) return;
+    var rows = Array.prototype.filter.call(body.querySelectorAll('tr[data-id]'), function (r) { return r !== row && !r.hidden; });
+    for (var i = 0; i < rows.length; i++) {
+      var b = rows[i].getBoundingClientRect();
+      if (e.clientY < b.top + b.height / 2) { if (rows[i].previousElementSibling !== row) body.insertBefore(row, rows[i]); return; }
+    }
+    if (rows.length && body.lastElementChild !== row) body.appendChild(row);
+    if (e.clientY < 60) window.scrollBy(0, -12); else if (e.clientY > window.innerHeight - 60) window.scrollBy(0, 12);
+  });
+  var end = function () {
+    if (!row) return;
+    row.classList.remove('dragging'); document.body.classList.remove('is-sorting'); row = null;
+    var ids = order();
+    if (ids === startOrder) return;
+    var fd = new FormData(); fd.append('_csrf', body.dataset.csrf); fd.append('_do', 'reorder'); fd.append('ids', ids);
+    fetch(location.href, { method: 'POST', body: fd, headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { say(d.message || 'تم'); })
+      .catch(function () { say('ما انحفظ الترتيب، حدّث الصفحة وحاول مرة ثانية', true); });
+  };
+  document.addEventListener('pointerup', end);
+  document.addEventListener('pointercancel', end);
+})();

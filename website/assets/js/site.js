@@ -56,6 +56,12 @@
     window.addEventListener('resize', upd);
   }
 
+  // Before / after comparison: drag (or use the keyboard) to reveal
+  $$('[data-compare]').forEach(function (c) {
+    var r = c.querySelector('.cmp-range');
+    if (r) r.addEventListener('input', function () { c.style.setProperty('--pos', r.value + '%'); });
+  });
+
   // Mobile menu
   var menuBtn = $('#menuBtn'), nav = $('#nav');
   if (menuBtn && nav) {

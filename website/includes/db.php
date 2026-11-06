@@ -96,14 +96,6 @@ function seed(PDO $pdo, ?array $only = null): void
 {
     $now = date('Y-m-d H:i:s');
     $rows = [
-        'skills' => [
-            ['title' => 'توليد الصور بالذكاء الاصطناعي', 'icon' => 'image-plus', 'sort_order' => 1],
-            ['title' => 'صناعة الفيديو بالـ AI', 'icon' => 'film', 'sort_order' => 2],
-            ['title' => 'هندسة البرومبتات', 'icon' => 'code', 'sort_order' => 3],
-            ['title' => 'أتمتة الأعمال', 'icon' => 'zap', 'sort_order' => 4],
-            ['title' => 'صناعة المحتوى', 'icon' => 'pen', 'sort_order' => 5],
-            ['title' => 'الإخراج السينمائي', 'icon' => 'clapperboard', 'sort_order' => 6],
-        ],
         'store_features' => [
             ['title' => 'تحميل فوري', 'description' => 'احصل على ملفاتك مباشرة بعد الشراء', 'icon' => 'download', 'sort_order' => 1],
             ['title' => 'دعم مباشر', 'description' => 'تواصل مباشر للأسئلة والاستفسارات', 'icon' => 'headset', 'sort_order' => 2],

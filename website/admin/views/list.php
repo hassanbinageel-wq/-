@@ -8,10 +8,12 @@ foreach ($cols as $c) {
     if (in_array($def['fields'][$c]['type'], ['text'], true)) { $firstText = $c; break; }
 }
 $viewUrl = ['works' => 'work/', 'posts' => 'post/'][$page] ?? null;
+$canSort = isset($def['fields']['sort_order']) && !isset($def['order']) && count($rows) > 1;
 ?>
 <div class="page-head">
   <div>
     <p class="muted"><?= e($def['desc']) ?> — <?= count($rows) ?> عنصر</p>
+    <?php if ($canSort): ?><p class="sort-hint"><?= icon('grip') ?> اسحب من المقبض لترتيب العناصر — نفس الترتيب يظهر في الموقع</p><?php endif; ?>
   </div>
   <div class="page-actions">
     <?php if ($rows): ?><div class="search"><?= icon('search') ?><input type="search" placeholder="بحث…" data-table-search="#tbl"></div><?php endif; ?>
@@ -30,19 +32,19 @@ $viewUrl = ['works' => 'work/', 'posts' => 'post/'][$page] ?? null;
   <div class="card table-card">
     <table class="table" id="tbl">
       <thead><tr>
+        <?php if ($canSort): ?><th class="col-grip"></th><?php endif; ?>
         <?php foreach ($cols as $c): ?><th class="col-<?= e($def['fields'][$c]['type']) ?>"><?= e(preg_replace('/\s*\(.*\)$/u', '', $def['fields'][$c]['label'])) ?></th><?php endforeach; ?>
-        <?php if (isset($def['fields']['sort_order'])): ?><th class="col-number">الترتيب</th><?php endif; ?>
         <th class="col-actions"></th>
       </tr></thead>
-      <tbody>
+      <tbody<?= $canSort ? ' data-sortable data-csrf="' . e(csrf_token()) . '"' : '' ?>>
       <?php foreach ($rows as $r): ?>
-        <tr>
+        <tr data-id="<?= (int) $r['id'] ?>">
+          <?php if ($canSort): ?><td class="col-grip"><button type="button" class="grip" aria-label="اسحب للترتيب" title="اسحب للترتيب"><?= icon('grip') ?></button></td><?php endif; ?>
           <?php foreach ($cols as $c): ?>
             <td class="col-<?= e($def['fields'][$c]['type']) ?>" data-label="<?= e($def['fields'][$c]['label']) ?>">
               <?php if ($c === $firstText): ?><a class="row-title" href="<?= admin_url('?p=' . $page . '&a=edit&id=' . $r['id']) ?>"><?= cell_value($c, $def['fields'][$c], $r) ?></a><?php else: ?><?= cell_value($c, $def['fields'][$c], $r) ?><?php endif; ?>
             </td>
           <?php endforeach; ?>
-          <?php if (isset($def['fields']['sort_order'])): ?><td class="col-number muted"><?= (int) $r['sort_order'] ?></td><?php endif; ?>
           <td class="col-actions">
             <div class="row-actions">
               <?php if ($viewUrl && !empty($r['published'])): ?><a class="icon-btn sm" href="<?= url($viewUrl . $r['id']) ?>" target="_blank" title="عرض في الموقع"><?= icon('eye') ?></a><?php endif; ?>

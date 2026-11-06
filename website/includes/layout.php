@@ -72,9 +72,10 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
 <header class="site-header" id="siteHeader">
   <div class="container header-inner">
     <a class="brand" href="<?= url() ?>">
-      <?php if ($s['logo']): ?><img src="<?= e(media($s['logo'])) ?>" alt="<?= e($s['site_name']) ?>"><?php else: ?><span class="brand-mark"><?= e(mb_substr($s['site_name'], 0, 1)) ?></span><span class="brand-name"><?= e($s['site_name']) ?></span><?php endif; ?>
+      <?= brand_html() ?>
     </a>
     <nav class="nav" id="nav" aria-label="القائمة">
+      <a href="<?= url() ?>" class="<?= current_page() === 'home' ? 'active' : '' ?>"<?= current_page() === 'home' ? ' aria-current="page"' : '' ?>>الرئيسية</a>
       <?php foreach (nav_items() as $slug => $label): ?>
         <a href="<?= page_url($slug) ?>" class="<?= current_page() === $slug ? 'active' : '' ?>"<?= current_page() === $slug ? ' aria-current="page"' : '' ?>><?= e($label) ?></a>
       <?php endforeach; ?>
@@ -101,7 +102,7 @@ function site_foot(): void
   <div class="container footer-inner">
     <div class="footer-brand">
       <a class="brand" href="<?= url() ?>">
-        <?php if ($s['logo']): ?><img src="<?= e(media($s['logo'])) ?>" alt="<?= e($s['site_name']) ?>"><?php else: ?><span class="brand-mark"><?= e(mb_substr($s['site_name'], 0, 1)) ?></span><span class="brand-name"><?= e($s['site_name']) ?></span><?php endif; ?>
+        <?= brand_html() ?>
       </a>
       <p><?= e($s['site_tagline']) ?></p>
     </div>
@@ -119,7 +120,7 @@ function site_foot(): void
     <span>© <?= date('Y') ?> <?= e($s['site_name']) ?> — <?= e($s['footer_text']) ?></span>
   </div>
 </footer>
-<?php if (on('wa_float') && on('show_whatsapp') && ($wa = wa_link())): ?>
+<?php if (on('wa_float') && on('show_whatsapp') && ($wa = wa_contact_link())): ?>
 <a class="wa-float" href="<?= e($wa) ?>" target="_blank" rel="noopener" aria-label="واتساب"><?= icon('whatsapp') ?></a>
 <?php endif; ?>
 <div class="modal" id="workModal" hidden role="dialog" aria-modal="true" aria-labelledby="wmTitle">
@@ -208,11 +209,70 @@ function work_card(array $w, int $i = 0): void
     <?php
 }
 
+/** Site identity: logo, or your photo + name + title */
+function brand_html(): string
+{
+    $s = settings_all();
+    if ($s['logo']) {
+        return '<img class="brand-logo" src="' . e(media($s['logo'])) . '" alt="' . e($s['site_name']) . '">';
+    }
+    $avatar = $s['brand_photo']
+        ? '<img class="brand-photo" src="' . e(media($s['brand_photo'])) . '" alt="">'
+        : '<span class="brand-mark">' . e(mb_substr($s['site_name'], 0, 1)) . '</span>';
+    return $avatar . '<span class="brand-text"><span class="brand-name">' . e($s['site_name']) . '</span>'
+        . ($s['brand_title'] !== '' ? '<span class="brand-title" dir="auto">' . e($s['brand_title']) . '</span>' : '') . '</span>';
+}
+
+/** WhatsApp link with your ready-made message ({page} = the page the visitor was on) */
+function wa_contact_link(): string
+{
+    $names = ['home' => 'الصفحة الرئيسية', 'about' => 'نبذة عني', 'services' => 'الخدمات', 'works' => 'الأعمال', 'prompts' => 'البرومبتات',
+        'store' => 'المتجر', 'blog' => 'المدونة', 'contact' => 'تواصل', 'partners' => 'شركاء النجاح'];
+    $text = str_replace('{page}', $names[current_page()] ?? '', (string) setting('wa_message'));
+    return wa_link(trim($text) === '' ? '' : $text);
+}
+
+/** Hero status badge */
+function hero_badge(): string
+{
+    $s = settings_all();
+    $presets = [
+        'available' => ['متاح لمشاريع جديدة', '#22c55e'],
+        'limited'   => ['متاح لعدد محدود من المشاريع', '#f59e0b'],
+        'busy'      => ['مشغول حالياً — الحجز للشهر القادم', '#ef4444'],
+        'partners'  => ['مفتوح للتعاون والشراكات', '#3b82f6'],
+        'custom'    => ['', safe_color($s['badge_color'], '#22c55e')],
+    ];
+    $status = $s['badge_status'] ?: 'available';
+    if ($status === 'hidden' || !isset($presets[$status])) {
+        return '';
+    }
+    [$text, $color] = $presets[$status];
+    $text = trim((string) $s['hero_badge']) !== '' ? $s['hero_badge'] : $text;
+    if ($text === '') {
+        return '';
+    }
+    return '<span class="pill" data-anim><span class="dot" style="--dot:' . e($color) . '"></span>' . e($text) . '</span>';
+}
+
+/** Before/after comparison (drag to compare) */
+function compare_media(string $before, string $after, string $alt): string
+{
+    return '<div class="compare" data-compare style="--pos:50%">'
+        . '<img class="cmp-after" src="' . e(media($after)) . '" alt="' . e($alt) . ' — بعد" loading="lazy">'
+        . '<div class="cmp-before"><img src="' . e(media($before)) . '" alt="' . e($alt) . ' — قبل" loading="lazy"></div>'
+        . '<span class="cmp-label cmp-l-before">قبل</span><span class="cmp-label cmp-l-after">بعد</span>'
+        . '<span class="cmp-handle" aria-hidden="true">' . icon('code') . '</span>'
+        . '<input class="cmp-range" type="range" min="0" max="100" value="50" aria-label="اسحب للمقارنة بين قبل وبعد">'
+        . '</div>';
+}
+
 function prompt_card(array $p, int $i = 0): void
 {
     ?>
     <article class="card prompt-card reveal" style="--i:<?= $i % 6 ?>" data-cat="<?= e($p['category']) ?>">
-      <?php if ($p['image']): ?><div class="prompt-media"><img src="<?= e(media($p['image'])) ?>" alt="<?= e($p['title']) ?>" loading="lazy"></div><?php endif; ?>
+      <?php if ($p['image'] && !empty($p['image_before'])): ?><div class="prompt-media is-compare"><?= compare_media($p['image_before'], $p['image'], $p['title']) ?></div>
+      <?php elseif ($p['image']): ?><div class="prompt-media"><img src="<?= e(media($p['image'])) ?>" alt="<?= e($p['title']) ?>" loading="lazy"></div><?php endif; ?>
       <div class="prompt-body">
         <div class="prompt-meta">
           <?php if ($p['tool']): ?><span class="tag"><?= icon('sparkles') ?><?= e($p['tool']) ?></span><?php endif; ?>

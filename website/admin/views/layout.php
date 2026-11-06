@@ -10,7 +10,7 @@ function admin_menu(): array
         '#content'  => 'المحتوى',
         'works' => $m('works'), 'services' => $m('services'), 'prompts' => $m('prompts'), 'posts' => $m('posts'),
         '#about'    => 'عنّي',
-        'skills' => $m('skills'), 'timeline' => $m('timeline'), 'stats' => $m('stats'), 'tools' => $m('tools'),
+        'timeline' => $m('timeline'), 'stats' => $m('stats'), 'tools' => $m('tools'),
         'clients' => $m('clients'), 'partners' => $m('partners'),
         '#store'    => 'المتجر',
         'books' => ['المنتجات', 'cart'], 'store_features' => $m('store_features'), 'faqs' => $m('faqs'),
