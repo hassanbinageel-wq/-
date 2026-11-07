@@ -610,3 +610,7 @@ tr.just-moved { animation: moved 1.2s ease; }
 .dropzone.drag-over { box-shadow: 0 0 0 2px var(--primary), 0 0 0 8px rgba(37, 99, 235, .18); background: rgba(37, 99, 235, .06); }
 .dropzone.drag-over .upload-preview, .dropzone.drag-over .g-add { border-color: var(--primary); border-style: solid; }
 .dropzone.drag-over .upload-preview::before { content: "أفلت الملف هنا"; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; font-weight: 700; color: #fff; background: rgba(37, 99, 235, .75); border-radius: 12px; }
+
+/* Secret link field: keep the typing area visible even with a long site address */
+.slug-input span { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; direction: ltr; }
+.slug-input input { flex: 1 0 140px; min-width: 140px; font-weight: 700; }
