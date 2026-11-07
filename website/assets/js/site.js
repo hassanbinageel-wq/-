@@ -69,6 +69,16 @@
     rp(); window.addEventListener('scroll', rp, { passive: true });
   }
 
+  // Product page: switch the main image from the thumbnails
+  var pMain = document.getElementById('productMain');
+  $$('.product-thumbs button').forEach(function (t) {
+    t.addEventListener('click', function () {
+      if (!pMain) return;
+      pMain.src = t.dataset.src;
+      $$('.product-thumbs button').forEach(function (x) { x.classList.toggle('on', x === t); });
+    });
+  });
+
   // Mobile menu
   var menuBtn = $('#menuBtn'), nav = $('#nav');
   if (menuBtn && nav) {

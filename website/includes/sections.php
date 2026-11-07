@@ -39,8 +39,9 @@ function sec_hero(): void
       <?php endif; ?>
     </div>
     <div class="hero-visual" data-anim style="--d:2">
-      <div class="portrait">
-        <div class="portrait-ring"></div>
+      <?php $shape = in_array($s['hero_img_shape'], ['portrait', 'tall', 'square', 'circle', 'arch', 'landscape'], true) ? $s['hero_img_shape'] : 'portrait'; ?>
+      <div class="portrait shape-<?= $shape ?>" style="--pw:<?= max(240, min(560, (int) ($s['hero_img_size'] ?: 390))) ?>px">
+        <?php if ((string) $s['hero_ring'] === '1'): ?><div class="portrait-ring"></div><?php endif; ?>
         <?php if ($s['hero_image']): ?>
           <img src="<?= e(media($s['hero_image'])) ?>" alt="<?= e($s['site_name']) ?>">
         <?php else: ?>
@@ -191,10 +192,11 @@ function product_grid(array $books): void
 {
     $kinds = entities()['books']['fields']['kind']['options'];
     ?>
-    <div class="grid grid-3 products">
+    <div class="grid grid-3 products products-grid">
       <?php foreach ($books as $i => $b):
-          $buy = clean_url($b['buy_url']) ?: wa_link('مرحباً، أبغى أطلب: ' . $b['title']); ?>
+          $buy = clean_url($b['buy_url']) ?: (wa_link('مرحباً، أبغى أطلب: ' . $b['title']) ?: page_url('contact')); ?>
         <article class="card book-card reveal" style="--i:<?= $i ?>">
+          <a class="card-link" href="<?= e(url('product/' . $b['id'])) ?>" aria-label="<?= e($b['title']) ?>"></a>
           <div class="book-cover">
             <?php if ($b['image']): ?><img src="<?= e(media($b['image'])) ?>" alt="<?= e($b['title']) ?>" loading="lazy"><?php else: ?><?= placeholder('book', $b['title']) ?><?php endif; ?>
             <span class="tag tag-float"><?= e($kinds[$b['kind']] ?? '') ?></span>

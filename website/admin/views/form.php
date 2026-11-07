@@ -7,7 +7,7 @@ $main = $aside = [];
 foreach ($def['fields'] as $k => $f) {
     if (in_array($f['type'], $side, true) && empty($f['full'])) $aside[$k] = $f; else $main[$k] = $f;
 }
-$viewUrl = ['works' => 'work/', 'posts' => 'post/'][$page] ?? null;
+$viewUrl = ['works' => 'work/', 'posts' => 'post/', 'books' => 'product/'][$page] ?? null;
 ?>
 <form method="post" enctype="multipart/form-data" class="edit-form" data-dirty-check>
   <?= csrf_field() ?>

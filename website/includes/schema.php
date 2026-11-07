@@ -113,8 +113,13 @@ function entities(): array
                 'kind'        => ['label' => 'النوع', 'type' => 'select', 'options' => [
                     'book' => 'كتاب', 'ebook' => 'كتاب إلكتروني', 'course' => 'دورة', 'product' => 'منتج رقمي', 'package' => 'باقة',
                 ], 'default' => 'book'],
-                'description' => ['label' => 'الوصف', 'type' => 'textarea', 'full' => true],
+                'description' => ['label' => 'وصف مختصر (يظهر في الكرت)', 'type' => 'textarea', 'full' => true],
+                'details'     => ['label' => 'تفاصيل المنتج (صفحة المنتج)', 'type' => 'html', 'full' => true],
+                'highlights'  => ['label' => 'وش بتحصل عليه؟ (سطر لكل نقطة)', 'type' => 'textarea', 'full' => true, 'hint' => 'مثال: 300 برومبت جاهز — شرح طريقة التعديل — تحديثات مجانية'],
+                'specs'       => ['label' => 'معلومات سريعة (سطر لكل معلومة: العنوان: القيمة)', 'type' => 'textarea', 'full' => true, 'hint' => 'مثال: عدد الصفحات: 120 — الصيغة: PDF — المدة: 6 ساعات'],
                 'image'       => ['label' => 'صورة الغلاف', 'type' => 'image'],
+                'gallery'     => ['label' => 'صور إضافية (صفحات من الكتاب، لقطات من الكورس)', 'type' => 'gallery', 'full' => true],
+                'video_url'   => ['label' => 'فيديو تعريفي (YouTube)', 'type' => 'url'],
                 'price'       => ['label' => 'السعر', 'type' => 'text', 'hint' => 'مثال: 99 ر.س — أو اكتب «مجاني»'],
                 'old_price'   => ['label' => 'السعر قبل الخصم', 'type' => 'text'],
                 'buy_url'     => ['label' => 'رابط الشراء', 'type' => 'url', 'hint' => 'سلة / زد / Gumroad… اتركه فاضي ليصير الطلب عبر واتساب'],
@@ -254,6 +259,13 @@ function settings_schema(): array
             'hero_cta2_text'  => ['label' => 'نص الزر الثانوي', 'type' => 'text', 'default' => 'تواصل معي'],
             'hero_cta2_link'  => ['label' => 'رابط الزر الثانوي', 'type' => 'url', 'default' => '/contact'],
             'hero_image'      => ['label' => 'صورتك / صورة البنر', 'type' => 'image', 'hint' => 'يفضّل صورة عمودية أو مربعة'],
+            'hero_img_size'   => ['label' => 'حجم صورة البنر', 'type' => 'select', 'options' => [
+                '320' => 'صغير', '390' => 'متوسط', '450' => 'كبير', '520' => 'كبير جداً',
+            ], 'default' => '390'],
+            'hero_img_shape'  => ['label' => 'شكل صورة البنر', 'type' => 'select', 'options' => [
+                'portrait' => 'عمودي (4:5)', 'tall' => 'طولي (3:4)', 'square' => 'مربع', 'circle' => 'دائرة', 'arch' => 'قوس من فوق', 'landscape' => 'أفقي (4:3)',
+            ], 'default' => 'portrait'],
+            'hero_ring'       => ['label' => 'إطار متحرك حول الصورة', 'type' => 'bool', 'default' => 1],
             'hero_bg'         => ['label' => 'خلفية البنر (اختياري)', 'type' => 'image'],
             'announce_on'     => ['label' => 'إظهار شريط الإعلان أعلى الموقع', 'type' => 'bool', 'default' => 0],
             'announce_text'   => ['label' => 'نص شريط الإعلان', 'type' => 'text', 'default' => '🎉 كتابي الجديد متوفر الآن'],

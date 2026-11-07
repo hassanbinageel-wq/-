@@ -7,7 +7,7 @@ $firstText = null;
 foreach ($cols as $c) {
     if (in_array($def['fields'][$c]['type'], ['text'], true)) { $firstText = $c; break; }
 }
-$viewUrl = ['works' => 'work/', 'posts' => 'post/'][$page] ?? null;
+$viewUrl = ['works' => 'work/', 'posts' => 'post/', 'books' => 'product/'][$page] ?? null;
 $canSort = isset($def['fields']['sort_order']) && !isset($def['order']) && count($rows) > 1;
 ?>
 <div class="page-head">

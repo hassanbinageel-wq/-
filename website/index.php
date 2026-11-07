@@ -80,7 +80,10 @@ if (count($parts) <= 1 && isset($routes[$first])) {
     exit;
 }
 
-if (count($parts) === 2 && in_array($first, ['work', 'post'], true) && ctype_digit($parts[1])) {
+if (count($parts) === 2 && in_array($first, ['work', 'post', 'product'], true) && ctype_digit($parts[1])) {
+    if ($first === 'product' && !section_on('books')) {
+        not_found();
+    }
     $_GET['id'] = (int) $parts[1];
     require __DIR__ . '/pages/' . $first . '.php';
     exit;

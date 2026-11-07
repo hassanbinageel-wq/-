@@ -65,6 +65,13 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
 <script>document.documentElement.classList.add('js')</script>
 </head>
 <body class="<?= e($bodyClass) ?>">
+<?php if (is_logged_in()): $edit = admin_edit_link(); ?>
+<div class="admin-bar" role="navigation" aria-label="شريط المدير">
+  <a class="ab-back" href="<?= e(admin_url()) ?>"><?= icon('arrow-right') ?>رجوع للوحة التحكم</a>
+  <span class="ab-note">أنت تشاهد الموقع كمدير</span>
+  <?php if ($edit): ?><a class="ab-edit" href="<?= e($edit) ?>"><?= icon('pencil') ?>تعديل هذه الصفحة</a><?php endif; ?>
+</div>
+<?php endif; ?>
 <?php if ((string) $s['announce_on'] === '1' && $s['announce_text']): ?>
 <a class="announce" href="<?= e(link_href($s['announce_link']) ?: '#') ?>"><span><?= e($s['announce_text']) ?></span><?= icon('arrow-left', 'ic') ?></a>
 <?php endif; ?>
@@ -203,6 +210,22 @@ function work_card(array $w, int $i = 0): void
       </div>
     </a>
     <?php
+}
+
+/** When signed in: link to edit what is on screen */
+function admin_edit_link(): string
+{
+    $id = (int) ($_GET['id'] ?? 0);
+    $map = ['works' => 'works', 'blog' => 'posts', 'store' => 'books'];
+    $p = current_page();
+    if ($id && in_array($p, ['works', 'blog', 'store'], true) && preg_match('~/(work|post|product)/\d+~', (string) ($_SERVER['REQUEST_URI'] ?? ''))) {
+        return admin_url('?p=' . $map[$p] . '&a=edit&id=' . $id);
+    }
+    $settings = ['home' => 'hero', 'about' => 'about', 'story' => 'story', 'store' => 'store', 'partners' => 'partners', 'contact' => 'contact'];
+    $lists = ['services' => 'services', 'works' => 'works', 'prompts' => 'prompts', 'blog' => 'posts'];
+    if (isset($lists[$p])) return admin_url('?p=' . $lists[$p]);
+    if (isset($settings[$p])) return admin_url('?p=settings&g=' . $settings[$p]);
+    return '';
 }
 
 /** Site identity: logo, or your photo + name + title */

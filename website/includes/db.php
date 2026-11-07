@@ -143,7 +143,10 @@ function seed(PDO $pdo, ?array $only = null): void
             ['title' => 'لقطة سينمائية', 'category' => 'فيديو', 'tool' => 'Runway', 'prompt' => 'slow cinematic dolly shot through a misty desert at golden hour, a lone figure in white thobe walking, volumetric light, film grain, 35mm anamorphic', 'description' => '', 'sort_order' => 3],
         ],
         'books' => [
-            ['title' => 'دليل البرومبتات العربي', 'kind' => 'ebook', 'description' => 'أكثر من 300 برومبت جاهز مقسمة حسب الاستخدام، مع شرح طريقة التعديل عليها.', 'price' => '49 ر.س', 'old_price' => '79 ر.س', 'button_text' => 'اشترِ الآن', 'sort_order' => 1],
+            ['title' => 'دليل البرومبتات العربي', 'kind' => 'ebook', 'description' => 'أكثر من 300 برومبت جاهز مقسمة حسب الاستخدام، مع شرح طريقة التعديل عليها.', 'price' => '49 ر.س', 'old_price' => '79 ر.س', 'button_text' => 'اشترِ الآن', 'sort_order' => 1,
+             'highlights' => "أكثر من 300 برومبت جاهز للنسخ\nمقسّمة حسب الاستخدام: منتجات، إعلانات، بورتريه، فيديو\nشرح طريقة تعديل كل برومبت على منتجك\nتحديثات مجانية مع كل إصدار جديد",
+             'specs' => "الصيغة: PDF\nعدد الصفحات: 120\nاللغة: العربية\nالتسليم: فوري",
+             'details' => '<h2>لمن هذا الكتاب؟</h2><p>لصنّاع المحتوى وأصحاب المتاجر والمصممين اللي يبغون نتائج احترافية من أدوات الذكاء الاصطناعي بدون ما يضيعون وقت في التجربة.</p><div class="callout"><p>💡 كل برومبت مجرّب ومعه صورة النتيجة الفعلية.</p></div>'],
             ['title' => 'دورة صناعة الفيديو بالـ AI', 'kind' => 'course', 'description' => 'من الصفر إلى أول فيديو احترافي: الأدوات، البرومبتات، والمونتاج.', 'price' => '299 ر.س', 'button_text' => 'سجّل الآن', 'sort_order' => 2],
         ],
         'clients' => [
