@@ -25,7 +25,7 @@ site_head($w['title'], $w['summary'], $w['image']);
       <?php if ($w['summary']): ?><p class="lead" data-anim style="--d:2"><?= e($w['summary']) ?></p><?php endif; ?>
       <div class="detail-meta" data-anim style="--d:3">
         <?php if ($tools = csv_list($w['tools'])): ?><div class="chips"><?php foreach ($tools as $t): ?><span><?= e($t) ?></span><?php endforeach; ?></div><?php endif; ?>
-        <?php if ($w['link']): ?><a class="btn btn-sm btn-primary" href="<?= e($w['link']) ?>" target="_blank" rel="noopener"><?= e(setting('work_btn') ?: 'مشاهدة العمل') ?> <?= icon('external') ?></a><?php endif; ?>
+        <?php if ($w['link'] && work_btn_visible($w)): ?><a class="btn btn-sm btn-primary" href="<?= e($w['link']) ?>" target="_blank" rel="noopener"><?= e(work_btn_text($w)) ?> <?= icon('external') ?></a><?php endif; ?>
       </div>
     </header>
   </div>

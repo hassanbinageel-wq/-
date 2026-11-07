@@ -950,3 +950,5 @@ body.modal-open { overflow: hidden; }
   .section-tight { padding: 16px 0; }
   .center { margin-top: 24px; }
 }
+
+[hidden], .btn[hidden] { display: none !important; }

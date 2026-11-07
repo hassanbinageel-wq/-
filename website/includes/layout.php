@@ -184,6 +184,17 @@ function work_media(array $w, bool $hoverPlay = true): string
     return $out;
 }
 
+/** "View work" button: text per work or the general text; can be hidden globally or per work */
+function work_btn_text(array $w): string
+{
+    return trim((string) ($w['btn_text'] ?? '')) ?: (setting('work_btn') ?: 'مشاهدة العمل');
+}
+
+function work_btn_visible(array $w): bool
+{
+    return on('work_btn_on') && empty($w['btn_hide']);
+}
+
 function work_type(array $w): string
 {
     return (!empty($w['video_file']) || !empty($w['video_url'])) ? 'video' : 'image';
@@ -198,6 +209,7 @@ function work_card(array $w, int $i = 0): void
         'img' => media($w['image']), 'video' => media($w['video_file']),
         'embed' => video_embed($w['video_url']) ?: '',
         'url' => $link ?: work_url((int) $w['id']), 'ext' => $link !== '' && is_external($link),
+        'btn' => work_btn_text($w), 'showBtn' => work_btn_visible($w),
     ];
     ?>
     <a class="card work-card reveal" style="--i:<?= $i % 6 ?>" href="<?= e(work_url((int) $w['id'])) ?>" data-cat="<?= work_type($w) ?>" data-work="<?= e(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>">

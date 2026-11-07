@@ -21,7 +21,7 @@
     });
   }
 
-  // Work videos play inside the site: on hover (desktop) or when visible (phones)
+  // Work videos: play on hover with a mouse; on phones only the cover shows
   var vids = $$('video[data-hover-play]');
   if (vids.length) {
     var canHover = window.matchMedia && matchMedia('(hover: hover)').matches;
@@ -37,12 +37,8 @@
         card.addEventListener('mouseenter', function () { play(v); });
         card.addEventListener('mouseleave', function () { stop(v); });
       });
-    } else if ('IntersectionObserver' in window) {
-      var vio = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) { if (en.intersectionRatio >= 0.6) play(en.target); else stop(en.target); });
-      }, { threshold: [0, 0.6] });
-      vids.forEach(function (v) { vio.observe(v); });
     }
+    // Phones: no autoplay in the grid — the cover shows, and tapping opens the work with its video
   }
 
   // Timeline: the line fills as you scroll through the story
@@ -333,6 +329,8 @@
       var tools = $('#wmTools'); tools.innerHTML = '';
       (d.tools || []).forEach(function (t) { var sp = document.createElement('span'); sp.textContent = t; tools.appendChild(sp); });
       var btn = $('#wmBtn'); btn.href = d.url;
+      btn.hidden = d.showBtn === false;
+      if (d.btn) $('span', btn).textContent = d.btn;
       if (d.ext) { btn.target = '_blank'; btn.rel = 'noopener'; } else { btn.removeAttribute('target'); btn.removeAttribute('rel'); }
       modal.hidden = false;
       document.body.classList.add('modal-open');
