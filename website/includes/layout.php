@@ -64,7 +64,7 @@ function site_head(string $title = '', string $desc = '', string $image = '', st
 <style>:root{--accent:<?= $accent ?>;--accent2:<?= $accent2 ?>}</style>
 <script>document.documentElement.classList.add('js')</script>
 </head>
-<body class="<?= e($bodyClass) ?>">
+<body class="<?= e(trim($bodyClass . ' page-' . current_page() . ((string) $s['dark_ends'] === '1' ? ' dark-ends' : ''))) ?>">
 <?php if (is_logged_in() && !isset($_GET['hero_preview'])): $edit = admin_edit_link(); ?>
 <div class="admin-bar" role="navigation" aria-label="شريط المدير">
   <a class="ab-back" href="<?= e(admin_url()) ?>"><?= icon('arrow-right') ?>رجوع للوحة التحكم</a>

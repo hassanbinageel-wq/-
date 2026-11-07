@@ -357,6 +357,7 @@ function settings_schema(): array
             'accent_color'  => ['label' => 'اللون الأساسي', 'type' => 'color', 'default' => '#3b82f6'],
             'accent2_color' => ['label' => 'اللون الثانوي (للتدرّج)', 'type' => 'color', 'default' => '#8b5cf6'],
             'motion'        => ['label' => 'تفعيل الحركة (الموشن)', 'type' => 'bool', 'default' => 1],
+            'dark_ends'     => ['label' => 'البنر والفوتر بالكحلي الداكن (والباقي فاتح)', 'type' => 'bool', 'default' => 1],
         ]],
         'sections' => ['title' => 'إظهار وإخفاء الأقسام', 'icon' => 'layout-grid', 'fields' => $sections],
     ];
