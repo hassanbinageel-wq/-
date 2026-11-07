@@ -561,3 +561,21 @@ tr.just-moved { animation: moved 1.2s ease; }
 .group-link .tile-ic .ic { width: 18px; height: 18px; }
 @media (max-width: 1200px) { .content-groups { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 760px) { .content-groups { grid-template-columns: 1fr; } .page-intro .intro-ic { display: none; } }
+
+/* ---------- Banner live preview ---------- */
+.preview-fab { position: fixed; bottom: 22px; left: 22px; z-index: 40; display: inline-flex; align-items: center; gap: 8px; padding: .8em 1.3em; border: 0; border-radius: 999px; background: var(--primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; box-shadow: 0 14px 30px -10px rgba(37, 99, 235, .7); }
+.preview-fab .ic { width: 18px; height: 18px; }
+.live-preview { position: fixed; inset: 0; z-index: 150; display: flex; flex-direction: column; background: rgba(2, 6, 23, .82); backdrop-filter: blur(6px); }
+.live-preview[hidden] { display: none; }
+.lp-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 18px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.lp-bar strong { display: flex; align-items: center; gap: 8px; margin-inline-end: auto; }
+.lp-bar small { color: var(--muted); font-weight: 500; }
+.lp-seg { display: inline-flex; padding: 4px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+.lp-seg button { display: inline-flex; align-items: center; gap: 6px; padding: .4em .9em; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: .86rem; cursor: pointer; }
+.lp-seg button.on { background: var(--primary); color: #fff; }
+.lp-seg .ic { width: 16px; height: 16px; }
+.lp-stage { flex: 1; min-height: 0; overflow: hidden; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+.lp-frame { flex-shrink: 0; transform-origin: top center; border-radius: 12px; overflow: hidden; background: #fff; box-shadow: 0 30px 80px rgba(0, 0, 0, .5); }
+.lp-frame.is-mobile { border-radius: 34px; box-shadow: 0 0 0 10px #0f172a, 0 30px 80px rgba(0, 0, 0, .5); margin-top: 10px; }
+.lp-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+@media (max-width: 760px) { .lp-bar small { display: none; } .preview-fab span { display: none; } .preview-fab { padding: .9em; } }

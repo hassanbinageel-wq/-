@@ -79,6 +79,36 @@
     });
   });
 
+  // Banner live preview from the dashboard (only messages from this same site are accepted)
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !e.data || !e.data.heroPreview) return;
+    var d = e.data.heroPreview, pt = $('.portrait');
+    if (pt) {
+      pt.className = 'portrait shape-' + (d.shape || 'portrait');
+      if (d.size) pt.style.setProperty('--pw', d.size + 'px');
+      var ring = $('.portrait-ring', pt);
+      if (d.ring && !ring) { ring = document.createElement('div'); ring.className = 'portrait-ring'; pt.insertBefore(ring, pt.firstChild); }
+      if (ring) ring.style.display = d.ring ? '' : 'none';
+      var img = $(':scope > img', pt), orb = $('.orb', pt);
+      if (d.img && !d.removeImg) {
+        if (!img) { img = document.createElement('img'); img.alt = ''; if (orb) orb.replaceWith(img); else pt.appendChild(img); }
+        img.src = d.img;
+      }
+    }
+    var h1 = $('.hero h1');
+    if (h1 && d.title != null) {
+      h1.textContent = d.title;
+      if (d.highlight && d.title.indexOf(d.highlight) >= 0) {
+        var i = d.title.indexOf(d.highlight), sp = document.createElement('span');
+        sp.className = 'grad'; sp.textContent = d.highlight;
+        h1.textContent = d.title.slice(0, i); h1.appendChild(sp); h1.appendChild(document.createTextNode(d.title.slice(i + d.highlight.length)));
+      }
+    }
+    var lead = $('.hero .lead'); if (lead && d.subtitle != null) lead.textContent = d.subtitle;
+    var b1 = $('.hero-cta .btn-primary'); if (b1 && d.cta != null && b1.firstChild) b1.firstChild.nodeValue = d.cta;
+    var b2 = $('.hero-cta .btn-ghost'); if (b2 && d.cta2 != null) b2.textContent = d.cta2;
+  });
+
   // Mobile menu
   var menuBtn = $('#menuBtn'), nav = $('#nav');
   if (menuBtn && nav) {

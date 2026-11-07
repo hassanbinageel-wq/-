@@ -56,10 +56,27 @@ $group = $schema[$g];
   <?php endif; ?>
   <div class="form-foot">
     <button class="btn btn-primary" type="submit"><?= icon('check') ?>حفظ الإعدادات</button>
+    <?php if ($g === 'hero'): ?><button class="btn btn-ghost btn-preview" type="button" data-open-preview><?= icon('eye') ?>معاينة مباشرة</button><?php endif; ?>
     <?php if ($g === 'mail' && smtp_configured()): ?><button class="btn btn-ghost" type="submit" form="testMail"><?= icon('send') ?>إرسال إيميل تجريبي</button><?php endif; ?>
     <a class="btn btn-ghost" href="<?= url() ?>" target="_blank"><?= icon('external') ?>شوف التغييرات في الموقع</a>
   </div>
 </form>
 <?php if ($g === 'mail'): ?>
 <form method="post" id="testMail" hidden><?= csrf_field() ?><input type="hidden" name="_do" value="test_mail"></form>
+<?php endif; ?>
+<?php if ($g === 'hero'): ?>
+<button class="preview-fab" type="button" data-open-preview><?= icon('eye') ?><span>معاينة مباشرة</span></button>
+<div class="live-preview" id="livePreview" hidden role="dialog" aria-modal="true" aria-label="معاينة البنر">
+  <div class="lp-bar">
+    <strong><?= icon('eye') ?> معاينة مباشرة <small>— التغييرات تظهر هنا فوراً، وما تنحفظ إلا لما تضغط «حفظ»</small></strong>
+    <div class="lp-seg" role="group" aria-label="حجم الشاشة">
+      <button type="button" data-device="desktop" class="on"><?= icon('monitor') ?>كمبيوتر</button>
+      <button type="button" data-device="mobile"><?= icon('smartphone') ?>جوال</button>
+    </div>
+    <button class="icon-btn" type="button" data-close-preview aria-label="إغلاق"><?= icon('x') ?></button>
+  </div>
+  <div class="lp-stage" id="lpStage">
+    <div class="lp-frame" id="lpFrame"><iframe id="lpIframe" title="معاينة الموقع" data-src="<?= e(url('?hero_preview=1')) ?>"></iframe></div>
+  </div>
+</div>
 <?php endif; ?>
