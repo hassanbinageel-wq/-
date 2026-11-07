@@ -95,6 +95,7 @@ function migrate(PDO $pdo): array
 function seed(PDO $pdo, ?array $only = null): void
 {
     $now = date('Y-m-d H:i:s');
+    $pdo->prepare('INSERT OR REPLACE INTO settings(name, value) VALUES (?, ?)')->execute(['_demo', '1']);
     $rows = [
         'store_features' => [
             ['title' => 'تحميل فوري', 'description' => 'احصل على ملفاتك مباشرة بعد الشراء', 'icon' => 'download', 'sort_order' => 1],

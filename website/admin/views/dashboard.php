@@ -14,6 +14,26 @@ $user = current_user();
 $hour = (int) date('G');
 $greet = $hour < 12 ? 'صباح الخير' : 'مساء الخير';
 ?>
+<?php if ((string) setting('_demo') === '1'): ?>
+<form method="post" class="card demo-card" data-confirm="بيتم حذف كل العناصر في الأقسام المحددة نهائياً. متأكد؟">
+  <?= csrf_field() ?><input type="hidden" name="_do" value="clear_demo">
+  <div class="demo-head">
+    <span class="soon-ic"><?= icon('sparkles') ?></span>
+    <div><strong>المحتوى الموجود الحين تجريبي</strong><small>الأعمال والبرومبتات والشركاء والآراء… أمثلة عشان تشوف الشكل. حدد الأقسام اللي تبغى تفرّغها وتبدأ بمحتواك.</small></div>
+  </div>
+  <div class="demo-list">
+    <?php foreach (entities() as $k => $d):
+        $n = (int) db()->query("SELECT COUNT(*) FROM $k")->fetchColumn(); if (!$n) continue; ?>
+      <label class="demo-item"><input type="checkbox" name="tables[]" value="<?= e($k) ?>" checked><span><?= icon($d['icon']) ?><?= e($d['title']) ?> <em><?= $n ?></em></span></label>
+    <?php endforeach; ?>
+  </div>
+  <div class="demo-actions">
+    <button class="btn btn-danger-ghost" type="submit"><?= icon('trash') ?>حذف المحتوى التجريبي من الأقسام المحددة</button>
+    <button class="btn btn-ghost" type="submit" form="keepDemo">أبقيه، بعدّله بنفسي</button>
+  </div>
+</form>
+<form method="post" id="keepDemo" hidden><?= csrf_field() ?><input type="hidden" name="_do" value="keep_demo"></form>
+<?php endif; ?>
 <div class="welcome card">
   <div>
     <h2><?= $greet ?>، <?= e($user['username']) ?> 👋</h2>

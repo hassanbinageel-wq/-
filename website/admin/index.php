@@ -85,6 +85,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if ($do === 'publish_site') {
+            save_settings(['maintenance' => '0']);
+            flash('🎉 تم نشر الموقع! صار ظاهر لكل الزوار الحين.');
+            redirect($self());
+        }
+        if ($do === 'hide_site') {
+            save_settings(['maintenance' => '1']);
+            flash('الموقع رجع مخفي عن الزوار (وضع «قريباً»).');
+            redirect($self());
+        }
+        if ($do === 'clear_demo') {
+            $chosen = array_values(array_intersect((array) ($_POST['tables'] ?? []), array_keys(entities())));
+            foreach ($chosen as $t) {
+                db()->exec("DELETE FROM $t");
+            }
+            if (!array_diff(array_keys(entities()), $chosen)) {
+                save_settings(['_demo' => '0']);
+            }
+            flash($chosen ? 'تم حذف المحتوى التجريبي من ' . count($chosen) . ' قسم ✓ — ابدأ بإضافة محتواك' : 'ما اخترت أي قسم.', $chosen ? 'ok' : 'err');
+            redirect($self());
+        }
+        if ($do === 'keep_demo') {
+            save_settings(['_demo' => '0']);
+            redirect($self());
+        }
+
         if ($page === 'settings' && $do === 'test_mail') {
             $to = (string) (setting('admin_email') ?: setting('contact_email') ?: setting('smtp_user'));
             [$ok, $err] = send_mail($to, 'تجربة البريد', mail_layout('البريد يشتغل ✓', '<p>إذا وصلك هذا الإيميل، فإعدادات البريد في موقعك صحيحة.</p>'));

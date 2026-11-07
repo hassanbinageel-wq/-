@@ -579,3 +579,23 @@ tr.just-moved { animation: moved 1.2s ease; }
 .lp-frame.is-mobile { border-radius: 34px; box-shadow: 0 0 0 10px #0f172a, 0 30px 80px rgba(0, 0, 0, .5); margin-top: 10px; }
 .lp-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
 @media (max-width: 760px) { .lp-bar small { display: none; } .preview-fab span { display: none; } .preview-fab { padding: .9em; } }
+
+/* ---------- Coming-soon banner & sample content ---------- */
+.soon-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; padding: 14px 18px; margin-bottom: 18px; border-radius: 16px; border: 1px solid rgba(245, 158, 11, .35); background: rgba(245, 158, 11, .1); }
+.soon-banner > div { flex: 1; min-width: 220px; }
+.soon-banner strong, .demo-head strong { display: block; }
+.soon-banner small, .demo-head small { color: var(--muted); }
+.soon-banner form { margin: 0; }
+.soon-ic { width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: rgba(245, 158, 11, .16); color: #d97706; }
+.demo-card { margin-bottom: 18px; border-color: rgba(59, 130, 246, .35); }
+.demo-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
+.demo-head .soon-ic { background: rgba(59, 130, 246, .14); color: #3b82f6; }
+.demo-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.demo-item { cursor: pointer; }
+.demo-item input { position: absolute; opacity: 0; }
+.demo-item span { display: inline-flex; align-items: center; gap: 6px; padding: .45em .9em; border-radius: 999px; border: 1px solid var(--border-strong); font-size: .86rem; font-weight: 600; color: var(--muted); transition: all .2s; }
+.demo-item span .ic { width: 15px; height: 15px; }
+.demo-item em { font-style: normal; font-size: .75rem; padding: 0 .45em; border-radius: 999px; background: var(--surface-2); }
+.demo-item input:checked + span { border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, .08); }
+.demo-item input:focus-visible + span { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.demo-actions { display: flex; flex-wrap: wrap; gap: 10px; }

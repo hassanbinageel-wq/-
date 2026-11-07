@@ -82,6 +82,14 @@ function admin_start(string $title, string $active): void
       </div>
     </header>
     <main class="content">
+      <?php if ((string) setting('maintenance') === '1'): ?>
+        <div class="soon-banner">
+          <span class="soon-ic"><?= icon('eye-off') ?></span>
+          <div><strong>الموقع مخفي عن الزوار (وضع «قريباً»)</strong><small>عبّي بياناتك براحتك — الزوار يشوفون صفحة «قريباً»، وأنت تشوف الموقع كامل.</small></div>
+          <a class="btn btn-ghost btn-sm" href="<?= url() ?>" target="_blank"><?= icon('eye') ?>شوف الموقع</a>
+          <form method="post" action="<?= e(admin_url()) ?>" data-confirm="متأكد؟ الموقع بيصير ظاهر لكل الناس."><?= csrf_field() ?><input type="hidden" name="_do" value="publish_site"><button class="btn btn-primary btn-sm"><?= icon('rocket') ?>نشر الموقع الآن</button></form>
+        </div>
+      <?php endif; ?>
       <?php if ($flash): ?><div class="alert alert-<?= $flash['type'] === 'err' ? 'err' : 'ok' ?>" data-autohide><?= e($flash['msg']) ?></div><?php endif; ?>
 <?php
 }

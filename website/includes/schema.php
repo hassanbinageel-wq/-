@@ -234,6 +234,9 @@ function settings_schema(): array
 
     return [
         'general' => ['title' => 'عام', 'icon' => 'globe', 'fields' => [
+            'maintenance'      => ['label' => 'وضع «قريباً»: الموقع مخفي عن الزوار (أنت تشوفه كامل)', 'type' => 'bool', 'default' => 1, 'full' => true, 'hint' => 'خله مفعّل لين تخلص تعبئة البيانات، بعدين طفّه عشان ينشر الموقع للجميع'],
+            'soon_title'       => ['label' => 'عنوان صفحة «قريباً»', 'type' => 'text', 'default' => 'الموقع الجديد قريباً ✨'],
+            'soon_text'        => ['label' => 'نص صفحة «قريباً»', 'type' => 'text', 'default' => 'نجهّز لكم تجربة جديدة كلياً — تابعوني لين الإطلاق.'],
             'site_name'        => ['label' => 'اسم الموقع', 'type' => 'text', 'default' => 'حسن'],
             'site_tagline'     => ['label' => 'الوصف المختصر', 'type' => 'text', 'default' => 'صانع محتوى ومبدع في الذكاء الاصطناعي'],
             'brand_photo'      => ['label' => 'صورتك (أعلى الموقع)', 'type' => 'image', 'hint' => 'صورة مربعة تظهر في دائرة جنب اسمك'],

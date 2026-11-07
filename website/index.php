@@ -51,6 +51,14 @@ if ($first !== '' && hash_equals(admin_slug(), $first) && $hasUser) {
     exit;
 }
 
+/* ---------- Coming soon: visitors see a holding page while you fill in the site ---------- */
+if ((string) setting('maintenance') === '1' && !is_logged_in()) {
+    http_response_code(503);
+    header('Retry-After: 86400');
+    require __DIR__ . '/pages/soon.php';
+    exit;
+}
+
 /* ---------- Public site ---------- */
 $routes = [
     ''         => ['home', null],
