@@ -952,3 +952,8 @@ body.modal-open { overflow: hidden; }
 }
 
 [hidden], .btn[hidden] { display: none !important; }
+
+/* Homepage works: "show more" button */
+.more-wrap { margin-top: 34px; }
+.btn-more { padding: .8em 2.2em; font-size: 1rem; }
+@media (max-width: 640px) { .more-wrap { margin-top: 22px; } .btn-more { width: 100%; max-width: 320px; } }

@@ -287,6 +287,8 @@ function settings_schema(): array
         'works_opts' => ['title' => 'الأعمال', 'icon' => 'image', 'hidden' => true, 'fields' => [
             'work_btn'    => ['label' => 'نص الزر', 'type' => 'text', 'default' => 'مشاهدة العمل'],
             'work_btn_on' => ['label' => 'إظهار زر «مشاهدة العمل» في كل الأعمال', 'type' => 'bool', 'default' => 1],
+            'works_more'    => ['label' => 'نص زر الرئيسية', 'type' => 'text', 'default' => 'عرض المزيد'],
+            'works_more_on' => ['label' => 'إظهار زر «عرض المزيد» تحت الأعمال في الرئيسية', 'type' => 'bool', 'default' => 1],
         ]],
         'partners' => ['title' => 'شركاء النجاح', 'icon' => 'landmark', 'fields' => [
             'partners_btn'   => ['label' => 'نص الزر تحت الشعارات', 'type' => 'text', 'default' => 'معرفة المزيد'],

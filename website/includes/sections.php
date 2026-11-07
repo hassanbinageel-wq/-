@@ -155,12 +155,15 @@ function sec_works(bool $preview = true): void
     ?>
 <section class="section" id="works">
   <div class="container">
-    <?php if ($preview) section_head('works', '', page_url('works'), 'كل الأعمال'); ?>
+    <?php if ($preview) section_head('works'); ?>
     <?php type_tabs($works, 'worksGrid'); ?>
     <div class="grid grid-3 works-grid" id="worksGrid">
       <?php foreach ($works as $i => $w) work_card($w, $i); ?>
     </div>
     <p class="filter-empty" hidden>ما فيه أعمال من هذا النوع للحين.</p>
+    <?php if ($preview && on('works_more_on')): ?>
+      <div class="center more-wrap reveal"><a class="btn btn-outline btn-more" href="<?= page_url('works') ?>"><?= e(setting('works_more') ?: 'عرض المزيد') ?><?= icon('arrow-left') ?></a></div>
+    <?php endif; ?>
   </div>
 </section>
     <?php

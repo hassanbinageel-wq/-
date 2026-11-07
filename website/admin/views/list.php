@@ -28,12 +28,21 @@ $canSort = isset($def['fields']['sort_order']) && !isset($def['order']) && count
 <?php if ($page === 'works'): ?>
   <form method="post" class="card btn-settings">
     <?= csrf_field() ?><input type="hidden" name="_do" value="work_button">
-    <div class="bs-head"><span class="bs-ic"><?= icon('eye') ?></span><div><strong>زر «مشاهدة العمل»</strong><small>يظهر في نافذة العمل وصفحته — والإعدادات هنا تنطبق على كل الأعمال</small></div></div>
-    <div class="bs-fields">
-      <label class="bs-text"><span>نص الزر</span><input name="work_btn" value="<?= e(setting('work_btn') ?: 'مشاهدة العمل') ?>" maxlength="40"></label>
-      <label class="switch"><input type="checkbox" name="work_btn_on" value="1" <?= on('work_btn_on') ? 'checked' : '' ?>><span class="switch-ui"></span><span class="switch-label">إظهار الزر</span></label>
-      <button class="btn btn-primary btn-sm" type="submit"><?= icon('check') ?>حفظ</button>
+    <div class="bs-row">
+      <div class="bs-head"><span class="bs-ic"><?= icon('eye') ?></span><div><strong>زر «مشاهدة العمل»</strong><small>في نافذة العمل وصفحته — لكل الأعمال</small></div></div>
+      <div class="bs-fields">
+        <label class="bs-text"><span>النص</span><input name="work_btn" value="<?= e(setting('work_btn') ?: 'مشاهدة العمل') ?>" maxlength="40"></label>
+        <label class="switch"><input type="checkbox" name="work_btn_on" value="1" <?= on('work_btn_on') ? 'checked' : '' ?>><span class="switch-ui"></span><span class="switch-label">إظهار</span></label>
+      </div>
     </div>
+    <div class="bs-row">
+      <div class="bs-head"><span class="bs-ic"><?= icon('layout-grid') ?></span><div><strong>زر «عرض المزيد»</strong><small>تحت الأعمال في الرئيسية — يودّي لصفحة كل الأعمال</small></div></div>
+      <div class="bs-fields">
+        <label class="bs-text"><span>النص</span><input name="works_more" value="<?= e(setting('works_more') ?: 'عرض المزيد') ?>" maxlength="30"></label>
+        <label class="switch"><input type="checkbox" name="works_more_on" value="1" <?= on('works_more_on') ? 'checked' : '' ?>><span class="switch-ui"></span><span class="switch-label">إظهار</span></label>
+      </div>
+    </div>
+    <div class="bs-save"><button class="btn btn-primary btn-sm" type="submit"><?= icon('check') ?>حفظ الأزرار</button></div>
   </form>
 <?php endif; ?>
 <?php if (!$rows): ?>

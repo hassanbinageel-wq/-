@@ -626,3 +626,7 @@ tr.just-moved { animation: moved 1.2s ease; }
 .bs-text { display: flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 600; }
 .bs-text input { width: 190px; padding: .55em .85em; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--input); outline: none; }
 .bs-text input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, .18); }
+
+.btn-settings { flex-direction: column; align-items: stretch; gap: 0; padding: 6px 20px 16px; }
+.bs-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.bs-save { display: flex; justify-content: flex-end; padding-top: 12px; }

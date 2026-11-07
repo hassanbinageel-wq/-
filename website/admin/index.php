@@ -57,8 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($do === 'work_button' && $page === 'works') {
                 $text = trim(mb_substr((string) ($_POST['work_btn'] ?? ''), 0, 40));
-                save_settings(['work_btn' => $text !== '' ? $text : 'مشاهدة العمل', 'work_btn_on' => isset($_POST['work_btn_on']) ? '1' : '0']);
-                flash('تم حفظ إعدادات زر «مشاهدة العمل» لكل الأعمال ✓');
+                $more = trim(mb_substr((string) ($_POST['works_more'] ?? ''), 0, 30));
+                save_settings([
+                    'work_btn' => $text !== '' ? $text : 'مشاهدة العمل', 'work_btn_on' => isset($_POST['work_btn_on']) ? '1' : '0',
+                    'works_more' => $more !== '' ? $more : 'عرض المزيد', 'works_more_on' => isset($_POST['works_more_on']) ? '1' : '0',
+                ]);
+                flash('تم حفظ أزرار الأعمال ✓');
                 redirect($self(['p' => 'works']));
             }
             if ($do === 'reorder' && isset($def['fields']['sort_order']) && !isset($def['order'])) {
