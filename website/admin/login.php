@@ -41,6 +41,24 @@ function send_login_code(int $uid): bool
     return $ok;
 }
 
+/*
+ * Password recovery (owner only): create the file  data/reset-password.txt  in File Manager,
+ * put the new password inside it, then open the login page. The password is set, the file is deleted.
+ */
+$resetFile = DATA_DIR . '/reset-password.txt';
+if ($hasUser && is_file($resetFile)) {
+    $newPass = trim((string) file_get_contents($resetFile));
+    @unlink($resetFile);
+    if (mb_strlen($newPass) >= 8) {
+        $u = $pdo->query('SELECT id, username FROM users ORDER BY id LIMIT 1')->fetch();
+        $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($newPass, PASSWORD_DEFAULT), $u['id']]);
+        $pdo->exec('DELETE FROM login_attempts');
+        $notice = 'تم تعيين كلمة المرور الجديدة ✓ — اسم المستخدم: ' . $u['username'];
+    } else {
+        $error = 'كلمة المرور في الملف لازم تكون 8 أحرف على الأقل. سوّ الملف مرة ثانية.';
+    }
+}
+
 $pending = $_SESSION['pending_2fa'] ?? null;
 if ($pending && $pending['exp'] < time()) {
     unset($_SESSION['pending_2fa']);
