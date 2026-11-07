@@ -31,6 +31,16 @@ function media(?string $path): string
     return url($path);
 }
 
+/**
+ * Article HTML written in the dashboard: make uploaded images/links point to this site's
+ * current location, so content keeps working after moving the site (e.g. from a temporary
+ * folder or subdomain to the main domain).
+ */
+function content_html(?string $html): string
+{
+    return (string) preg_replace('~\b(src|href)="(?:/[^"\s]*?)?/uploads/~i', '$1="' . BASE . 'uploads/', (string) $html);
+}
+
 /** Make links safe: reject javascript: and similar; add https:// when missing */
 function clean_url(?string $u): string
 {

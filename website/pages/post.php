@@ -26,7 +26,7 @@ $st = settings_all();
       <?php if ($p['excerpt']): ?><p class="lead" data-anim style="--d:2"><?= e($p['excerpt']) ?></p><?php endif; ?>
     </header>
     <?php if ($p['cover']): ?><figure class="detail-cover reveal"><img src="<?= e(media($p['cover'])) ?>" alt="<?= e($p['title']) ?>"></figure><?php endif; ?>
-    <div class="prose post-prose"><?= $p['content'] /* written by admin */ ?></div>
+    <div class="prose post-prose"><?= content_html($p['content']) /* written by admin */ ?></div>
     <aside class="author-box reveal">
       <?php if ($st['brand_photo']): ?><img src="<?= e(media($st['brand_photo'])) ?>" alt=""><?php else: ?><span class="avatar"><?= e(mb_substr($st['site_name'], 0, 1)) ?></span><?php endif; ?>
       <div>

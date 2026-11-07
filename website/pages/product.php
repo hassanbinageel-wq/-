@@ -76,7 +76,7 @@ site_head($b['title'], $b['description'], $b['image']);
     <?php if ($embed || trim(strip_tags((string) $b['details'])) !== '' || str_contains((string) $b['details'], '<img')): ?>
       <div class="product-details narrow-inner">
         <?php if ($embed): ?><div class="video-frame reveal"><iframe src="<?= e($embed) ?>" title="<?= e($b['title']) ?>" allowfullscreen loading="lazy"></iframe></div><?php endif; ?>
-        <?php if ($b['details']): ?><div class="prose post-prose"><?= $b['details'] /* written by admin */ ?></div><?php endif; ?>
+        <?php if ($b['details']): ?><div class="prose post-prose"><?= content_html($b['details']) /* written by admin */ ?></div><?php endif; ?>
       </div>
     <?php endif; ?>
   </div>

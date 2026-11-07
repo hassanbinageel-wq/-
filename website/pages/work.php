@@ -38,7 +38,7 @@ site_head($w['title'], $w['summary'], $w['image']);
       <figure class="detail-cover reveal"><img src="<?= e(media($w['image'])) ?>" alt="<?= e($w['title']) ?>"></figure>
     <?php endif; ?>
   </div>
-  <?php if ($w['content']): ?><div class="container narrow"><div class="prose reveal"><?= $w['content'] /* written by admin */ ?></div></div><?php endif; ?>
+  <?php if ($w['content']): ?><div class="container narrow"><div class="prose reveal"><?= content_html($w['content']) /* written by admin */ ?></div></div><?php endif; ?>
   <?php if ($gallery): ?>
     <div class="container">
       <div class="gallery">
