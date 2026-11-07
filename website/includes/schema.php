@@ -52,8 +52,6 @@ function entities(): array
                 'gallery'   => ['label' => 'معرض الصور', 'type' => 'gallery', 'full' => true],
                 'link'      => ['label' => 'رابط زر «مشاهدة العمل»', 'type' => 'url', 'hint' => 'اتركه فاضي ليفتح صفحة العمل في موقعك'],
                 'tools'     => ['label' => 'الأدوات المستخدمة', 'type' => 'text', 'hint' => 'افصل بينها بفاصلة: Midjourney, Runway — اتركه فاضي لإخفائها'],
-                'btn_text'  => ['label' => 'نص زر «مشاهدة العمل» لهذا العمل', 'type' => 'text', 'hint' => 'اتركه فاضي ليستخدم النص العام من الإعدادات'],
-                'btn_hide'  => ['label' => 'إخفاء زر «مشاهدة العمل» في هذا العمل', 'type' => 'bool'],
                 'featured'  => ['label' => 'عمل مميز', 'type' => 'bool'],
             ] + $common,
             'columns' => ['image', 'title', 'category', 'featured', 'published'],
@@ -284,8 +282,11 @@ function settings_schema(): array
             'exp_num'       => ['label' => 'رقم الخبرة', 'type' => 'text', 'default' => '+5'],
             'exp_label'     => ['label' => 'نص الخبرة', 'type' => 'text', 'default' => 'سنوات خبرة'],
             'cv_url'        => ['label' => 'رابط السيرة الذاتية (اختياري)', 'type' => 'url'],
-            'work_btn'      => ['label' => 'نص زر «مشاهدة العمل» (لكل الأعمال)', 'type' => 'text', 'default' => 'مشاهدة العمل'],
-            'work_btn_on'   => ['label' => 'إظهار زر «مشاهدة العمل» في الأعمال', 'type' => 'bool', 'default' => 1],
+        ]],
+        // Managed from Dashboard > Works (not shown as a settings tab)
+        'works_opts' => ['title' => 'الأعمال', 'icon' => 'image', 'hidden' => true, 'fields' => [
+            'work_btn'    => ['label' => 'نص الزر', 'type' => 'text', 'default' => 'مشاهدة العمل'],
+            'work_btn_on' => ['label' => 'إظهار زر «مشاهدة العمل» في كل الأعمال', 'type' => 'bool', 'default' => 1],
         ]],
         'partners' => ['title' => 'شركاء النجاح', 'icon' => 'landmark', 'fields' => [
             'partners_btn'   => ['label' => 'نص الزر تحت الشعارات', 'type' => 'text', 'default' => 'معرفة المزيد'],

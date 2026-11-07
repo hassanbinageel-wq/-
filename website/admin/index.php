@@ -55,6 +55,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('تم الحذف');
                 redirect($self(['p' => $page]));
             }
+            if ($do === 'work_button' && $page === 'works') {
+                $text = trim(mb_substr((string) ($_POST['work_btn'] ?? ''), 0, 40));
+                save_settings(['work_btn' => $text !== '' ? $text : 'مشاهدة العمل', 'work_btn_on' => isset($_POST['work_btn_on']) ? '1' : '0']);
+                flash('تم حفظ إعدادات زر «مشاهدة العمل» لكل الأعمال ✓');
+                redirect($self(['p' => 'works']));
+            }
             if ($do === 'reorder' && isset($def['fields']['sort_order']) && !isset($def['order'])) {
                 $ids = array_values(array_filter(array_map('intval', explode(',', (string) ($_POST['ids'] ?? '')))));
                 $st = db()->prepare("UPDATE $page SET sort_order = ?, updated_at = updated_at WHERE id = ?");

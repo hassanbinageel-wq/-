@@ -184,15 +184,15 @@ function work_media(array $w, bool $hoverPlay = true): string
     return $out;
 }
 
-/** "View work" button: text per work or the general text; can be hidden globally or per work */
+/** "View work" button: one setting for all works (Dashboard > Works) */
 function work_btn_text(array $w): string
 {
-    return trim((string) ($w['btn_text'] ?? '')) ?: (setting('work_btn') ?: 'مشاهدة العمل');
+    return setting('work_btn') ?: 'مشاهدة العمل';
 }
 
 function work_btn_visible(array $w): bool
 {
-    return on('work_btn_on') && empty($w['btn_hide']);
+    return on('work_btn_on');
 }
 
 function work_type(array $w): string

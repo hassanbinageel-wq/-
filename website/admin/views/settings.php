@@ -1,12 +1,12 @@
 <?php
 $schema = settings_schema();
 $g = (string) ($_GET['g'] ?? 'general');
-if (!isset($schema[$g])) $g = 'general';
+if (!isset($schema[$g]) || !empty($schema[$g]['hidden'])) $g = 'general';
 $vals = settings_all();
 $group = $schema[$g];
 ?>
 <div class="tabs">
-  <?php foreach ($schema as $k => $grp): ?>
+  <?php foreach ($schema as $k => $grp): if (!empty($grp['hidden'])) continue; ?>
     <a href="<?= admin_url('?p=settings&g=' . $k) ?>" class="<?= $k === $g ? 'active' : '' ?>"><?= icon($grp['icon']) ?><?= e($grp['title']) ?></a>
   <?php endforeach; ?>
 </div>

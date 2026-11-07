@@ -614,3 +614,15 @@ tr.just-moved { animation: moved 1.2s ease; }
 /* Secret link field: keep the typing area visible even with a long site address */
 .slug-input span { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; direction: ltr; }
 .slug-input input { flex: 1 0 140px; min-width: 140px; font-weight: 700; }
+
+/* Works page: "view work" button settings */
+.btn-settings { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin-bottom: 16px; padding: 16px 20px; }
+.bs-head { display: flex; align-items: center; gap: 12px; }
+.bs-head strong { display: block; font-size: .95rem; }
+.bs-head small { color: var(--muted); font-size: .8rem; }
+.bs-ic { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; background: rgba(59, 130, 246, .12); color: #3b82f6; flex-shrink: 0; }
+.bs-ic .ic { width: 19px; height: 19px; }
+.bs-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.bs-text { display: flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 600; }
+.bs-text input { width: 190px; padding: .55em .85em; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--input); outline: none; }
+.bs-text input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, .18); }
