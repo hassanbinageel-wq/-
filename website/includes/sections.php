@@ -113,7 +113,6 @@ function sec_about(bool $preview = true): void
       <div class="about-text reveal"><?= nl2p($s['about_text']) ?></div>
       <div class="about-actions reveal">
         <?php if (items('timeline', ['limit' => 1])): ?><a class="btn btn-primary" href="<?= page_url('story') ?>"><?= e($s['story_btn'] ?: 'اقرأ القصة كاملة') ?><?= icon('arrow-left') ?></a><?php endif; ?>
-        <?php if ($preview): ?><a class="btn btn-ghost" href="<?= page_url('about') ?>">المزيد عني</a><?php endif; ?>
         <?php if ($s['cv_url']): ?><a class="btn btn-ghost" href="<?= e($s['cv_url']) ?>" target="_blank" rel="noopener"><?= icon('download') ?>السيرة الذاتية</a><?php endif; ?>
       </div>
     </div>
