@@ -313,9 +313,12 @@
       var media = $('#wmMedia'); media.innerHTML = '';
       if (d.video) {
         var v = document.createElement('video');
-        v.src = d.video; v.controls = true; v.playsInline = true; v.autoplay = true; v.muted = true; v.loop = true;
+        v.src = d.video; v.controls = true; v.playsInline = true; v.muted = false; v.loop = true;
         if (d.img) v.poster = d.img;
         media.appendChild(v);
+        // play with sound (opened by a click); if the browser refuses, fall back to muted
+        var pr = v.play();
+        if (pr && pr.catch) pr.catch(function () { v.muted = true; v.play().catch(function () {}); });
       } else if (d.embed) {
         var f = document.createElement('iframe');
         f.src = d.embed; f.allow = 'autoplay; encrypted-media; picture-in-picture'; f.allowFullscreen = true; f.title = d.title;
