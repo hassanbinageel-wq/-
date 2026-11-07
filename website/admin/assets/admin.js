@@ -387,3 +387,41 @@
     send();
   });
 })();
+
+(function () {
+  // Drag & drop files onto any upload box (cover image, video, gallery)
+  var accepts = function (input, file) {
+    var a = (input.getAttribute('accept') || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!a.length) return true;
+    return a.some(function (t) { return t.slice(-2) === '/*' ? file.type.indexOf(t.slice(0, -1)) === 0 : file.type === t; });
+  };
+  var zones = document.querySelectorAll('[data-upload], [data-gallery]');
+  Array.prototype.forEach.call(zones, function (zone) {
+    var input = zone.querySelector('input[type=file]');
+    if (!input) return;
+    zone.classList.add('dropzone');
+    var depth = 0;
+    zone.addEventListener('dragenter', function (e) { e.preventDefault(); depth++; zone.classList.add('drag-over'); });
+    zone.addEventListener('dragover', function (e) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    zone.addEventListener('dragleave', function () { if (--depth <= 0) { depth = 0; zone.classList.remove('drag-over'); } });
+    zone.addEventListener('drop', function (e) {
+      e.preventDefault(); depth = 0; zone.classList.remove('drag-over');
+      var files = Array.prototype.filter.call(e.dataTransfer.files || [], function (f) { return accepts(input, f); });
+      if (!files.length) { alert('نوع الملف غير مناسب لهذي الخانة.'); return; }
+      var dt = new DataTransfer();
+      if (input.multiple) {
+        Array.prototype.forEach.call(input.files || [], function (f) { dt.items.add(f); });
+        files.forEach(function (f) { dt.items.add(f); });
+      } else {
+        dt.items.add(files[0]);
+      }
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+  // Dropping a file outside a box should not open it in the browser
+  if (zones.length) {
+    window.addEventListener('dragover', function (e) { if (!e.target.closest || !e.target.closest('.dropzone')) e.preventDefault(); });
+    window.addEventListener('drop', function (e) { if (!e.target.closest || !e.target.closest('.dropzone')) e.preventDefault(); });
+  }
+})();

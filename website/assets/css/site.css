@@ -172,7 +172,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .motion .scroll-hint span { animation: scrolly 2s var(--ease) infinite; }
 
 /* ---------- Sections ---------- */
-.section { padding: 104px 0; position: relative; }
+.section { padding: 72px 0; position: relative; }
 .section-tight { padding: 24px 0; }
 #stats + .section { padding-top: 64px; }
 .section-alt { background: var(--bg-2); }
@@ -494,7 +494,7 @@ html:not(.motion) [data-anim], html:not(.motion) .reveal, html:not(.motion) .sta
   .portrait > img, .portrait .orb { border-radius: 26px; }
   .fc1 { top: 6%; inset-inline-start: 0; } .fc2 { top: 46%; inset-inline-end: 0; } .fc3 { bottom: 6%; inset-inline-start: 4%; } .fc4 { bottom: -4%; inset-inline-end: 18%; }
   .about, .contact { grid-template-columns: 1fr; gap: 32px; }
-  .section { padding: 76px 0; }
+  .section { padding: 52px 0; }
 }
 @media (max-width: 640px) {
   .container, .narrow { width: calc(100% - 32px); }
@@ -933,4 +933,20 @@ body.modal-open { overflow: hidden; }
 @media (max-width: 900px) {
   .dark-ends .hero { padding-bottom: 96px; }
   .dark-ends #stats { margin-top: -72px; padding-top: 0; }
+}
+
+/* Work cover + video on hover */
+.work-media .hover-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .45s ease; }
+.work-card.playing .hover-video { opacity: 1; }
+
+/* Tighter rhythm between sections */
+.section-head { margin-bottom: 34px; }
+#stats + .section { padding-top: 48px; }
+.page-header + .section { padding-top: 32px; }
+.section-alt + .section, .section + .section-alt { }
+@media (max-width: 640px) {
+  .section-head { margin-bottom: 24px; }
+  #stats + .section { padding-top: 36px; }
+  .section-tight { padding: 16px 0; }
+  .center { margin-top: 24px; }
 }

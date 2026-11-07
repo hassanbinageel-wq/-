@@ -166,9 +166,13 @@ function section_head(string $key, string $unused = '', string $link = '', strin
 function work_media(array $w, bool $hoverPlay = true): string
 {
     $out = '';
-    if (!empty($w['video_file'])) {
-        $out .= '<video src="' . e(media($w['video_file'])) . '#t=0.1"' . ($w['image'] ? ' poster="' . e(media($w['image'])) . '"' : '')
-            . ' muted loop playsinline preload="metadata"' . ($hoverPlay ? ' data-hover-play' : '') . '></video>';
+    if (!empty($w['video_file']) && $w['image']) {
+        // Cover image always shows; the video fades in over it while playing (hover / in view)
+        $out .= '<img src="' . e(media($w['image'])) . '" alt="' . e($w['title']) . '" loading="lazy">'
+            . '<video class="hover-video" src="' . e(media($w['video_file'])) . '" muted loop playsinline preload="none"' . ($hoverPlay ? ' data-hover-play' : '') . '></video>';
+    } elseif (!empty($w['video_file'])) {
+        // No cover: show the first frame of the video
+        $out .= '<video src="' . e(media($w['video_file'])) . '#t=0.1" muted loop playsinline preload="metadata"' . ($hoverPlay ? ' data-hover-play' : '') . '></video>';
     } elseif ($w['image']) {
         $out .= '<img src="' . e(media($w['image'])) . '" alt="' . e($w['title']) . '" loading="lazy">';
     } else {

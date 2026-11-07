@@ -599,3 +599,14 @@ tr.just-moved { animation: moved 1.2s ease; }
 .demo-item input:checked + span { border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, .08); }
 .demo-item input:focus-visible + span { outline: 2px solid #3b82f6; outline-offset: 2px; }
 .demo-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- Drag & drop upload ---------- */
+.dropzone { position: relative; border-radius: 14px; transition: box-shadow .2s, background .2s; }
+.dropzone .upload-preview::after, .dropzone .g-add::after { content: "أو اسحب الملف هنا"; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: .74rem; color: var(--muted); pointer-events: none; }
+.dropzone .upload-preview { position: relative; }
+.dropzone .upload-preview.has::after { content: none; }
+.dropzone .g-add { position: relative; }
+.dropzone .g-add::after { content: "اسحب هنا"; bottom: 6px; }
+.dropzone.drag-over { box-shadow: 0 0 0 2px var(--primary), 0 0 0 8px rgba(37, 99, 235, .18); background: rgba(37, 99, 235, .06); }
+.dropzone.drag-over .upload-preview, .dropzone.drag-over .g-add { border-color: var(--primary); border-style: solid; }
+.dropzone.drag-over .upload-preview::before { content: "أفلت الملف هنا"; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; font-weight: 700; color: #fff; background: rgba(37, 99, 235, .75); border-radius: 12px; }

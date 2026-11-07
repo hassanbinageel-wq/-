@@ -25,7 +25,11 @@
   var vids = $$('video[data-hover-play]');
   if (vids.length) {
     var canHover = window.matchMedia && matchMedia('(hover: hover)').matches;
-    var play = function (v) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); var c = v.closest('.work-card'); if (c) c.classList.add('playing'); };
+    // The card switches to the video only once frames are actually playing (no black flash)
+    vids.forEach(function (v) {
+      v.addEventListener('playing', function () { var c = v.closest('.work-card'); if (c && !v.paused) c.classList.add('playing'); });
+    });
+    var play = function (v) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); };
     var stop = function (v) { v.pause(); var c = v.closest('.work-card'); if (c) c.classList.remove('playing'); };
     if (canHover) {
       vids.forEach(function (v) {
