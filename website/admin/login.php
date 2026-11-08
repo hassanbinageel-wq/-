@@ -31,6 +31,33 @@ function twofa_enabled(): bool
         && !file_exists(DATA_DIR . '/disable-2fa');
 }
 
+/* Trusted device: after a correct email code (with «تذكّر هذا الجهاز»), skip the code on this device for 180 days.
+   The token is signed and tied to the current password — changing the password cancels every trusted device. */
+const TRUST_COOKIE = 'hsn_trust';
+const TRUST_DAYS = 180;
+
+function trust_sig(int $uid, int $exp, string $pwHash): string
+{
+    return hash_hmac('sha256', $uid . '|' . $exp . '|' . $pwHash, app_secret());
+}
+
+function trust_device(int $uid, string $pwHash): void
+{
+    $exp = time() + 86400 * TRUST_DAYS;
+    setcookie(TRUST_COOKIE, $uid . '.' . $exp . '.' . trust_sig($uid, $exp, $pwHash), [
+        'expires' => $exp, 'path' => BASE, 'httponly' => true, 'samesite' => 'Lax', 'secure' => is_https(),
+    ]);
+}
+
+function device_trusted(array $u): bool
+{
+    $parts = explode('.', (string) ($_COOKIE[TRUST_COOKIE] ?? ''));
+    if (count($parts) !== 3) return false;
+    [$uid, $exp, $sig] = $parts;
+    return (int) $uid === (int) $u['id'] && (int) $exp > time()
+        && hash_equals(trust_sig((int) $uid, (int) $exp, (string) $u['password_hash']), $sig);
+}
+
 function send_login_code(int $uid): bool
 {
     $code = (string) random_int(100000, 999999);
@@ -91,6 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $code = preg_replace('/\D/', '', (string) ($_POST['code'] ?? ''));
         if (hash_equals($pending['hash'], hash_hmac('sha256', $code, app_secret()))) {
             $pdo->prepare('DELETE FROM login_attempts WHERE ip = ?')->execute([$ip]);
+            if (!empty($_POST['remember'])) {
+                $st = $pdo->prepare('SELECT id, password_hash FROM users WHERE id = ?');
+                $st->execute([(int) $pending['uid']]);
+                if ($tu = $st->fetch()) trust_device((int) $tu['id'], (string) $tu['password_hash']);
+            }
             finish_login((int) $pending['uid']);
         }
         $pdo->prepare('INSERT INTO login_attempts (ip, at) VALUES (?, ?)')->execute([$ip, time()]);
@@ -131,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (password_needs_rehash($u['password_hash'], PASSWORD_DEFAULT)) {
                 $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_DEFAULT), $u['id']]);
             }
-            if (!twofa_enabled()) {
+            if (!twofa_enabled() || device_trusted($u)) {
                 $pdo->prepare('DELETE FROM login_attempts WHERE ip = ?')->execute([$ip]);
                 finish_login((int) $u['id']);
             }
@@ -182,6 +214,7 @@ $titles = ['setup' => 'إنشاء حساب المدير', 'login' => 'لوحة �
     <?php if ($mode === 'code'): ?>
       <input type="hidden" name="act" value="code">
       <input class="code-box" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr" placeholder="••••••" autofocus required aria-label="رمز التحقق">
+      <label class="remember"><input type="checkbox" name="remember" value="1" checked><span>تذكّر هذا الجهاز — ما يطلب الرمز فيه مرة ثانية (<?= TRUST_DAYS ?> يوم)</span></label>
       <button class="btn btn-primary btn-block" type="submit">تأكيد الدخول</button>
       <div class="auth-links">
         <button class="link-btn" type="submit" name="act" value="resend" formnovalidate>إعادة إرسال الرمز</button>

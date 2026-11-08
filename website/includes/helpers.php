@@ -391,14 +391,28 @@ function is_owner_device(): bool
     return ($_COOKIE[OWNER_COOKIE] ?? '') === '1';
 }
 
+/** ".hsnpmt.com" for www.hsnpmt.com / hsnpmt.com, so a cookie works on both addresses ('' on localhost/IP). */
+function cookie_domain(): string
+{
+    $host = strtolower(preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+    if ($host === '' || !str_contains($host, '.') || filter_var($host, FILTER_VALIDATE_IP)) {
+        return '';
+    }
+    return '.' . preg_replace('/^www\./', '', $host);
+}
+
 function owner_device(bool $on): void
 {
     if (headers_sent()) {
         return;
     }
-    setcookie(OWNER_COOKIE, $on ? '1' : '0', [
-        'expires' => time() + 86400 * 730, 'path' => BASE, 'httponly' => true, 'samesite' => 'Lax', 'secure' => is_https(),
-    ]);
+    $opts = ['expires' => time() + 86400 * 730, 'path' => BASE, 'httponly' => true, 'samesite' => 'Lax', 'secure' => is_https()];
+    $dom = cookie_domain();
+    if ($dom !== '') {
+        setcookie(OWNER_COOKIE, '', ['expires' => 1] + $opts); // drop an older www-only copy
+        $opts['domain'] = $dom;
+    }
+    setcookie(OWNER_COOKIE, $on ? '1' : '0', $opts);
     $_COOKIE[OWNER_COOKIE] = $on ? '1' : '0';
 }
 
@@ -412,8 +426,8 @@ function record_visit(): void
         return;
     }
     if (is_logged_in()) {
-        if (!isset($_COOKIE[OWNER_COOKIE])) {
-            owner_device(true); // remember this device as yours, even after you log out
+        if (($_COOKIE[OWNER_COOKIE] ?? '') !== '0') {
+            owner_device(true); // remember this device as yours (www and non-www), even after you log out
         }
         return; // don't count your own visits
     }

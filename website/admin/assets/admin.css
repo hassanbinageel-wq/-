@@ -660,3 +660,6 @@ tr.just-moved { animation: moved 1.2s ease; }
 }
 
 .side-ver { display: block; padding: 8px 14px 0; color: var(--muted); font-size: 11.5px; opacity: .75; direction: rtl; }
+
+.auth-card .remember { display: flex; align-items: flex-start; gap: 8px; margin: 2px 0 14px; font-size: .86rem; color: var(--muted); cursor: pointer; text-align: start; line-height: 1.6; }
+.auth-card .remember input { width: 17px; height: 17px; margin-top: 3px; accent-color: var(--primary); flex: none; }

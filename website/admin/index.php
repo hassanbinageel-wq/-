@@ -9,7 +9,7 @@ if (!is_logged_in()) {
     redirect(admin_url('login'));
 }
 header('Cache-Control: no-store');
-if (!isset($_COOKIE[OWNER_COOKIE])) {
+if (($_COOKIE[OWNER_COOKIE] ?? '') !== '0') {
     owner_device(true); // your devices never count as visitors
 }
 

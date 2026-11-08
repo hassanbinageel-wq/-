@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-define('APP_VERSION', '2026.11.08');
+define('APP_VERSION', '2026.11.08-2');
 define('ROOT', dirname(__DIR__));
 define('DATA_DIR', ROOT . '/data');
 define('UPLOAD_DIR', ROOT . '/uploads');
