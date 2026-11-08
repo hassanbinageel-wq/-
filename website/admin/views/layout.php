@@ -68,6 +68,7 @@ function admin_start(string $title, string $active): void
     <div class="side-foot">
       <a href="<?= url() ?>" target="_blank"><?= icon('external') ?><span>عرض الموقع</span></a>
       <form method="post" action="<?= admin_url('logout') ?>"><?= csrf_field() ?><button type="submit"><?= icon('logout') ?><span>تسجيل الخروج</span></button></form>
+      <small class="side-ver">الإصدار <?= e(APP_VERSION) ?></small>
     </div>
   </aside>
   <div class="side-backdrop" id="sideBackdrop"></div>

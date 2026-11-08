@@ -658,3 +658,5 @@ tr.just-moved { animation: moved 1.2s ease; }
   .range-custom .btn { width: 100%; justify-content: center; }
   .range-label { margin-inline-start: 0; }
 }
+
+.side-ver { display: block; padding: 8px 14px 0; color: var(--muted); font-size: 11.5px; opacity: .75; direction: rtl; }

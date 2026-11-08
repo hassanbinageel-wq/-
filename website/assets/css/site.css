@@ -936,8 +936,9 @@ body.modal-open { overflow: hidden; }
   .dark-ends.page-home #stats { margin-top: -72px; padding-top: 0; }
 }
 /* other pages (e.g. About): the numbers box gets its own room, no overlap */
-body:not(.page-home) #stats { padding: 40px 0 8px; }
-@media (max-width: 640px) { body:not(.page-home) #stats { padding: 28px 0 4px; } }
+body:not(.page-home) #stats { padding: 0 0 60px; margin-top: -12px; }
+body:not(.page-home) #stats + .section { padding-top: 12px; }
+@media (max-width: 900px) { body:not(.page-home) #stats { padding-bottom: 40px; } }
 
 /* Work cover + video on hover */
 .work-media .hover-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .45s ease; }
