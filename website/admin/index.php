@@ -9,6 +9,9 @@ if (!is_logged_in()) {
     redirect(admin_url('login'));
 }
 header('Cache-Control: no-store');
+if (!isset($_COOKIE[OWNER_COOKIE])) {
+    owner_device(true); // your devices never count as visitors
+}
 
 $page = (string) ($_GET['p'] ?? 'dashboard');
 $action = (string) ($_GET['a'] ?? '');

@@ -1,24 +1,31 @@
 <?php
 
-function visits_by_day(int $days): array
+function visits_by_day(string $from, string $to): array
 {
-    $from = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
-    $st = db()->prepare("SELECT substr(created_at,1,10) d, COUNT(*) v, COUNT(DISTINCT visitor) u FROM visits WHERE created_at >= ? GROUP BY d");
-    $st->execute([$from]);
+    $st = db()->prepare("SELECT substr(created_at,1,10) d, COUNT(*) v, COUNT(DISTINCT visitor) u FROM visits WHERE created_at >= ? AND created_at < ? GROUP BY d");
+    $st->execute([$from, date('Y-m-d', strtotime($to . ' +1 day'))]);
     $map = [];
     foreach ($st as $r) $map[$r['d']] = $r;
     $out = [];
-    for ($i = $days - 1; $i >= 0; $i--) {
-        $d = date('Y-m-d', strtotime("-$i days"));
+    for ($t = strtotime($from), $end = strtotime($to); $t <= $end; $t = strtotime('+1 day', $t)) {
+        $d = date('Y-m-d', $t);
         $out[] = ['d' => $d, 'v' => (int) ($map[$d]['v'] ?? 0), 'u' => (int) ($map[$d]['u'] ?? 0)];
+    }
+    // long periods: one bar per week so the chart stays readable
+    if (count($out) > 120) {
+        $weeks = [];
+        foreach (array_chunk($out, 7) as $c) {
+            $weeks[] = ['d' => $c[0]['d'], 'v' => array_sum(array_column($c, 'v')), 'u' => array_sum(array_column($c, 'u'))];
+        }
+        return $weeks;
     }
     return $out;
 }
 
-function visits_count(string $since, bool $unique = false): int
+function visits_count(string $from, string $toExclusive, bool $unique = false): int
 {
-    $st = db()->prepare('SELECT ' . ($unique ? 'COUNT(DISTINCT visitor || substr(created_at,1,10))' : 'COUNT(*)') . ' FROM visits WHERE created_at >= ?');
-    $st->execute([$since]);
+    $st = db()->prepare('SELECT ' . ($unique ? 'COUNT(DISTINCT visitor || substr(created_at,1,10))' : 'COUNT(*)') . ' FROM visits WHERE created_at >= ? AND created_at < ?');
+    $st->execute([$from, $toExclusive]);
     return (int) $st->fetchColumn();
 }
 

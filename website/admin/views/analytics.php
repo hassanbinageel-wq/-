@@ -1,23 +1,36 @@
 <?php
 require __DIR__ . '/analytics_lib.php';
 
-$range = (int) ($_GET['r'] ?? 30);
-if (!in_array($range, [7, 30, 90], true)) $range = 30;
-$since = date('Y-m-d', strtotime('-' . ($range - 1) . ' days'));
-$days = visits_by_day($range);
+// Period: today / this week / this month / last 7-30-90 days / custom from-to
+$r = (string) ($_GET['r'] ?? '30');
+$todayD = date('Y-m-d');
+$valid = fn($d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && strtotime($d) !== false;
+switch ($r) {
+    case 'today': $from = $to = $todayD; break;
+    case 'week':  $from = date('Y-m-d', strtotime(date('w') === '0' ? 'today' : 'last sunday')); $to = $todayD; break; // week starts Sunday
+    case 'month': $from = date('Y-m-01'); $to = $todayD; break;
+    case '7': case '90': $from = date('Y-m-d', strtotime('-' . ((int) $r - 1) . ' days')); $to = $todayD; break;
+    case 'custom':
+        $from = $valid($_GET['from'] ?? null) ? $_GET['from'] : date('Y-m-d', strtotime('-29 days'));
+        $to = $valid($_GET['to'] ?? null) ? $_GET['to'] : $todayD;
+        if ($from > $to) [$from, $to] = [$to, $from];
+        if ((strtotime($to) - strtotime($from)) / 86400 > 730) $from = date('Y-m-d', strtotime($to . ' -730 days'));
+        break;
+    default: $r = '30'; $from = date('Y-m-d', strtotime('-29 days')); $to = $todayD;
+}
+$toEnd = date('Y-m-d', strtotime($to . ' +1 day')); // exclusive upper bound
+$len = (int) round((strtotime($toEnd) - strtotime($from)) / 86400);
+$days = visits_by_day($from, $to);
 
-$total = visits_count($since);
-$unique = visits_count($since, true);
-$today = visits_count(date('Y-m-d'));
-$prevSince = date('Y-m-d', strtotime('-' . ($range * 2 - 1) . ' days'));
-$st = db()->prepare('SELECT COUNT(*) FROM visits WHERE created_at >= ? AND created_at < ?');
-$st->execute([$prevSince, $since]);
-$prev = (int) $st->fetchColumn();
+$total = visits_count($from, $toEnd);
+$unique = visits_count($from, $toEnd, true);
+$today = visits_count($todayD, date('Y-m-d', strtotime('+1 day')));
+$prev = visits_count(date('Y-m-d', strtotime($from . " -$len days")), $from);
 $change = $prev ? round(($total - $prev) / $prev * 100) : null;
 
-$q = function (string $col, int $limit = 8) use ($since) {
-    $st = db()->prepare("SELECT $col k, COUNT(*) n FROM visits WHERE created_at >= ? AND $col != '' GROUP BY $col ORDER BY n DESC LIMIT $limit");
-    $st->execute([$since]);
+$q = function (string $col, int $limit = 8) use ($from, $toEnd) {
+    $st = db()->prepare("SELECT $col k, COUNT(*) n FROM visits WHERE created_at >= ? AND created_at < ? AND $col != '' GROUP BY $col ORDER BY n DESC LIMIT $limit");
+    $st->execute([$from, $toEnd]);
     return $st->fetchAll();
 };
 $pages = $q('path', 10);
@@ -25,19 +38,36 @@ $refs = $q('referrer', 8);
 $devices = $q('device', 3);
 $devTotal = max(1, array_sum(array_column($devices, 'n')));
 $devLabels = ['desktop' => ['كمبيوتر', 'monitor'], 'mobile' => ['جوال', 'smartphone'], 'tablet' => ['تابلت', 'tablet']];
-$st = db()->prepare('SELECT substr(created_at,12,2) h, COUNT(*) n FROM visits WHERE created_at >= ? GROUP BY h ORDER BY n DESC LIMIT 1');
-$st->execute([$since]);
+$st = db()->prepare('SELECT substr(created_at,12,2) h, COUNT(*) n FROM visits WHERE created_at >= ? AND created_at < ? GROUP BY h ORDER BY n DESC LIMIT 1');
+$st->execute([$from, $toEnd]);
 $peak = $st->fetch();
+$fmt = fn($d) => date('j/n/Y', strtotime($d));
+$periodLabel = $from === $to ? $fmt($from) : $fmt($from) . ' — ' . $fmt($to);
+$ranges = ['today' => 'اليوم', 'week' => 'هذا الأسبوع', 'month' => 'هذا الشهر', '7' => '7 أيام', '30' => '30 يوم', '90' => '90 يوم'];
 ?>
 <div class="page-head">
   <p class="muted">إحصائيات زيارات موقعك (زياراتك من أجهزتك ما تنحسب)</p>
   <div class="page-actions">
-    <div class="seg">
-      <?php foreach ([7 => '7 أيام', 30 => '30 يوم', 90 => '90 يوم'] as $r => $l): ?>
-        <a href="<?= admin_url('?p=analytics&r=' . $r) ?>" class="<?= $r === $range ? 'active' : '' ?>"><?= $l ?></a>
-      <?php endforeach; ?>
-    </div>
+    <form method="post" class="reset-form" data-confirm="متأكد تبغى تصفّر كل أرقام الزيارات؟ ما تقدر ترجعها.">
+      <?= csrf_field() ?><input type="hidden" name="_do" value="reset">
+      <button class="btn btn-danger-ghost btn-sm" type="submit"><?= icon('trash') ?>تصفير الأرقام</button>
+    </form>
   </div>
+</div>
+
+<div class="card range-bar">
+  <div class="seg seg-wrap">
+    <?php foreach ($ranges as $k => $l): ?>
+      <a href="<?= admin_url('?p=analytics&r=' . $k) ?>" class="<?= (string) $k === $r ? 'active' : '' ?>"><?= $l ?></a>
+    <?php endforeach; ?>
+  </div>
+  <form method="get" class="range-custom <?= $r === 'custom' ? 'on' : '' ?>" action="<?= e(admin_url()) ?>">
+    <input type="hidden" name="p" value="analytics"><input type="hidden" name="r" value="custom">
+    <label><span>من</span><input type="date" name="from" value="<?= e($from) ?>" max="<?= e($todayD) ?>"></label>
+    <label><span>إلى</span><input type="date" name="to" value="<?= e($to) ?>" max="<?= e($todayD) ?>"></label>
+    <button class="btn btn-sm <?= $r === 'custom' ? 'btn-primary' : 'btn-ghost' ?>" type="submit"><?= icon('calendar') ?>عرض</button>
+  </form>
+  <span class="range-label"><?= icon('calendar') ?><?= e($periodLabel) ?></span>
 </div>
 
 <?php $mine = is_owner_device(); ?>
@@ -52,7 +82,7 @@ $peak = $st->fetch();
 </form>
 
 <div class="stat-grid">
-  <div class="card stat-card tone-blue"><span class="stat-ic"><?= icon('eye') ?></span><div><strong><?= number_format($total) ?></strong><span>زيارة <?php if ($change !== null): ?><em class="delta <?= $change >= 0 ? 'up' : 'down' ?>"><?= ($change >= 0 ? '+' : '') . $change ?>%</em><?php endif; ?></span></div></div>
+  <div class="card stat-card tone-blue"><span class="stat-ic"><?= icon('eye') ?></span><div><strong><?= number_format($total) ?></strong><span>زيارة<?php if ($change !== null): ?><em class="delta <?= $change >= 0 ? 'up' : 'down' ?>"><?= ($change >= 0 ? '+' : '') . $change ?>%</em><?php endif; ?></span></div></div>
   <div class="card stat-card tone-violet"><span class="stat-ic"><?= icon('user') ?></span><div><strong><?= number_format($unique) ?></strong><span>زائر</span></div></div>
   <div class="card stat-card tone-green"><span class="stat-ic"><?= icon('calendar') ?></span><div><strong><?= number_format($today) ?></strong><span>زيارة اليوم</span></div></div>
   <div class="card stat-card tone-amber"><span class="stat-ic"><?= icon('chart') ?></span><div><strong><?= $peak ? e((int) $peak['h'] . ':00') : '—' ?></strong><span>ساعة الذروة</span></div></div>
@@ -85,8 +115,3 @@ $peak = $st->fetch();
     <?php endif; ?>
   </div>
 </div>
-
-<form method="post" class="danger-zone" data-confirm="متأكد تبغى تحذف كل الإحصائيات؟">
-  <?= csrf_field() ?><input type="hidden" name="_do" value="reset">
-  <button class="btn btn-danger-ghost"><?= icon('trash') ?>تصفير الإحصائيات</button>
-</form>

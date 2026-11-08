@@ -3,12 +3,12 @@ require __DIR__ . '/analytics_lib.php';
 
 $today = date('Y-m-d');
 $stats = [
-    ['زيارات اليوم', visits_count($today), 'eye', 'blue'],
-    ['زوار آخر 30 يوم', visits_count(date('Y-m-d', strtotime('-29 days')), true), 'user', 'violet'],
+    ['زيارات اليوم', visits_count($today, date('Y-m-d', strtotime('+1 day'))), 'eye', 'blue'],
+    ['زوار آخر 30 يوم', visits_count(date('Y-m-d', strtotime('-29 days')), date('Y-m-d', strtotime('+1 day')), true), 'user', 'violet'],
     ['رسائل جديدة', unread_count(), 'inbox', 'green'],
     ['الأعمال المنشورة', (int) db()->query('SELECT COUNT(*) FROM works WHERE published = 1')->fetchColumn(), 'image', 'amber'],
 ];
-$days = visits_by_day(14);
+$days = visits_by_day(date('Y-m-d', strtotime('-13 days')), date('Y-m-d'));
 $latest = db()->query('SELECT * FROM messages ORDER BY id DESC LIMIT 5')->fetchAll();
 $user = current_user();
 $hour = (int) date('G');
