@@ -30,7 +30,7 @@ $st->execute([$since]);
 $peak = $st->fetch();
 ?>
 <div class="page-head">
-  <p class="muted">إحصائيات زيارات موقعك (زياراتك أنت وأنت مسجّل دخول ما تنحسب)</p>
+  <p class="muted">إحصائيات زيارات موقعك (زياراتك من أجهزتك ما تنحسب)</p>
   <div class="page-actions">
     <div class="seg">
       <?php foreach ([7 => '7 أيام', 30 => '30 يوم', 90 => '90 يوم'] as $r => $l): ?>
@@ -39,6 +39,17 @@ $peak = $st->fetch();
     </div>
   </div>
 </div>
+
+<?php $mine = is_owner_device(); ?>
+<form method="post" class="card owner-device <?= $mine ? 'ok' : '' ?>">
+  <?= csrf_field() ?><input type="hidden" name="_do" value="owner_device"><input type="hidden" name="on" value="<?= $mine ? '0' : '1' ?>">
+  <span class="od-ic"><?= icon($mine ? 'check' : 'smartphone') ?></span>
+  <div class="od-text">
+    <strong><?= $mine ? 'زياراتك من هذا الجهاز ما تنحسب ✓' : 'زياراتك من هذا الجهاز تنحسب حالياً' ?></strong>
+    <small>أي جهاز تسجّل منه دخول للوحة يتعرّف عليه تلقائياً لمدة سنتين — حتى لو سجّلت خروج. سجّل دخول مرة من جوالك وخلاص.</small>
+  </div>
+  <button class="btn btn-sm <?= $mine ? 'btn-ghost' : 'btn-primary' ?>" type="submit"><?= $mine ? 'احسب زياراتي' : 'لا تحسب زياراتي' ?></button>
+</form>
 
 <div class="stat-grid">
   <div class="card stat-card tone-blue"><span class="stat-ic"><?= icon('eye') ?></span><div><strong><?= number_format($total) ?></strong><span>زيارة <?php if ($change !== null): ?><em class="delta <?= $change >= 0 ? 'up' : 'down' ?>"><?= ($change >= 0 ? '+' : '') . $change ?>%</em><?php endif; ?></span></div></div>

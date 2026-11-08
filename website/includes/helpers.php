@@ -383,6 +383,25 @@ function ip_hash(): string
 
 /* ---------- Analytics ---------- */
 
+const OWNER_COOKIE = 'hsn_owner';
+
+/** Devices you used to sign in are remembered for 2 years and never counted in analytics. */
+function is_owner_device(): bool
+{
+    return ($_COOKIE[OWNER_COOKIE] ?? '') === '1';
+}
+
+function owner_device(bool $on): void
+{
+    if (headers_sent()) {
+        return;
+    }
+    setcookie(OWNER_COOKIE, $on ? '1' : '0', [
+        'expires' => time() + 86400 * 730, 'path' => BASE, 'httponly' => true, 'samesite' => 'Lax', 'secure' => is_https(),
+    ]);
+    $_COOKIE[OWNER_COOKIE] = $on ? '1' : '0';
+}
+
 function record_visit(): void
 {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
@@ -393,7 +412,13 @@ function record_visit(): void
         return;
     }
     if (is_logged_in()) {
+        if (!isset($_COOKIE[OWNER_COOKIE])) {
+            owner_device(true); // remember this device as yours, even after you log out
+        }
         return; // don't count your own visits
+    }
+    if (is_owner_device()) {
+        return;
     }
     $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
     $path = parse_url($uri, PHP_URL_PATH) ?: '/';

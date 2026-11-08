@@ -174,6 +174,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect($self(['p' => 'messages']));
         }
 
+        if ($page === 'analytics' && $do === 'owner_device') {
+            $on = ($_POST['on'] ?? '') === '1';
+            owner_device($on);
+            flash($on ? 'تم ✓ زياراتك من هذا الجهاز ما تنحسب' : 'زياراتك من هذا الجهاز صارت تنحسب');
+            redirect($self(['p' => 'analytics']));
+        }
+
         if ($page === 'analytics' && $do === 'reset') {
             db()->exec('DELETE FROM visits');
             flash('تم تصفير الإحصائيات');
