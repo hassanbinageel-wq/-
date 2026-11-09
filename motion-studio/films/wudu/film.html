@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>فروض الوضوء — ركن الوضوء</title>
+<style>
+  @font-face { font-family:'B'; font-weight:500; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-500-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:700; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'B'; font-weight:800; src:url('node_modules/@fontsource/baloo-bhaijaan-2/files/baloo-bhaijaan-2-arabic-800-normal.woff2') format('woff2'); }
+  @font-face { font-family:'K'; font-weight:700; src:url('node_modules/@fontsource/marhey/files/marhey-arabic-700-normal.woff2') format('woff2'); }
+  @font-face { font-family:'N'; font-weight:700; src:url('node_modules/@fontsource/amiri/files/amiri-arabic-700-normal.woff2') format('woff2'); }
+
+  :root { --dg:#1F5C4A; --ink:#2B2A28; --gold:#D9A441; --w:#2E9FD8; --wl:#BFE6F7; --red:#D9534F;
+          --r1:#C8553D; --r2:#2E9FD8; --r3:#3BA57A; --r4:#8E6BBF; --r5:#D9A441; --r6:#1F5C4A; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#000; overflow:hidden; }
+  #stage { position:relative; width:1920px; height:1080px; overflow:hidden; font-family:'B',sans-serif; color:var(--ink);
+           background:#DDF1F8; }
+  .abs { position:absolute; }
+  .L { position:absolute; inset:0; }
+  .paper { filter: drop-shadow(0 7px 0 rgba(20,60,90,.12)) drop-shadow(0 14px 20px rgba(20,60,90,.14)); }
+  .mk { display:inline-block; overflow:hidden; padding:.16em .06em .3em; margin:-.16em 0 -.3em; vertical-align:bottom; }
+  .mi { display:inline-block; }
+
+  /* ركن الوضوء: بلاط فيروزي + شريط زخرفة + أرضية */
+  #tiles { background-color:#E6F5FB; background-image:linear-gradient(#fff 3px, transparent 3px), linear-gradient(90deg, #fff 3px, transparent 3px); background-size:96px 96px; }
+  #band { left:0; top:640px; width:1920px; height:44px; background:repeating-linear-gradient(90deg,#2E9FD8 0 40px,#7CC6E6 40px 48px,#1F7FB0 48px 88px,#7CC6E6 88px 96px); opacity:.9; }
+  #floorw { left:0; top:950px; width:1920px; height:130px; background:repeating-linear-gradient(90deg,#B9DCEB 0 158px,#A9D0E2 158px 160px); }
+  #floorw:before { content:''; position:absolute; left:0; right:0; top:0; height:12px; background:#8CBFD6; }
+
+  #world { position:absolute; inset:0; transform-origin:0 0; }
+
+  /* البطاقات */
+  .card { position:absolute; left:960px; top:150px; width:470px; background:#fff; border-radius:32px; padding:26px 34px 30px; border-right:14px solid var(--c); text-align:center; }
+  .card .hd { display:flex; align-items:center; gap:12px; font:700 34px 'B'; color:#8A8174; }
+  .card .hd i { width:52px; height:52px; border-radius:50%; background:var(--c); color:#fff; font:800 34px/52px 'B'; font-style:normal; text-align:center; }
+  .card h2 { font:800 58px 'B'; color:var(--c); line-height:1.15; margin-top:6px; text-align:right; }
+  .tick { display:flex; align-items:center; gap:14px; font:700 34px 'B'; color:var(--ink); margin-top:12px; text-align:right; line-height:1.3; }
+  .tick b { flex:none; width:42px; height:42px; border-radius:50%; background:var(--c); position:relative; }
+  .tick b:after { content:''; position:absolute; left:14px; top:7px; width:11px; height:20px; border:solid #fff; border-width:0 6px 6px 0; transform:rotate(45deg); }
+  .row { display:flex; align-items:center; gap:14px; height:62px; border-radius:31px; padding:0 18px; margin-top:10px; font:800 32px 'B'; color:var(--ink); background:#F1F7FA; text-align:right; white-space:nowrap; }
+  .row i { flex:none; width:44px; height:44px; border-radius:50%; background:var(--w); color:#fff; font:800 28px/44px 'B'; font-style:normal; text-align:center; }
+  .tag { display:inline-flex; align-items:center; gap:10px; padding:6px 24px 12px; border-radius:40px; background:var(--c); color:#fff; font:800 34px 'B'; margin-top:12px; }
+  .big { font:800 150px 'B'; line-height:1; color:var(--c); margin-top:6px; }
+  #cIntro, #cList, #cMem { --c:var(--w); } #cGloss { --c:var(--r4); } #cImag { --c:var(--r3); } #cMain { --c:var(--dg); } #cThink { --c:var(--r5); } #cEnd { --c:var(--r3); }
+  #c1 { --c:var(--r1); } #c2 { --c:var(--r2); } #c3 { --c:var(--r3); } #c4 { --c:var(--r4); } #c5 { --c:var(--r5); } #c6 { --c:var(--r6); }
+  .steps { display:flex; justify-content:center; gap:10px; margin-top:16px; }
+  .steps div { width:70px; text-align:center; font:700 22px 'B'; color:#6A6153; }
+  .steps span { display:block; width:58px; height:58px; margin:0 auto 4px; border-radius:50%; background:var(--c); color:#fff; font:800 30px/58px 'B'; }
+  .drops { display:flex; justify-content:center; gap:8px; margin-top:18px; }
+
+  /* عدّاد القطرات (واجهة) */
+  #meter { left:46px; top:200px; width:120px; }
+  #meter .t { font:800 26px 'B'; color:#1F7FB0; text-align:center; margin-bottom:6px; }
+
+  /* العنوان */
+  #title { left:0; top:0; }
+  #banner { position:relative; padding:20px 80px 32px; background:#1F7FB0; color:#fff; border-radius:26px; font:800 116px 'B'; line-height:1.15; white-space:nowrap; }
+  #banner:before, #banner:after { content:''; position:absolute; top:36px; width:66px; height:104px; background:#16608A; z-index:-1; }
+  #banner:before { right:-38px; clip-path:polygon(0 0,100% 0,70% 50%,100% 100%,0 100%); }
+  #banner:after { left:-38px; clip-path:polygon(0 0,100% 0,100% 100%,0 100%,30% 50%); }
+
+  /* المقدّم */
+  #boy { position:absolute; left:1364px; top:0; width:633px; height:1777px; transform-origin:316px 1777px; }
+  #body { position:absolute; left:0; top:404px; }
+  #headw { position:absolute; left:0; top:0; width:633px; height:451px; transform-origin:301px 445px; }
+  #headw img, #headw svg { position:absolute; left:0; top:0; width:633px; height:451px; }
+  #shadow { position:absolute; left:1555px; top:1014px; width:250px; height:40px; border-radius:50%; background:rgba(20,60,90,.28); filter:blur(6px); }
+  #bubble { left:1150px; top:190px; }
+  #bubble div { background:#fff; border-radius:40px; padding:22px 40px 30px; font:800 56px 'B'; color:#1F7FB0; position:relative; white-space:nowrap; }
+  #bubble div:after { content:''; position:absolute; right:40px; bottom:-26px; border:16px solid transparent; border-top:22px solid #fff; border-left:24px solid #fff; }
+  .conf { position:absolute; width:22px; height:30px; border-radius:5px; }
+
+  #subs { left:120px; width:1320px; top:968px; display:flex; justify-content:center; }
+  #subs div { background:rgba(22,96,138,.92); color:#fff; font:700 44px 'B'; padding:10px 34px 18px; border-radius:22px; white-space:nowrap; }
+  #subs .mk { margin-left:10px; }
+  #grain { opacity:.08; mix-blend-mode:multiply; pointer-events:none; }
+  #vig { background:radial-gradient(130% 100% at 50% 45%, rgba(0,0,0,0) 62%, rgba(10,40,70,.2) 100%); pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="far" class="L"><div id="tiles" class="L"></div><div id="band" class="abs"></div><div id="floorw" class="abs"></div></div>
+
+  <div id="world">
+    <svg id="fig" class="L" viewBox="0 0 1920 1080" style="overflow:visible">
+      <defs>
+        <radialGradient id="gl"><stop offset="0" stop-color="#BFE6F7" stop-opacity=".95"/><stop offset=".5" stop-color="#7CC6E6" stop-opacity=".35"/><stop offset="1" stop-color="#7CC6E6" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glh"><stop offset="0" stop-color="#FFD6D0" stop-opacity=".95"/><stop offset=".5" stop-color="#F29C8A" stop-opacity=".35"/><stop offset="1" stop-color="#F29C8A" stop-opacity="0"/></radialGradient>
+        <linearGradient id="wat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7CD3F7"/><stop offset=".5" stop-color="#3AA8E0"/><stop offset="1" stop-color="#7CD3F7"/></linearGradient>
+        <clipPath id="faceclip"><circle cx="560" cy="300" r="100"/></clipPath>
+      </defs>
+      <g id="kid">
+        <ellipse cx="560" cy="935" rx="150" ry="18" fill="#000" opacity=".1"/>
+        <!-- الساقان والقدمان -->
+        <g stroke="#2B2A28" stroke-linecap="round">
+          <path d="M522 790 V888" stroke-width="44"/><path d="M598 790 V888" stroke-width="44"/>
+          <path d="M522 790 V888" stroke="#F6C9A0" stroke-width="36"/><path d="M598 790 V888" stroke="#F6C9A0" stroke-width="36"/>
+        </g>
+        <ellipse cx="505" cy="912" rx="46" ry="22" fill="#F6C9A0" stroke="#2B2A28" stroke-width="5"/><ellipse cx="615" cy="912" rx="46" ry="22" fill="#F6C9A0" stroke="#2B2A28" stroke-width="5"/>
+        <g id="ovFeet" opacity="0"><path d="M522 830 V888" stroke="url(#wat)" stroke-width="40" stroke-linecap="round"/><path d="M598 830 V888" stroke="url(#wat)" stroke-width="40" stroke-linecap="round"/>
+          <ellipse cx="505" cy="912" rx="48" ry="24" fill="url(#wat)"/><ellipse cx="615" cy="912" rx="48" ry="24" fill="url(#wat)"/></g>
+        <!-- الثوب -->
+        <path d="M492 425 Q560 410 628 425 L688 800 Q560 816 432 800 Z" fill="#fff" stroke="#2B2A28" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M560 432 V560" stroke="#2B2A28" stroke-width="3"/><path d="M530 424 Q560 442 590 424" fill="none" stroke="#2B2A28" stroke-width="5"/>
+        <!-- الذراعان: كُمّ مرفوع إلى ما فوق المرفق -->
+        <g stroke-linecap="round" fill="none">
+          <path d="M486 450 Q440 520 412 596" stroke="#2B2A28" stroke-width="56"/><path d="M486 450 Q440 520 412 596" stroke="#fff" stroke-width="46"/>
+          <path d="M634 450 Q680 520 708 596" stroke="#2B2A28" stroke-width="56"/><path d="M634 450 Q680 520 708 596" stroke="#fff" stroke-width="46"/>
+          <path d="M410 600 Q396 660 388 722" stroke="#2B2A28" stroke-width="46"/><path d="M410 600 Q396 660 388 722" stroke="#F6C9A0" stroke-width="38"/>
+          <path d="M710 600 Q724 660 732 722" stroke="#2B2A28" stroke-width="46"/><path d="M710 600 Q724 660 732 722" stroke="#F6C9A0" stroke-width="38"/>
+        </g>
+        <circle cx="386" cy="748" r="30" fill="#F6C9A0" stroke="#2B2A28" stroke-width="5"/><circle cx="734" cy="748" r="30" fill="#F6C9A0" stroke="#2B2A28" stroke-width="5"/>
+        <g id="ovArmR" opacity="0"><path d="M410 600 Q396 660 388 722" stroke="url(#wat)" stroke-width="42" stroke-linecap="round" fill="none"/><circle cx="386" cy="748" r="32" fill="url(#wat)"/></g>
+        <g id="ovArmL" opacity="0"><path d="M710 600 Q724 660 732 722" stroke="url(#wat)" stroke-width="42" stroke-linecap="round" fill="none"/><circle cx="734" cy="748" r="32" fill="url(#wat)"/></g>
+        <g id="dry" opacity="0"><path d="M410 600 Q396 660 388 722" stroke="#D9534F" stroke-width="54" stroke-linecap="round" fill="none" stroke-dasharray="4 12" opacity=".9"/><circle cx="386" cy="748" r="40" fill="none" stroke="#D9534F" stroke-width="6" stroke-dasharray="6 8"/></g>
+        <!-- القلب (النيّة) -->
+        <g id="heartGlow" opacity="0"><circle cx="560" cy="520" r="120" fill="url(#glh)"/></g>
+        <path id="heart" d="M560 556 C522 532 512 512 522 496 C532 482 552 486 560 500 C568 486 588 482 598 496 C608 512 598 532 560 556Z" fill="#E8C4BC" stroke="#C8553D" stroke-width="3"/>
+        <!-- الرقبة والرأس -->
+        <rect x="538" y="392" width="44" height="40" rx="10" fill="#F6C9A0" stroke="#2B2A28" stroke-width="5"/>
+        <circle cx="458" cy="312" r="22" fill="#F6C9A0" stroke="#2B2A28" stroke-width="5"/><circle cx="662" cy="312" r="22" fill="#F6C9A0" stroke="#2B2A28" stroke-width="5"/>
+        <circle cx="560" cy="300" r="100" fill="#F6C9A0" stroke="#2B2A28" stroke-width="6"/>
+        <g clip-path="url(#faceclip)"><ellipse id="ovFace" cx="560" cy="322" rx="98" ry="86" fill="url(#wat)" opacity="0"/></g>
+        <path d="M460 292 Q462 196 560 192 Q658 196 660 292 Q640 240 560 238 Q480 240 460 292Z" fill="#3A2A20" stroke="#2B2A28" stroke-width="5" stroke-linejoin="round"/>
+        <rect id="ovHead" x="0" y="0" width="64" height="30" rx="15" fill="#7CD3F7" opacity="0"/>
+        <circle cx="526" cy="304" r="9" fill="#2B2A28" class="keye"/><circle cx="594" cy="304" r="9" fill="#2B2A28" class="keye"/>
+        <path d="M534 346 Q560 366 586 346" stroke="#2B2A28" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <circle cx="500" cy="338" r="13" fill="#F29C8A" opacity=".45"/><circle cx="620" cy="338" r="13" fill="#F29C8A" opacity=".45"/>
+      </g>
+      <!-- حدود الوجه -->
+      <g id="faceB" opacity="0"><ellipse cx="560" cy="318" rx="104" ry="90" fill="none" stroke="#D9A441" stroke-width="5" stroke-dasharray="12 10"/></g>
+      <g id="arrV" opacity="0"><path d="M560 236 V402" stroke="#16608A" stroke-width="6"/><path d="M548 250 L560 234 L572 250 M548 388 L560 404 L572 388" stroke="#16608A" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+      <g id="arrH" opacity="0"><path d="M440 312 H680" stroke="#16608A" stroke-width="6"/><path d="M454 300 L438 312 L454 324 M666 300 L682 312 L666 324" stroke="#16608A" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+      <!-- علامات المرفق والكعب -->
+      <g id="elbows" opacity="0"><circle cx="410" cy="600" r="34" fill="none" stroke="#D9A441" stroke-width="6" stroke-dasharray="8 6"/><circle cx="710" cy="600" r="34" fill="none" stroke="#D9A441" stroke-width="6" stroke-dasharray="8 6"/>
+        <g transform="translate(830 600)"><rect x="-82" y="-30" width="164" height="56" rx="28" fill="#D9A441"/><text y="10" text-anchor="middle" font-family="B" font-weight="800" font-size="30" fill="#fff">المِرفق</text></g></g>
+      <g id="ankles" opacity="0"><circle cx="522" cy="886" r="22" fill="none" stroke="#D9A441" stroke-width="6" stroke-dasharray="7 5"/><circle cx="598" cy="886" r="22" fill="none" stroke="#D9A441" stroke-width="6" stroke-dasharray="7 5"/>
+        <g transform="translate(760 880)"><rect x="-74" y="-30" width="148" height="56" rx="28" fill="#D9A441"/><text y="10" text-anchor="middle" font-family="B" font-weight="800" font-size="30" fill="#fff">الكعب</text></g></g>
+      <!-- فقاعة التفكير (النيّة) -->
+      <g id="think"><circle cx="455" cy="205" r="10" fill="#fff" stroke="#C8553D" stroke-width="3"/><circle cx="430" cy="178" r="15" fill="#fff" stroke="#C8553D" stroke-width="3"/>
+        <rect x="235" y="88" width="250" height="82" rx="41" fill="#fff" stroke="#C8553D" stroke-width="4"/><text x="360" y="140" text-anchor="middle" font-family="B" font-weight="800" font-size="36" fill="#C8553D">أتوضّأُ لله</text></g>
+      <!-- مسار الترتيب -->
+      <path id="opath" d="M560 520 C640 470 640 360 640 330 C700 420 760 560 734 700 C700 400 600 230 560 214 C680 400 700 700 615 905" fill="none" stroke="#1F5C4A" stroke-width="7" stroke-dasharray="14 10" stroke-linecap="round" opacity="0"/>
+      <g id="badges"></g>
+      <g id="drips"></g>
+    </svg>
+  </div>
+
+  <div id="hud" class="L" style="pointer-events:none">
+    <div id="meter" class="abs"><div class="t">فروضي</div><svg id="msvg" viewBox="0 0 120 640" width="120" height="640" style="overflow:visible"></svg></div>
+
+    <div class="card paper" id="cIntro"><h2 style="text-align:center">فروضُ الوضوء</h2><div class="big" id="six">٦</div>
+      <div class="row" id="warn" style="background:#FDECEA;color:#B23A36;justify-content:center"><i style="background:#D9534F">!</i>تركُ واحدٍ ⇐ لا يصحّ</div></div>
+
+    <div class="card paper" id="cList"><div class="hd">فروضُ الوضوءِ ستّة:</div>
+      <div class="row" id="l1"><i>١</i>النِّيّة</div><div class="row" id="l2"><i>٢</i>غَسلُ الوجه</div><div class="row" id="l3"><i>٣</i>غَسلُ اليدين مع المرفقين</div>
+      <div class="row" id="l4"><i>٤</i>مسحُ شيءٍ من الرأس</div><div class="row" id="l5"><i>٥</i>غَسلُ الرِّجلين مع الكعبين</div><div class="row" id="l6"><i>٦</i>التّرتيب</div></div>
+
+    <div class="card paper" id="c1"><div class="hd"><i>١</i>الفرضُ الأوّل</div><h2>النِّيّة</h2>
+      <div class="tick" id="t11"><b></b>نعزمُ بقلبِنا قبلَ البدء</div><div class="tick" id="t12"><b></b>مكانُها القلب ❤</div><div class="tick" id="t13"><b></b>لا يجبُ قولُها باللسان</div></div>
+    <div class="card paper" id="c2"><div class="hd"><i>٢</i>الفرضُ الثاني</div><h2>غَسلُ الوجه</h2>
+      <div class="tick" id="t21"><b></b>نغسلُ وجهَنا كلَّه</div><div class="tick" id="t22"><b></b>↕ من منابتِ الشَّعر إلى أسفلِ الذَّقن</div><div class="tick" id="t23"><b></b>↔ من الأُذُن إلى الأُذُن</div></div>
+    <div class="card paper" id="c3"><div class="hd"><i>٣</i>الفرضُ الثالث</div><h2>غَسلُ اليدين</h2>
+      <div class="tag" id="t31">مع المِرفقين = مع الكوعين</div><div class="tick" id="t32"><b></b>كلمةُ «مع»: الكوعُ نفسُه يدخلُ في الغَسل</div></div>
+    <div class="card paper" id="c4"><div class="hd"><i>٤</i>الفرضُ الرابع</div><h2>مسحُ الرأس</h2>
+      <div class="tick" id="t41"><b></b>نبلُّ اليدَ بالماء</div><div class="tick" id="t42"><b></b>نمرّرُها على جزءٍ من الرأس</div><div class="tick" id="t43"><b></b>ولو جزءًا صغيرًا</div></div>
+    <div class="card paper" id="c5"><div class="hd"><i>٥</i>الفرضُ الخامس</div><h2>غَسلُ الرِّجلين</h2>
+      <div class="tag" id="t51">مع الكعبين</div><div class="tick" id="t52"><b></b>الكعب: العظمُ البارزُ في جانبِ القدم</div><div class="tick" id="t53"><b></b>نغسلُه كاملًا</div></div>
+    <div class="card paper" id="c6"><div class="hd"><i>٦</i>الفرضُ السادس</div><h2>التّرتيب</h2>
+      <div class="steps" id="t61"><div><span>١</span>النية</div><div><span>٢</span>الوجه</div><div><span>٣</span>اليدان</div><div><span>٤</span>الرأس</div><div><span>٥</span>الرجلان</div></div>
+      <div class="tick" id="t62"><b></b>لا نقدّمُ ولا نؤخّر</div></div>
+
+    <div class="card paper" id="cGloss"><div class="hd">كلمتان جديدتان</div>
+      <div class="row" id="g1" style="white-space:normal;height:auto;padding:10px 18px"><i style="background:#D9A441">١</i>المِرفق = الكوع (مفصلُ الذراع)</div>
+      <div class="row" id="g2" style="white-space:normal;height:auto;padding:10px 18px"><i style="background:#D9A441">٢</i>الكعب = العظمُ البارزُ في جانبِ القدم</div>
+      <div class="tag" id="g3" style="margin-top:20px">المسحُ ≠ الغَسل</div>
+      <div class="row" id="g4"><i style="background:#8E6BBF">✋</i>المسح: نبلُّ اليدَ ونمرّرُها</div>
+      <div class="row" id="g5"><i>💧</i>الغَسل: يسيلُ الماءُ على العضو</div></div>
+
+    <div class="card paper" id="cImag"><div class="hd">تخيّل…</div><h2 style="text-align:center">قبلَ صلاةِ الظُّهر 🕌</h2>
+      <div class="steps" id="isteps"><div id="i1"><span>١</span>ننوي</div><div id="i2"><span>٢</span>الوجه</div><div id="i3"><span>٣</span>اليدان</div><div id="i4"><span>٤</span>الرأس</div><div id="i5"><span>٥</span>الرجلان</div></div>
+      <div class="tag" id="iok" style="font-size:42px;margin-top:22px">✓ وضوءٌ صحيح</div></div>
+
+    <div class="card paper" id="cMain"><div class="hd">الفكرةُ الرئيسية</div><h2 style="text-align:center;font-size:52px">للوضوءِ ستّةُ فروض</h2>
+      <svg id="mdrops" viewBox="0 0 420 110" width="400" height="105" style="display:block;margin:16px auto 0;overflow:visible"></svg>
+      <div class="tag" id="mbad" style="background:#D9534F">✗ تركُ واحدٍ ⇐ لا يصحّ الوضوء</div></div>
+
+    <div class="card paper" id="cThink"><div class="hd">فكّر معي…</div><div class="big" id="qm">؟</div>
+      <div class="tick" id="q1" style="--c:#D9534F"><b></b>نسيتَ غسلَ اليدِ اليُمنى</div><div class="tag" id="q2" style="font-size:38px">هل يصحّ وضوؤك؟</div></div>
+
+    <div class="card paper" id="cMem"><div class="hd">📖 احفظ معي</div><h2 style="text-align:center;font-family:'N';font-weight:700;font-size:54px">فُرُوضُ الوُضُوءِ سِتَّةٌ</h2>
+      <div class="row" id="m1"><i>١</i>النِّيَّةُ</div><div class="row" id="m2"><i>٢</i>غَسْلُ الوَجْهِ</div><div class="row" id="m3"><i>٣</i>غَسْلُ اليَدَيْنِ مَعَ المِرْفَقَيْنِ</div>
+      <div class="row" id="m4"><i>٤</i>مَسْحُ شَيْءٍ مِنَ الرَّأْسِ</div><div class="row" id="m5"><i>٥</i>غَسْلُ الرِّجْلَيْنِ مَعَ الكَعْبَيْنِ</div><div class="row" id="m6"><i>٦</i>التَّرْتِيبُ</div></div>
+
+    <div class="card paper" id="cEnd"><h2 style="text-align:center">أحسنتَ يا بطل! 🏅</h2>
+      <div class="tick" id="e1"><b></b>طبّقْها في كلِّ وضوء</div>
+      <div class="tag" id="e2" style="background:#1F7FB0;display:block;font-size:32px;line-height:1.4;padding:10px 18px 16px">الدرسُ القادم:<br>شروطُ الوضوءِ الثمانية</div></div>
+  </div>
+
+  <div id="presenter" class="L" style="pointer-events:none">
+    <div id="shadow"></div>
+    <div id="boy">
+      <img id="body" src="assets/man_body.png" alt="">
+      <div id="headw">
+        <img src="assets/man_head.png" alt="">
+        <svg viewBox="0 0 633 451">
+          <ellipse id="lidL" cx="198" cy="247" rx="31" ry="0" fill="#F8BF99"/><ellipse id="lidR" cx="318" cy="245" rx="35" ry="0" fill="#F8BF99"/>
+          <path id="lashL" d="M170 249 Q198 260 226 249" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+          <path id="lashR" d="M286 247 Q318 258 350 247" stroke="#222" stroke-width="8" fill="none" stroke-linecap="round" opacity="0"/>
+          <g id="mouthg" opacity="0">
+            <ellipse cx="263" cy="347" rx="52" ry="15" fill="#F8BF99"/>
+            <ellipse id="mo" cx="263" cy="347" rx="20" ry="4" fill="#5A2A1E" stroke="#222" stroke-width="4"/>
+            <ellipse id="tg" cx="263" cy="353" rx="10" ry="3" fill="#E87F86"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div id="bubble" class="abs paper"><div>السلام عليكم!</div></div>
+  </div>
+
+  <div id="title" class="abs paper"><div id="banner">فروضُ الوضوء</div></div>
+  <div id="subs" class="abs"><div id="subtxt"></div></div>
+  <div id="conf" class="L" style="pointer-events:none"></div>
+  <div id="vig" class="L"></div>
+  <svg id="grain" class="L" viewBox="0 0 1920 1080"><filter id="pn"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 .4  0 0 0 0 .45  0 0 0 0 .5  0 0 0 .5 0"/></filter><rect width="1920" height="1080" filter="url(#pn)"/></svg>
+</div>
+
+<script src="lib/motion.js"></script>
+<script src="timing.js"></script>
+<script>
+const P = TIMING.phrases, ENV = TIMING.env;
+const FILM = { width: 1920, height: 1080, fps: 30, duration: TIMING.duration, cuts: [] };
+const { sp, set, clamp, lerp, ease, range, track } = M; const $ = M.$;
+const env = t => { const f = t * TIMING.fps, i = Math.floor(f); const a = ENV[i] || 0, b = ENV[i + 1] || 0; return lerp(a, b, f - i); };
+const at = (i, k = 'a') => P[i][k];
+const NS = 'http://www.w3.org/2000/svg';
+
+function maskWords(el, text) { el.innerHTML = ''; return text.split(/\s+/).filter(Boolean).map(w => { const m = document.createElement('span'); m.className = 'mk'; const s = document.createElement('span'); s.className = 'mi'; s.textContent = w; m.appendChild(s); el.appendChild(m); return s; }); }
+function pop(el, t, t0, { preset = 'playful', from = .3, rot = -6, dy = 40 } = {}) { const s = sp(t - t0, preset); set(el, { s: lerp(from, 1, s), y: (1 - s) * dy, r: (1 - s) * rot, o: clamp((t - t0) / .08) }); if (t < t0) el.style.opacity = 0; return s; }
+const popR = (el, t, t0) => pop(el, t, t0, { from: .6, rot: 0, dy: 20 });
+function card(el, t, t0, t1) {
+  const s = sp(t - t0, 'ui'), out = ease.power4In(range(t, t1, t1 + .35));
+  set(el, { x: (1 - s) * 560, y: -out * 700, r: (1 - s) * 5 - out * 4, o: clamp((t - t0) / .1) * (1 - out) });
+}
+const win = (t, a, b, fi = .25, fo = .4) => clamp((t - a) / fi) * (1 - clamp((t - b) / fo));   // نافذة ظهور ناعمة
+
+// ---------------------------------------------------------------- أحداث (أرقام العبارات من timing.py)
+const FH = [21, 26, 30, 34, 36, 39];                       // بداية كل فرض في الشرح التفصيلي
+const E = {
+  boyIn: .25, hello: at(0), titleIn: .15, titleGlow: at(2) + 1.2, titleUp: at(2) - .3,
+  intro: at(2) + .2, six: at(2) + 1.6, warn: at(3) + .4, list: at(5), item: [6, 7, 8, 9, 10, 11].map(i => at(i)),
+  sum: [14, 15, 16, 17, 18, 19].map(i => at(i)), f: FH.map(i => at(i)),
+  t11: at(22) + .2, think: at(23) - .1, t12: at(24) + .2, t13: at(25) + .2,
+  t21: at(27) + .1, t22: at(28) + .3, t23: at(29) + .1,
+  t31: at(31), t32: at(33) + .1, elbowsF3: at(31),
+  swipe: at(35) + .8, t41: at(35) + .3, t42: at(35) + 1.8, t43: at(35) + 3.2,
+  t51: at(36) + 1.8, t52: at(37) + .2, t53: at(38) + .1,
+  t61: at(40) + .1, t62: at(41) + .1,
+  gloss: at(42) - .1, g1: at(43), g2: at(44), g3: at(45), g4: at(46) + .1, g5: at(47) + .1,
+  imag: at(48) - .1, ist: [49, 50, 51, 52, 53].map(i => at(i)), iok: at(55),
+  main: at(56) - .1, mbad: at(58) + .6, think2: at(59) - .1, q1: at(60) + .2, q2: at(61),
+  mem: at(62) - .1, mrow: [64, 65, 66, 67, 68, 69].map(i => at(i)),
+  bravo: at(70), e1: at(71) + .2, e2: at(72) + .3,
+};
+const CARDS = [['#cIntro', E.intro, E.list - .3], ['#cList', E.list, E.f[0] - .3],
+  ...E.f.map((t0, i) => ['#c' + (i + 1), t0 - .1, (E.f[i + 1] || E.gloss) - .3]),
+  ['#cGloss', E.gloss, E.imag - .3], ['#cImag', E.imag, E.main - .3], ['#cMain', E.main, E.think2 - .3], ['#cThink', E.think2, E.mem - .3],
+  ['#cMem', E.mem, E.bravo - .3], ['#cEnd', E.bravo, 999]];
+// نوافذ إضاءة كل عضو: 0 القلب، 1 الوجه، 2 اليدان، 3 الرأس، 4 الرجلان
+const GLOW = [[], [], [], [], []];
+E.item.slice(0, 5).forEach((a, k) => GLOW[k].push([a, at(6 + k, 'b') + .5]));
+E.sum.slice(0, 5).forEach((a, k) => GLOW[k].push([a, at(14 + k, 'b') + .3]));
+E.f.slice(0, 5).forEach((a, k) => GLOW[k].push([a + .3, E.f[k + 1] - .3]));
+GLOW[2].push([E.g1, at(43, 'b') + .3]); GLOW[4].push([E.g2, at(44, 'b') + .3]);
+E.ist.forEach((a, k) => GLOW[k].push([a, at(49 + k, 'b') + .4]));
+E.mrow.slice(0, 5).forEach((a, k) => GLOW[k].push([a, at(64 + k, 'b') + .3]));
+const glow = (k, t) => Math.max(0, ...GLOW[k].map(([a, b]) => win(t, a, b)));
+// الكاميرا: تقترب من العضو المشروح
+const FOC = [[1.22, 560, 520], [1.32, 560, 320], [1.16, 560, 660], [1.32, 560, 250], [1.25, 560, 860]];   // [زوم، x، y]
+const camK = [[0, [1.04, 560, 540]], [E.list - .3, [1, 560, 540]], ...E.f.slice(0, 5).map((t0, i) => [t0 - .2, FOC[i]]), [E.f[5] - .2, [1, 560, 540]]];
+const cam = t => [0, 1, 2].map(c => track(t, camK.map(([tt, v]) => [tt, v[c]]), 'base'));
+// عدّاد القطرات: قطرة لكل فرض
+const DROP = 'M0 -46 C18 -20 34 0 34 18 C34 38 18 50 0 50 C-18 50 -34 38 -34 18 C-34 0 -18 -20 0 -46Z';
+const meterFill = [E.f[0] + .8, E.f[1] + .8, E.f[2] + .8, E.f[3] + .8, E.f[4] + .8, E.f[5] + 1.2];
+const msvg = $('#msvg'), mclips = [];
+for (let k = 0; k < 6; k++) {
+  const y = 60 + k * 104;
+  msvg.insertAdjacentHTML('beforeend', `<clipPath id="dc${k}"><path d="${DROP}" transform="translate(60 ${y})"/></clipPath>
+    <path d="${DROP}" transform="translate(60 ${y})" fill="#fff" stroke="#7CC6E6" stroke-width="5"/>
+    <rect id="dr${k}" x="20" y="${y + 50}" width="80" height="0" fill="url(#wat)" clip-path="url(#dc${k})"/>
+    <path d="${DROP}" transform="translate(60 ${y})" fill="none" stroke="#1F7FB0" stroke-width="5"/>
+    <text x="60" y="${y + 30}" text-anchor="middle" font-family="B" font-weight="800" font-size="32" fill="#1F7FB0" id="dn${k}">${'١٢٣٤٥٦'[k]}</text>`);
+  mclips.push(y);
+}
+const md = $('#mdrops'); for (let k = 0; k < 6; k++) md.insertAdjacentHTML('beforeend', `<path d="${DROP}" transform="translate(${385 - k * 70} 55) scale(.9)" fill="url(#wat)" stroke="#1F7FB0" stroke-width="5" id="mm${k}"/>`);
+md.insertAdjacentHTML('beforeend', `<g id="mx" opacity="0"><path d="M155 30 L215 90 M215 30 L155 90" stroke="#D9534F" stroke-width="12" stroke-linecap="round"/></g>`);
+// شارات الترتيب على الأعضاء
+const BP = [[560, 520], [640, 330], [734, 700], [560, 214], [615, 905]];
+BP.forEach(([x, y], k) => $('#badges').insertAdjacentHTML('beforeend', `<g id="bd${k}" opacity="0"><circle cx="${x}" cy="${y}" r="27" fill="#1F5C4A" stroke="#fff" stroke-width="5"/><text x="${x}" y="${y + 11}" text-anchor="middle" font-family="B" font-weight="800" font-size="30" fill="#fff">${'١٢٣٤٥'[k]}</text></g>`));
+// قطرات ماء تتساقط من العضو المغسول
+const DRIPSRC = [[520, 400], [600, 400], [386, 778], [734, 778], [505, 932], [615, 932]];
+const drips = []; for (let i = 0; i < 18; i++) { const c = document.createElementNS(NS, 'path'); c.setAttribute('d', 'M0 -9 C4 -3 7 1 7 4 C7 8 4 10 0 10 C-4 10 -7 8 -7 4 C-7 1 -4 -3 0 -9Z'); c.setAttribute('fill', '#3AA8E0'); $('#drips').appendChild(c); drips.push(c); }
+const conf = $('#conf'), bits = [], R = M.rng(7), COL = ['#2E9FD8', '#3BA57A', '#D9A441', '#8E6BBF', '#C8553D'];
+for (let i = 0; i < 60; i++) { const d = document.createElement('div'); d.className = 'conf'; d.style.background = COL[i % 5]; conf.appendChild(d); bits.push({ d, x: R() * 1920, v: 170 + R() * 230, w: R() * 6, r0: R() * 360, delay: R() * .9 }); }
+const SUBW = P.map(p => p.text);
+let subIdx = -1, subWords = [];
+
+window.FILM = FILM;
+window.renderAt = async function (t) {
+  // ----- الكاميرا
+  const [cs, fx, fy] = cam(t);
+  set($('#world'), { x: 560 - fx * cs, y: 540 - fy * cs, s: cs });
+
+  // ----- العنوان
+  const tin = sp(t - E.titleIn, 'playful'), up = ease.inOut3(range(t, E.titleUp, E.titleUp + .8));
+  const gl = t > E.titleGlow ? Math.exp(-(t - E.titleGlow) * 3) * Math.sin(Math.min(Math.PI, (t - E.titleGlow) * 8)) : 0;
+  const tx = lerp(200, 640, up), ty = lerp(360, 22, up), ts = lerp(.2, 1, tin) * lerp(1, .5, up) * (1 + gl * .06);
+  $('#title').style.transform = `translate(${tx}px, ${ty}px) scale(${ts})`; $('#title').style.transformOrigin = '0 0';
+  $('#title').style.opacity = clamp((t - E.titleIn) / .1);
+
+  // ----- الطفل يظهر مع القائمة
+  const kin = sp(t - (E.titleUp + .2), [140, 13]);
+  $('#kid').setAttribute('transform', `translate(0 ${(1 - kin) * 700})`); $('#kid').style.opacity = clamp((t - E.titleUp - .2) / .1);
+  const bl = ((t + 1.3) % 3.6) / .15; document.querySelectorAll('.keye').forEach(e => e.setAttribute('ry', 9)); document.querySelectorAll('.keye').forEach(e => e.setAttribute('r', bl < 1 ? 9 * (1 - .8 * Math.sin(Math.PI * bl)) : 9));
+
+  // ----- إضاءة الأعضاء
+  const g = [0, 1, 2, 3, 4].map(k => glow(k, t));
+  const shim = .78 + .22 * Math.sin(t * 6);
+  $('#heartGlow').style.opacity = g[0]; $('#heart').setAttribute('fill', g[0] > .05 ? `rgb(${lerp(232, 230, g[0])},${lerp(196, 90, g[0])},${lerp(188, 80, g[0])})` : '#E8C4BC');
+  $('#heart').setAttribute('transform', `translate(560 520) scale(${1 + .12 * g[0] * Math.max(0, Math.sin(t * 7))}) translate(-560 -520)`);
+  $('#ovFace').style.opacity = g[1] * .62 * shim;
+  ['#ovArmR', '#ovArmL'].forEach(id => $(id).style.opacity = g[2] * .7 * shim);
+  $('#ovFeet').style.opacity = g[4] * .7 * shim;
+  // مسح الرأس: كفّ مبلولة تمرّ على جزء من الرأس
+  const sw = Math.max(win(t, E.swipe, E.f[4] - .5), ...GLOW[3].map(([a, b]) => win(t, a, b)));
+  const sx = 500 + ((t * 70) % 90);
+  $('#ovHead').setAttribute('x', sx); $('#ovHead').setAttribute('y', 214); $('#ovHead').style.opacity = sw * .9;
+  // قطرات تتساقط
+  const dsrc = []; if (g[1] > .3) dsrc.push(0, 1); if (g[2] > .3) dsrc.push(2, 3); if (g[4] > .3) dsrc.push(4, 5);
+  drips.forEach((d, i) => { if (!dsrc.length) { d.style.opacity = 0; return; } const s = DRIPSRC[dsrc[i % dsrc.length]], ph = ((t * 1.3 + i * .37) % 1);
+    d.setAttribute('transform', `translate(${s[0] + ((i * 13) % 30) - 15} ${s[1] + ph * 90})`); d.style.opacity = (1 - ph) * .9; });
+
+  // ----- حدود الوجه، المرفق، الكعب، فقاعة النية، الترتيب
+  $('#faceB').style.opacity = win(t, E.t22 - .3, E.f[2] - .4);
+  $('#arrV').style.opacity = win(t, E.t22, E.f[2] - .4); $('#arrH').style.opacity = win(t, E.t23, E.f[2] - .4);
+  const elb = Math.max(win(t, E.elbowsF3, E.f[3] - .4), win(t, E.g1, at(43, 'b') + .4));
+  $('#elbows').style.opacity = elb; $('#elbows').setAttribute('transform', `translate(0 ${(1 - clamp(elb * 3)) * 10})`);
+  $('#ankles').style.opacity = Math.max(win(t, E.t52 - .2, E.f[5] - .4), win(t, E.g2, at(44, 'b') + .4));
+  const th = win(t, E.think, at(24, 'b') + .4); const ths = sp(t - E.think, 'playful');
+  $('#think').style.opacity = th; $('#think').setAttribute('transform', `translate(440 180) scale(${t > E.think ? ths : 0}) translate(-440 -180)`);
+  const ord = Math.max(win(t, E.sum[5], at(20, 'b') + .3), win(t, E.t61 - .4, E.gloss - .4));
+  $('#opath').style.opacity = ord * .9; $('#opath').style.strokeDashoffset = -t * 40;
+  BP.forEach((_, k) => { const t0 = Math.min(...[E.sum[k], E.t61 + k * .35].filter(x => t >= x).concat([1e9])); const s = t0 < 1e9 ? sp(t - t0, 'playful') : 0;
+    const vis = Math.max(win(t, E.sum[k], at(20, 'b') + .3), win(t, E.t61 + k * .35, E.gloss - .4));
+    $('#bd' + k).style.opacity = vis; const [x, y] = BP[k]; $('#bd' + k).setAttribute('transform', `translate(${x} ${y}) scale(${Math.max(0, s)}) translate(${-x} ${-y})`); });
+  $('#dry').style.opacity = win(t, E.q1, E.mem - .4) * (.6 + .4 * Math.sin(t * 6));
+  $('#ovArmR').style.opacity = t > E.q1 && t < E.mem ? 0 : $('#ovArmR').style.opacity;
+
+  // ----- عدّاد القطرات
+  $('#meter').style.opacity = clamp((t - E.list) / .3); set($('#meter'), { x: (1 - sp(t - E.list, 'ui')) * -200, o: clamp((t - E.list) / .3) });
+  for (let k = 0; k < 6; k++) { const y = mclips[k]; let f = clamp(sp(t - meterFill[k], [90, 14]), 0, 1);
+    if (k === 2 && t > E.mbad && t < E.think2) f *= 1 - clamp((t - E.mbad) / .4);
+    $('#dr' + k).setAttribute('y', y + 50 - 96 * f); $('#dr' + k).setAttribute('height', 96 * f); $('#dn' + k).setAttribute('fill', f > .5 ? '#fff' : '#1F7FB0'); }
+
+  // ----- البطاقات
+  CARDS.forEach(([id, a, b]) => card($(id), t, a, b));
+  pop($('#six'), t, E.six, { rot: -10 }); popR($('#warn'), t, E.warn);
+  E.item.forEach((a, k) => popR($('#l' + (k + 1)), t, a));
+  E.sum.forEach((a, k) => { const h = win(t, a, at(14 + k, 'b') + .3); $('#l' + (k + 1)).style.background = `rgba(46,159,216,${.08 + .3 * h})`; });
+  [['#t11', E.t11], ['#t12', E.t12], ['#t13', E.t13], ['#t21', E.t21], ['#t22', E.t22], ['#t23', E.t23], ['#t32', E.t32], ['#t41', E.t41], ['#t42', E.t42], ['#t43', E.t43], ['#t52', E.t52], ['#t53', E.t53], ['#t62', E.t62]].forEach(([id, a]) => popR($(id), t, a));
+  pop($('#t31'), t, E.t31, { from: .5, rot: -3, dy: 20 }); pop($('#t51'), t, E.t51, { from: .5, rot: -3, dy: 20 });
+  pop($('#t61'), t, E.t61, { from: .5, rot: 0, dy: 20 });
+  [['#g1', E.g1], ['#g2', E.g2], ['#g4', E.g4], ['#g5', E.g5]].forEach(([id, a]) => popR($(id), t, a)); pop($('#g3'), t, E.g3, { from: .5, rot: -3, dy: 20 });
+  E.ist.forEach((a, k) => pop($('#i' + (k + 1)), t, a, { from: .2, rot: 0, dy: 20 })); pop($('#iok'), t, E.iok, { from: .3, rot: -4 });
+  pop($('#mbad'), t, E.mbad, { from: .5, rot: -3, dy: 20 });
+  const mb = clamp((t - E.mbad) / .4); $('#mm2').setAttribute('fill', mb > 0 ? `rgba(255,255,255,${mb})` : 'url(#wat)'); if (mb > .5) $('#mm2').setAttribute('fill', '#fff'); $('#mx').style.opacity = mb;
+  pop($('#qm'), t, E.think2 + .3, { rot: -10 }); popR($('#q1'), t, E.q1); pop($('#q2'), t, E.q2, { from: .5, rot: -3, dy: 20 });
+  E.mrow.forEach((a, k) => { const el = $('#m' + (k + 1)); el.style.opacity = t > at(63) ? 1 : 0; const h = win(t, a, at(64 + k, 'b') + .3);
+    el.style.background = `rgba(46,159,216,${.08 + .35 * h})`; el.style.transform = `scale(${1 + .04 * h})`; });
+  popR($('#e1'), t, E.e1); pop($('#e2'), t, E.e2, { from: .4, rot: -3 });
+  const ct = t - E.bravo - .1;
+  bits.forEach(b => { const k = ct - b.delay; set(b.d, { x: b.x + Math.sin(k * 3 + b.w) * 40, y: -60 + k * b.v, r: b.r0 + k * 220, o: k > 0 ? 1 : 0 }); });
+
+  // ----- المقدّم
+  const e = env(t), talk = clamp(e * 1.4);
+  const inS = sp(t - E.boyIn, [160, 13]);
+  const hop = Math.max(0, Math.sin(Math.PI * clamp((t - E.boyIn) / .55))) * 60 + (t > E.bravo ? Math.max(0, Math.sin(Math.PI * clamp((t - E.bravo) / .5))) * 70 : 0);
+  let lean = 0; for (const f of E.f) lean += -3.5 * Math.sin(Math.PI * clamp((t - f + .3) / 2.2));
+  const bob = Math.sin(t * 2.1) * 4 + talk * 6;
+  set($('#boy'), { x: (1 - inS) * 700, y: (1030 - 1777) - hop * .5 - bob * .3, s: .43, r: lean });
+  set($('#shadow'), { x: (1 - inS) * 700, sx: 1 - hop / 300, o: .9 });
+  const nod = talk * 3 + Math.sin(t * 1.3) * 1;
+  const htl = Math.sin(t * 1.7) * (1 + talk * 2) + (t > E.bravo ? 3 * Math.sin(Math.PI * clamp((t - E.bravo) / 1.2)) : 0);
+  $('#headw').style.transform = `translate(0px, ${-nod}px) rotate(${htl}deg)`;
+  const mo = clamp((e - .06) * 1.25);
+  $('#mouthg').style.opacity = clamp((mo - .06) / .08);
+  $('#mo').setAttribute('rx', 20 + mo * 9); $('#mo').setAttribute('ry', 3 + mo * 12); $('#mo').setAttribute('cy', 346 + mo * 3);
+  $('#tg').setAttribute('cy', 349 + mo * 8); $('#tg').setAttribute('ry', 2 + mo * 4); $('#tg').style.opacity = mo > .25 ? 1 : 0;
+  const bp = ((t + .7) % 3.3) / .16, blink = bp < 1 ? Math.sin(Math.PI * bp) : 0;
+  for (const s of ['L', 'R']) { $('#lid' + s).setAttribute("ry", 27 * blink); $('#lash' + s).style.opacity = blink > .8 ? 1 : 0; }
+  pop($('#bubble'), t, E.hello + .1, { rot: 8, from: .2 });
+  const bo = ease.power4In(range(t, at(0, 'b') + .5, at(0, 'b') + .8)); if (bo > 0) set($('#bubble'), { s: 1 - bo * .6, o: 1 - bo });
+
+  // ----- الترجمة (تصغير تلقائي للعبارات الطويلة)
+  let idx = -1; for (let i = 0; i < P.length; i++) if (t >= P[i].a - .05 && t < (P[i + 1] ? P[i + 1].a - .08 : P[i].b + 1.5)) idx = i;
+  if (idx !== subIdx) { subIdx = idx; subWords = idx >= 0 ? maskWords($('#subtxt'), SUBW[idx]) : [];
+    const box = $('#subs div'); box.style.fontSize = '44px'; if (idx >= 0) { const w = box.scrollWidth; if (w > 1240) box.style.fontSize = (44 * 1240 / w).toFixed(1) + 'px'; } }
+  $('#subs').style.opacity = idx >= 0 ? 1 : 0;
+  if (idx >= 0) {
+    const p = P[idx], nx = P[idx + 1], gap = nx ? nx.a - p.b : 9;
+    const out = nx ? Math.min(nx.a - .1, p.b + 1.1) : p.b + 1.1;
+    const span = Math.max(.3, p.b - p.a);
+    subWords.forEach((s, i) => { const a = p.a - .12 + (i / subWords.length) * span * .8; const pn = sp(t - a, 'type'), po = ease.power4In(range(t, out - .2, out));
+      s.style.transform = `translateY(${(1 - pn) * 150 - po * 150}%)`; });
+    const boxIn = sp(t - p.a + .05, 'ui');
+    const boxOut = (gap > .9 || !nx) ? range(t, out - .1, out + .05) : 0;
+    set($('#subs div'), { s: lerp(.94, 1, boxIn), o: 1 - boxOut });
+  }
+};
+const imgs = [...document.images].map(i => i.complete ? null : new Promise(r => i.onload = r)).filter(Boolean);
+window.__ready = Promise.all([document.fonts.ready, ...imgs]).then(() => Promise.all([...document.fonts].map(f => f.load()))).then(() => window.renderAt(0)).then(() => true);
+</script>
+</body>
+</html>
