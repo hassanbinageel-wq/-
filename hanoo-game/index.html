@@ -64,6 +64,9 @@ const FLK = Object.fromEntries(FL.map(f => [f.key, f]));
 const IMG = {};
 const names = ['hanoo','hanoo_hero','warda','asmar','mansour','shams','milk_strawberry','milk_chocolate','milk_banana','milk_mango',
   'bg_strawberry','bg_chocolate','bg_banana','bg_mango','ground','crate','cone','bee','flag'];
+/* run-cycle sprite sheets (12 frames in a row); characters without one fall back to the standing sprite */
+const RUN = ['hanoo'], RUN_FRAMES = 12;
+RUN.forEach(n => names.push(n + '_run'));
 const loaded = Promise.all(names.map(n => new Promise(res => {
   const im = new Image(); im.onload = im.onerror = res; im.src = 'assets/' + n + '.webp'; IMG[n] = im;
 })));
@@ -312,6 +315,14 @@ function drawChar(img, x, fy, h, o = {}) {
   }
   ctx.restore();
 }
+function drawRun(img, frame, x, fy, h, o = {}) {
+  const fw = img.width / RUN_FRAMES, w = h * fw / img.height;
+  ctx.save(); ctx.translate(x, fy); ctx.rotate(o.rot || 0); ctx.scale(o.sx || 1, o.sy || 1);
+  if (o.alpha != null) ctx.globalAlpha = o.alpha;
+  ctx.drawImage(img, Math.floor(frame) % RUN_FRAMES * fw, 0, fw, img.height, -w / 2, -h, w, h);
+  ctx.restore();
+}
+const runFrame = ph => ((ph / 6.2832) % 1 + 1) % 1 * RUN_FRAMES;
 function shadow(x, lift, w) { const s = clamp(1 - lift / 420, 0.35, 1); ctx.fillStyle = `rgba(20,30,60,${0.28 * s})`; ctx.beginPath(); ctx.ellipse(x, GY + 6, w * s, 10 * s, 0, 0, 6.3); ctx.fill(); }
 function heart(x, y, s, on) {
   ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.beginPath();
@@ -394,7 +405,9 @@ function drawPlayer() {
   if (g.power && state === 'play') {
     const f = FLK[g.power], im = IMG[f.friend], cx = g.comp.x;
     shadow(cx, 0, 36);
-    drawChar(im, cx, GY - Math.abs(Math.sin(g.comp.ph)) * 7, 168, { shear: Math.sin(g.comp.ph) * 0.2, rot: 0.04 });
+    const fr = IMG[f.friend + '_run'];
+    if (fr && fr.width) drawRun(fr, runFrame(g.comp.ph), cx, GY + 4, 182);
+    else drawChar(im, cx, GY - Math.abs(Math.sin(g.comp.ph)) * 7, 168, { shear: Math.sin(g.comp.ph) * 0.2, rot: 0.04 });
     ctx.fillStyle = f.color; rr(cx - 44, GY - 212, 88, 30, 15); ctx.fill();
     txt(f.name, cx, GY - 196, 22, '#fff', 'center', null);
   }
@@ -404,7 +417,8 @@ function drawPlayer() {
   const shear = air ? 0.16 : (state === 'play' ? Math.sin(p.phase) * 0.23 : 0);
   const bob = p.ground && state === 'play' ? Math.abs(Math.sin(p.phase)) * 8 : 0;
   const alpha = g.inv > 0 && Math.floor(g.t * 14) % 2 ? 0.35 : 1;
-  drawChar(IMG.hanoo, p.x, p.y - bob, 200, { sx, sy, rot, shear, alpha });
+  if (IMG.hanoo_run.width && state !== 'over') drawRun(IMG.hanoo_run, air ? 2 : runFrame(p.phase), p.x, p.y + 4, 215, { sx, sy, rot: air ? rot : p.vx / 360 * 0.06, alpha });
+  else drawChar(IMG.hanoo, p.x, p.y - bob, 200, { sx, sy, rot, shear, alpha });
   const cy = p.y - (p.duck ? 60 : 100);
   if (g.power === 'chocolate') { ctx.save(); ctx.fillStyle = 'rgba(154,90,53,0.22)'; ctx.strokeStyle = 'rgba(255,240,220,0.9)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(p.x, cy, 86, 118 * (p.duck ? 0.65 : 1), 0, 0, 6.3); ctx.fill(); ctx.setLineDash([16, 10]); ctx.lineDashOffset = -g.t * 60; ctx.stroke(); ctx.restore(); }
   if (g.power === 'mango') { ctx.save(); ctx.strokeStyle = 'rgba(245,146,27,0.55)'; ctx.lineWidth = 4; const r = 60 + (g.t * 220) % 300; ctx.globalAlpha = 1 - (r - 60) / 300; ctx.beginPath(); ctx.arc(p.x, cy, r, 0, 6.3); ctx.stroke(); ctx.restore(); }
