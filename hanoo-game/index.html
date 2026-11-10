@@ -65,7 +65,7 @@ const IMG = {};
 const names = ['hanoo','hanoo_hero','warda','asmar','mansour','shams','milk_strawberry','milk_chocolate','milk_banana','milk_mango',
   'bg_strawberry','bg_chocolate','bg_banana','bg_mango','ground','crate','cone','bee','flag'];
 /* run-cycle sprite sheets (12 frames in a row); characters without one fall back to the standing sprite */
-const RUN = ['hanoo'], RUN_FRAMES = 12;
+const RUN = ['hanoo','warda','asmar','mansour','shams'], RUN_FRAMES = 12;
 RUN.forEach(n => names.push(n + '_run'));
 const loaded = Promise.all(names.map(n => new Promise(res => {
   const im = new Image(); im.onload = im.onerror = res; im.src = 'assets/' + n + '.webp'; IMG[n] = im;
