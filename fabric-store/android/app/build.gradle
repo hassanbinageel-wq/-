@@ -16,21 +16,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    // مفتاح توقيع ثابت داخل المستودع: يضمن أن كل نسخة جديدة تُثبَّت فوق القديمة دون حذف البيانات
+    // مفتاح التوقيع يُقرأ من متغيرات البيئة (GitHub Secrets) ولا يُحفظ في المستودع أبدًا
+    def ksPath = System.getenv("FABRIC_KEYSTORE_PATH")
+    def hasKey = ksPath && file(ksPath).exists()
     signingConfigs {
         fabric {
-            storeFile file('fabric-store.keystore')
-            storePassword 'fabricstore2026'
-            keyAlias 'fabricstore'
-            keyPassword 'fabricstore2026'
+            if (hasKey) {
+                storeFile file(ksPath)
+                storePassword System.getenv("FABRIC_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("FABRIC_KEY_ALIAS")
+                keyPassword System.getenv("FABRIC_KEY_PASSWORD")
+            }
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.getByName("fabric")
-        }
         release {
-            signingConfig signingConfigs.getByName("fabric")
+            if (hasKey) signingConfig signingConfigs.getByName("fabric")
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
