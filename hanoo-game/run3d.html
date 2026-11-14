@@ -71,7 +71,20 @@ body{
 .go{pointer-events:auto; font:inherit; font-weight:800; font-size:1.7em; color:var(--night); background:var(--sun); border:0; border-radius:1em; padding:.3em 1.6em; cursor:pointer; animation:pulse 1.1s ease-in-out infinite}
 .go:focus-visible{outline:.15em solid #fff; outline-offset:.15em}
 @keyframes pulse{50%{transform:scale(1.06)}}
+.go.alt{background:var(--ink); animation:none}
+.row{display:flex; gap:1em; justify-content:center; align-items:center; flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){.go{animation:none}}
+#lobby .result{pointer-events:auto; display:flex; flex-direction:column; gap:.7em; align-items:center}
+#lobby label{font-size:1.2em; font-weight:800; display:flex; gap:.6em; align-items:center}
+#lobby input{font:inherit; font-weight:800; font-size:1.1em; color:var(--night); background:var(--ink); border:0; border-radius:.6em; padding:.25em .6em; width:8em; text-align:center}
+#lobby input:focus-visible, .link:focus-visible{outline:.15em solid var(--sun); outline-offset:.1em}
+#lobby #codeIn{width:5em; letter-spacing:.25em; direction:ltr}
+#lobby .code{font-size:4em; font-weight:800; letter-spacing:.2em; color:var(--sun); direction:ltr; line-height:1.1}
+#lobby p{font-size:1.1em; font-weight:500; text-shadow:none; max-width:24em}
+.link{pointer-events:auto; font:inherit; font-size:1.1em; color:var(--ink); background:none; border:0; text-decoration:underline; cursor:pointer}
+#hud .segs em.opp{border-color:#2a7fd4; background:var(--sun)}
+#hud .rank{position:absolute; top:5.1em; left:1.2em; font-size:1.2em}
+#hud .count{position:absolute; top:34%; left:50%; transform:translate(-50%,-50%); font-size:9em; font-weight:800; color:var(--sun); -webkit-text-stroke:.05em var(--night); paint-order:stroke fill; line-height:1}
 .result{background:var(--panel); border-radius:1.8em; padding:1.4em 2.6em; border-top:.7em solid var(--sun); min-width:26em}
 .result h2{margin:0; font-size:2.9em; color:var(--sun)}
 .result .big{font-size:2.6em; font-weight:800}
@@ -99,26 +112,43 @@ kbd{font-family:inherit; font-weight:800; background:var(--edge); color:var(--su
     <canvas id="fx"></canvas>
     <div id="hud" class="layer" hidden>
       <div class="hearts pill"></div>
-      <div class="prog pill"><div class="segs"><span></span><span></span><span></span><span></span><em></em></div></div>
+      <div class="prog pill"><div class="segs"><span></span><span></span><span></span><span></span><em class="opp" id="oppDot" hidden></em><em id="meDot"></em></div></div>
       <div class="counts"></div>
       <div class="score pill"><span>النقاط</span><b id="score">0</b></div>
       <div class="combo pill" hidden><span id="comboTxt"></span><i id="comboBar"></i></div>
       <div class="power pill" hidden><div class="face"><img id="powerImg" alt=""></div><div class="txt"><span id="powerTxt"></span><div class="bar"><i id="powerBar"></i></div></div></div>
       <div class="banner" id="banner"></div>
       <div class="note pill" id="note" hidden></div>
+      <div class="rank pill" id="rank" hidden></div>
+      <div class="count" id="count" hidden></div>
     </div>
     <div id="menu" class="screen layer">
       <h1>سباق هنوو</h1>
       <p>اجمع علب الحليب، وكل علبة متتالية تزيد نقاطك</p>
       <div class="cards" id="cards"></div>
-      <button class="go" id="startBtn" type="button">ابدأ اللعب</button>
+      <div class="row"><button class="go" id="startBtn" type="button">العب لوحدك</button><button class="go alt" id="raceBtn" type="button">سباق مع صديق</button></div>
       <p id="bestMenu" hidden></p>
+    </div>
+    <div id="lobby" class="screen layer" hidden>
+      <div class="result">
+        <h2>سباق مع صديق</h2>
+        <label for="nameIn">اسمك <input id="nameIn" maxlength="12" autocomplete="off"></label>
+        <div id="lobbyHome" class="row">
+          <button class="go" id="hostBtn" type="button">أنشئ سباق</button>
+          <label for="codeIn">أو رمز صديقك <input id="codeIn" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off"></label>
+          <button class="go alt" id="joinBtn" type="button">ادخل</button>
+        </div>
+        <div id="lobbyWait" hidden><div>رمز السباق</div><div class="code" id="codeOut"></div></div>
+        <p id="lobbyMsg"></p>
+        <button class="link" id="backBtn" type="button">رجوع</button>
+      </div>
     </div>
     <div id="end" class="screen layer" hidden>
       <div class="result">
         <h2 id="endTitle"></h2>
         <div class="big" id="endScore"></div>
         <div id="endBest"></div>
+        <div id="endRace" hidden></div>
         <div class="tally" id="endTally"></div>
         <button class="go" id="againBtn" type="button">العب مرة ثانية</button>
       </div>
@@ -242,6 +272,10 @@ function buildWorld() {
   player.userData.w = 2.35 * (ps.w / FRAMES) / ps.h; player.scale.set(player.userData.w, 2.35, 1); player.renderOrder = 5;
   playerShadow = blob(1.5, 0.9); scene.add(player, playerShadow);
   heroMesh = board('hanoo_hero', 3.5); heroMesh.visible = false; heroMesh.renderOrder = 6; scene.add(heroMesh);
+  /* the other racer, drawn from the same back-view run cycle with a warm tint */
+  const gt = sheetTex.clone(); gt.needsUpdate = true;
+  ghost = new THREE.Mesh(quad, new THREE.MeshBasicMaterial({ map: gt, transparent: true, depthWrite: false, color: 0xffe08a }));
+  ghost.scale.set(player.userData.w, 2.35, 1); ghost.visible = false; ghost.renderOrder = 3; ghost.add(blob(1.6 / player.userData.w, 0.4)); scene.add(ghost);
   /* friend that runs beside Hanoo while a power is active */
   comp = new THREE.Mesh(quad, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false })); comp.visible = false; comp.renderOrder = 4; scene.add(comp);
 }
@@ -276,25 +310,97 @@ const sfx = {
   over: () => [392, 330, 262, 196].forEach((f, i) => beep(f, 0.25, 'triangle', 0.09, 0, i * 0.17)),
 };
 
+/* ---------- network ----------
+   Online races go through a Supabase Realtime channel. Fill in the project URL and its publishable key to turn them on.
+   Left empty, a race only connects two windows of the same browser, which is enough to try the mode out. */
+const NET = { url: '', key: '' };
+function openNet(room, onMsg) {
+  const me = Math.random().toString(36).slice(2, 10);
+  if (NET.url && NET.key) {
+    const topic = 'realtime:hanoo-' + room, q = []; let ref = 1, hb = 0, open = false;
+    const ws = new WebSocket(NET.url.replace(/^http/, 'ws') + '/realtime/v1/websocket?apikey=' + encodeURIComponent(NET.key) + '&vsn=1.0.0');
+    const raw = (t, ev, payload) => ws.send(JSON.stringify({ topic: t, event: ev, payload, ref: String(ref++) }));
+    const send = (ev, data) => { if (!open) { q.push([ev, data]); return; } raw(topic, 'broadcast', { type: 'broadcast', event: ev, payload: Object.assign({ from: me }, data) }); };
+    ws.onopen = () => { raw(topic, 'phx_join', { config: { broadcast: { ack: false, self: false }, presence: { key: '' } } }); hb = setInterval(() => raw('phoenix', 'heartbeat', {}), 25000); };
+    ws.onmessage = e => {
+      let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.event === 'phx_reply' && m.topic === topic && !open && m.payload && m.payload.status === 'ok') { open = true; q.splice(0).forEach(a => send(a[0], a[1])); }
+      if (m.event === 'broadcast' && m.payload && m.payload.payload && m.payload.payload.from !== me) onMsg(m.payload.event, m.payload.payload);
+    };
+    ws.onclose = ws.onerror = () => onMsg('down', {});
+    return { me, send, close() { clearInterval(hb); ws.onclose = ws.onerror = null; try { ws.close(); } catch (x) {} } };
+  }
+  const bc = new BroadcastChannel('hanoo-' + room);
+  bc.onmessage = e => { if (e.data && e.data.d.from !== me) onMsg(e.data.ev, e.data.d); };
+  return { me, send(ev, data) { bc.postMessage({ ev, d: Object.assign({ from: me }, data) }); }, close() { bc.close(); } };
+}
+/* small seeded generator so both racers get the very same course */
+let rng = Math.random;
+function seeded(a) { return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
 /* ---------- state ---------- */
-let state = 'menu', paused = false, g, p, best = 0, endT = 0, objs = [], parts = [], pops = [];
+let state = 'menu', paused = false, g, p, best = 0, endT = 0, objs = [], parts = [], pops = [], race = null, ghost = null;
 try { best = +localStorage.getItem('hanoo3d-best') || 0; } catch (e) {}
-function reset() {
+function reset(seed) {
+  rng = seeded(seed == null ? (Math.random() * 1e9) | 0 : seed);
   for (const o of objs) scene.remove(o.mesh);
   objs = []; parts = []; pops = [];
-  g = { t:0, dist:0, speed:15, slow:1, score:0, shown:0, combo:0, comboT:0, lives:3, inv:0, shake:0, nextRow:6, rowN:0, pwN:0,
+  g = { t:0, dist:0, speed:15, slow:1, score:0, shown:0, combo:0, comboT:0, lives:3, inv:0, shake:0, rowAt:156, raceT:0, countT:0, sendT:0, rowN:0, pwN:0,
         power:null, powerT:0, powerMax:1, count:{strawberry:0,chocolate:0,banana:0,mango:0}, zone:-1, fade:1, flash:0, hero:false, bannerT:9 };
   p = { lane:1, x:0, y:0, vy:0, ground:true, jumps:0, slide:0, phase:0, buf:0, sy:1, syV:0 };
   if (player) { player.visible = true; heroMesh.visible = false; comp.visible = false; }
 }
 reset();
-function start() { reset(); state = 'play'; paused = false; endT = 0; $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = false; wrap.focus(); beep(660, 0.12, 'square', 0.06, 1.5); }
+function show(play) { $('menu').hidden = play; $('lobby').hidden = true; $('end').hidden = true; $('hud').hidden = !play; }
+function start() { leaveRace(); reset(); state = 'play'; paused = false; endT = 0; show(true); wrap.focus(); beep(660, 0.12, 'square', 0.06, 1.5); }
+
+/* ---------- racing ---------- */
+const myName = () => ($('nameIn').value.trim() || 'لاعب').slice(0, 12);
+function leaveRace() { if (race) { race.net.close(); clearTimeout(race.timer); race = null; } if (ghost) ghost.visible = false; }
+function lobbyMsg(t) { $('lobbyMsg').textContent = t; }
+function openLobby() {
+  leaveRace(); state = 'menu'; $('menu').hidden = true; $('end').hidden = true; $('hud').hidden = true; $('lobby').hidden = false;
+  $('lobbyHome').hidden = false; $('lobbyWait').hidden = true;
+  lobbyMsg(NET.url ? 'أنشئ سباق وأرسل الرمز لصديقك، أو ادخل الرمز اللي وصلك.' : 'السباق عبر الإنترنت غير مفعّل بعد. حالياً يشتغل بين نافذتين في نفس المتصفح للتجربة.');
+  try { $('nameIn').value = localStorage.getItem('hanoo-name') || ''; } catch (e) {}
+}
+function joinRoom(code, host) {
+  try { localStorage.setItem('hanoo-name', $('nameIn').value.trim()); } catch (e) {}
+  race = { code, host, opp: null, oppFin: null, myTime: null, timer: 0, net: null };
+  race.net = openNet(code, onNet);
+  $('lobbyHome').hidden = true; $('lobbyWait').hidden = false; $('codeOut').textContent = code;
+  if (host) lobbyMsg('أرسل الرمز لصديقك. السباق يبدأ أول ما يدخل.');
+  else { lobbyMsg('جاري الدخول…'); race.net.send('hello', { name: myName() }); race.timer = setTimeout(() => { if (race && !race.opp) lobbyMsg('ما لقينا سباق بهذا الرمز. تأكد من الرمز وجرّب مرة ثانية.'); }, 6000); }
+}
+function onNet(ev, d) {
+  if (!race) return;
+  if (ev === 'hello') {
+    const first = !race.opp; race.opp = { name: String(d.name || 'لاعب').slice(0, 12), d: 0, l: 1, y: 0, s: 0, v: 0, x: 0, last: 0, seen: false };
+    if (race.host && first) { const seed = (Math.random() * 1e9) | 0; race.net.send('hello', { name: myName() }); race.net.send('start', { seed }); beginRace(seed); }
+  } else if (ev === 'start' && !race.host && state !== 'count' && state !== 'play') beginRace(d.seed);
+  else if (ev === 'pos' && race.opp) { Object.assign(race.opp, { d: d.d, l: d.l, y: d.y, s: d.s, v: d.v, last: g.t, seen: true }); }
+  else if (ev === 'fin') { race.oppFin = d.t; if (state === 'win' || state === 'over') raceLine(); else pop(p.x, 3.4, 0, (race.opp ? race.opp.name : 'صديقك') + ' وصل خط النهاية!', '#2a7fd4', 34); }
+  else if (ev === 'down') { if (state === 'menu') lobbyMsg('تعذر الاتصال بخادم السباق. تأكد من الإنترنت وجرّب مرة ثانية.'); }
+}
+function beginRace(seed) {
+  clearTimeout(race.timer); reset(seed); state = 'count'; g.countT = 3.2; paused = false; endT = 0; show(true); wrap.focus();
+  $('banner').textContent = 'سباق ضد ' + (race.opp ? race.opp.name : 'صديقك'); $('banner').style.background = '#2a7fd4'; g.bannerT = 0;
+}
+const secs = t => (Math.round(t * 10) / 10).toFixed(1) + ' ث';
+function raceLine() {
+  const e = $('endRace'); e.hidden = !race; if (!race) return;
+  const won = race.myTime != null && (race.oppFin == null || race.myTime <= race.oppFin), name = race.opp ? race.opp.name : 'صديقك';
+  $('endTitle').textContent = won ? 'فزت بالسباق!' : 'وصلت الثاني';
+  e.textContent = 'وقتك: ' + secs(race.myTime) + '  ·  ' + name + ': ' + (race.oppFin == null ? 'ما وصل بعد' : secs(race.oppFin));
+}
 
 /* ---------- input ---------- */
 function move(d) { const l = clamp(p.lane + d, 0, 2); if (l !== p.lane) { p.lane = l; sfx.lane(); } }
 addEventListener('keydown', e => {
   const c = e.code;
+  if (e.target && e.target.tagName === 'INPUT' && c !== 'Enter') return;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(c)) e.preventDefault();
+  if (e.target && e.target.tagName === 'INPUT') { if (c === 'Enter' && e.target.id === 'codeIn') $('joinBtn').click(); return; }
   if (e.repeat) return;
   if (c === 'KeyM') { muted = !muted; $('note').hidden = !muted; $('note').textContent = 'الصوت مغلق'; }
   if (state === 'play') {
@@ -304,11 +410,15 @@ addEventListener('keydown', e => {
     if (c === 'ArrowRight') move(1);
     if (c === 'ArrowUp' || c === 'Space') p.buf = 0.14;
     if (c === 'ArrowDown') { if (p.ground) { p.slide = 0.62; sfx.slide(); } else p.vy = Math.min(p.vy, -24); }
-  } else if ((c === 'Enter' || c === 'Space') && (state === 'menu' || endT > 1.2)) start();
+  } else if ((c === 'Enter' || c === 'Space') && $('lobby').hidden && !race && (state === 'menu' || endT > 1.2)) start();
 });
 addEventListener('blur', () => { if (state === 'play') paused = true; });
 $('startBtn').addEventListener('click', start);
-$('againBtn').addEventListener('click', start);
+$('againBtn').addEventListener('click', () => { if (race) openLobby(); else start(); });
+$('raceBtn').addEventListener('click', openLobby);
+$('backBtn').addEventListener('click', () => { leaveRace(); $('lobby').hidden = true; $('menu').hidden = false; });
+$('hostBtn').addEventListener('click', () => joinRoom(String(1000 + ((Math.random() * 9000) | 0)), true));
+$('joinBtn').addEventListener('click', () => { const c = $('codeIn').value.replace(/\D/g, ''); if (c.length === 4) joinRoom(c, false); else lobbyMsg('اكتب الرمز من أربعة أرقام.'); });
 let touch = null;
 wrap.addEventListener('pointerdown', e => { wrap.focus(); if (state === 'play') { if (paused) paused = false; touch = { x:e.clientX, y:e.clientY }; } });
 wrap.addEventListener('pointerup', e => {
@@ -333,8 +443,8 @@ function cartonLine(f, lane, z, n, arcAt) {
   for (let i = 0; i < n; i++) { const zz = z - i * 3.2, d = arcAt == null ? 9 : Math.abs(zz - arcAt); addCarton(f, lane, zz, 0.55 + Math.max(0, 1.9 * (1 - d * d / 30))); }
 }
 function spawnRow(z) {
-  const n = g.rowN++, f = FL[(Math.random() * 4) | 0].key, L = (Math.random() * 3) | 0, others = [0, 1, 2].filter(l => l !== L);
-  const r = n < 3 ? [0, 1, 2][n] : (Math.random() * 7) | 0, jumpable = ['hurdle', 'crate', 'cone'][(Math.random() * 3) | 0];
+  const n = g.rowN++, f = FL[(rng() * 4) | 0].key, L = (rng() * 3) | 0, others = [0, 1, 2].filter(l => l !== L);
+  const r = n < 3 ? [0, 1, 2][n] : (rng() * 7) | 0, jumpable = ['hurdle', 'crate', 'cone'][(rng() * 3) | 0];
   switch (r) {
     case 0: cartonLine(f, L, z, 6); break;
     case 1: addObst(jumpable, L, z - 8); cartonLine(f, L, z, 6, z - 8); break;
@@ -344,8 +454,7 @@ function spawnRow(z) {
     case 5: [0, 1, 2].forEach(l => addObst('gate', l, z - 8)); cartonLine(f, L, z - 2, 4); break;
     case 6: addObst(jumpable, L, z - 5); addObst('stack', others[0], z - 5); cartonLine(f, others[1], z, 6); break;
   }
-  if (n % 4 === 3) addCarton(FL[g.pwN++ % 4].key, (Math.random() * 3) | 0, z - 26, 1.7, true);
-  return 34 + g.speed * 0.9;
+  if (n % 4 === 3) addCarton(FL[g.pwN++ % 4].key, (rng() * 3) | 0, z - 26, 1.7, true);
 }
 
 /* ---------- effects on the 2D overlay ---------- */
@@ -378,6 +487,12 @@ function drawFx(dt) {
     fx.lineJoin = 'round'; fx.lineWidth = q.size * 0.24; fx.strokeStyle = '#fff'; fx.strokeText(q.text, 0, 0); fx.fillStyle = q.c; fx.fillText(q.text, 0, 0); fx.restore();
   }
   pops = pops.filter(q => q.t < 1);
+  const o = race && race.opp;
+  if (o && ghost && ghost.visible && ghost.position.z < 2) {
+    const [sx, sy] = toScreen(ghost.position.x, ghost.position.y + 2.7, ghost.position.z), sz = clamp(22 - ghost.position.z * -0.12, 9, 22) * u;
+    fx.font = `800 ${sz}px ${FONT}`; fx.textAlign = 'center'; fx.textBaseline = 'middle'; fx.direction = 'rtl';
+    fx.lineJoin = 'round'; fx.lineWidth = sz * 0.3; fx.strokeStyle = '#10204f'; fx.strokeText(o.name, sx, sy); fx.fillStyle = '#ffd23f'; fx.fillText(o.name, sx, sy);
+  }
   if (g.flash > 0) { fx.fillStyle = `rgba(255,255,255,${g.flash})`; fx.fillRect(0, 0, VW, VH); }
   if (paused && state === 'play') {
     fx.fillStyle = 'rgba(16,32,79,.55)'; fx.fillRect(0, 0, VW, VH);
@@ -404,6 +519,7 @@ function collect(o) {
 }
 function hit() {
   if (g.power === 'chocolate') { g.power = null; g.inv = 1; g.shake = 0.2; burst(p.x, 1.2, 0, '#9a5a35', 18); beep(300, 0.2, 'triangle', 0.1, 2); pop(p.x, 3.2, 0, 'الدرع حماك!', '#9a5a35', 32); return; }
+  if (race) { g.inv = 1.6; g.combo = 0; g.shake = 0.35; g.slow = 0.3; sfx.hit(); return; }   /* a race never ends early: a crash only costs speed */
   g.lives--; g.inv = 1.6; g.combo = 0; g.shake = 0.35; g.slow = 0.35; sfx.hit();
   if (g.lives <= 0) { state = 'over'; endT = 0; saveBest(); sfx.over(); showEnd(false); }
 }
@@ -413,6 +529,18 @@ function update(dt) {
   g.t += dt;
   if (state === 'menu') { scroll(8 * dt, dt); return; }
   if (state === 'over') { endT += dt; return; }
+  if (race && (state === 'play' || state === 'win')) {
+    g.sendT -= dt;
+    if (g.sendT <= 0) { g.sendT = 0.1; race.net.send('pos', { d: +g.dist.toFixed(2), l: p.lane, y: +p.y.toFixed(2), s: p.slide > 0 ? 1 : 0, v: state === 'play' ? +g.speed.toFixed(2) : 0 }); }
+  }
+  if (state === 'count') {
+    g.countT -= dt; const n = Math.ceil(g.countT - 0.2), el = $('count');
+    el.hidden = false; el.textContent = n > 0 ? n : 'انطلق!';
+    if (el.dataset.n !== String(n)) { el.dataset.n = String(n); beep(n > 0 ? 440 : 880, 0.18, 'square', 0.07); }
+    if (g.countT <= 0) { state = 'play'; el.hidden = true; }
+    return;
+  }
+  if (state === 'play') g.raceT += dt;
   const prog = clamp(g.dist / LEN, 0, 1);
 
   if (state === 'win') {
@@ -463,8 +591,8 @@ function update(dt) {
   scene.fog.color.lerp(new THREE.Color(FL[z].fog), ease(dt, 0.3)); scene.background.copy(scene.fog.color);
 
   /* spawn rows ahead, plus the finish line */
-  g.nextRow -= step;
-  if (g.nextRow <= 0 && g.dist < LEN - 190) g.nextRow = spawnRow(-150);
+  /* rows are tied to distance, not time, so the course is identical for everyone */
+  while (g.dist + 150 >= g.rowAt && g.rowAt < LEN - 60) { spawnRow(-(g.rowAt - g.dist)); g.rowAt += 34 + (15 + 13 * g.rowAt / LEN) * 0.9; }
   if (!g.finish && g.dist > LEN - 150) {
     g.finish = true; const zf = -(LEN - g.dist);
     [-1, 1].forEach(s => { const m = board('flag', 6); m.position.set(s * 4.6, 0, zf); if (s > 0) m.scale.x *= -1; scene.add(m); objs.push({ t:'f', mesh:m }); });
@@ -485,7 +613,10 @@ function update(dt) {
   for (const o of objs) if (o.dead || o.mesh.position.z > 9) { scene.remove(o.mesh); o.gone = true; }
   objs = objs.filter(o => !o.gone);
 
-  if (state === 'play' && g.dist >= LEN) { state = 'win'; endT = 0; g.power = null; g.score += g.lives * 200; saveBest(); sfx.win(); }
+  if (state === 'play' && g.dist >= LEN) {
+    state = 'win'; endT = 0; g.power = null; g.score += race ? 0 : g.lives * 200; saveBest(); sfx.win();
+    if (race) { race.myTime = g.raceT; race.net.send('fin', { t: +g.raceT.toFixed(2) }); }
+  }
 }
 /* everything in the world slides toward the camera by `step` */
 function scroll(step, dt) {
@@ -513,6 +644,16 @@ function visuals(dt) {
     if (!g.power || state !== 'play') comp.visible = false;
     else { const side = p.lane === 2 ? -1.25 : 1.25; comp.position.x = lerp(comp.position.x, p.x + side, ease(dt, 0.01)); comp.position.z = lerp(comp.position.z, 0.9, ease(dt, 0.05)); comp.material.map.offset.x = frame(p.phase + 2); }
   }
+  const o = race && race.opp;
+  if (ghost) {
+    if (o && o.seen && state !== 'menu') {
+      o.d += o.v * dt; const z = -(o.d - g.dist);
+      ghost.visible = z > -170 && z < 9;
+      o.x = lerp(o.x, LANES[o.l] || 0, ease(dt, 0.00001));
+      ghost.position.set(o.x, o.y, z); ghost.scale.y = o.s ? 1.18 : 2.35;
+      ghost.material.map.offset.x = o.y > 0.05 ? 2 / FRAMES : frame(o.d / 3.1);
+    } else ghost.visible = false;
+  }
   /* chase camera */
   const win = state === 'win' && g.hero, sh = g.shake > 0 && !reduce ? g.shake : 0;
   const cx = p.x * 0.55 + rnd(-1, 1) * sh * 0.5, cy = (win ? 2.3 : 3.7) + rnd(-1, 1) * sh * 0.4, cz = win ? 5.2 : 6.8;
@@ -520,11 +661,13 @@ function visuals(dt) {
   camera.lookAt(p.x * 0.75, win ? 1.9 : 1.5, -9);
 }
 function hud() {
-  if (state !== 'play') return;
+  if (state !== 'play' && state !== 'count') return;
   $('score').textContent = Math.round(g.shown);
   const hs = document.querySelectorAll('#hud .hearts svg'); hs.forEach((h, i) => h.classList.toggle('off', i >= g.lives));
   const prog = clamp(g.dist / LEN, 0, 1); document.querySelectorAll('#hud .segs span').forEach((s, i) => s.classList.toggle('on', prog * 4 > i));
-  document.querySelector('#hud .segs em').style.left = (prog * 100) + '%';
+  $('meDot').style.left = (prog * 100) + '%';
+  const o = race && race.opp; document.querySelector('#hud .hearts').hidden = !!race; $('oppDot').hidden = !o; $('rank').hidden = !o;
+  if (o) { $('oppDot').style.left = clamp(o.d / LEN, 0, 1) * 100 + '%'; $('rank').textContent = g.dist >= o.d ? 'أنت الأول' : 'أنت الثاني'; }
   FL.forEach(f => { $('n_' + f.key).textContent = '× ' + g.count[f.key]; });
   const cb = document.querySelector('#hud .combo'); cb.hidden = !g.combo;
   if (g.combo) { const m = mult(); cb.classList.toggle('hot', m > 1); $('comboTxt').textContent = 'علب متتالية: ' + g.combo + '  ×' + m; $('comboBar').style.width = clamp(g.comboT / 2.4, 0, 1) * 100 + '%'; }
@@ -534,9 +677,9 @@ function hud() {
 }
 function showEnd(win) {
   $('hud').hidden = true; const e = $('end'); e.hidden = false; e.classList.toggle('win', win);
-  $('endTitle').textContent = win ? 'هنوو صار بطل خارق!' : 'انتهت المحاولة';
+  $('endTitle').textContent = win ? 'هنوو صار بطل خارق!' : 'انتهت المحاولة'; raceLine();
   $('endScore').textContent = 'النقاط: ' + g.score;
-  $('endBest').textContent = (g.score >= best && g.score > 0 ? 'رقم قياسي جديد' : 'أفضل نتيجة: ' + best) + (win ? '  ·  قلوب متبقية: ' + g.lives : '');
+  $('endBest').textContent = (g.score >= best && g.score > 0 ? 'رقم قياسي جديد' : 'أفضل نتيجة: ' + best) + (win && !race ? '  ·  قلوب متبقية: ' + g.lives : '');
   $('endTally').innerHTML = FL.map(f => `<div style="color:${f.color}"><img src="assets/milk_${f.key}.webp" alt="">${g.count[f.key]}</div>`).join('');
 }
 
@@ -558,7 +701,7 @@ function frame(t) {
 buildDom();
 loaded.then(() => { buildWorld(); setBackdrop(bgA, 2); bgB.visible = false; scene.fog.color.set(FL[2].fog); scene.background.copy(scene.fog.color); camera.position.set(0, 3.7, 6.8); fit(); requestAnimationFrame(frame); });
 /* test hook: jump to just before the finish line */
-window.hanooDebug = () => ({ state, score: g.score, lives: g.lives, dist: Math.round(g.dist), objs: objs.length, lane: p.lane });
+window.hanooDebug = () => ({ state, race: race && { code: race.code, opp: race.opp && race.opp.name, oppD: race.opp && Math.round(race.opp.d), myTime: race.myTime, oppFin: race.oppFin }, score: g.score, lives: g.lives, dist: Math.round(g.dist), objs: objs.length, lane: p.lane });
 window.hanooSkipToFinish = () => { if (state === 'play') { for (const o of objs) scene.remove(o.mesh); objs = []; g.dist = LEN - 160; } };
 })();
 </script>
