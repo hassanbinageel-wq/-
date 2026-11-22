@@ -1,0 +1,39 @@
+=== App name (max 30) ===
+Shayyek: Auto Replies & DMs
+
+=== Short description (max 80) ===
+Auto-reply to Instagram comments & story replies, and send the link by DM.
+
+=== Full description ===
+Shayyek replies to your Instagram comments and story replies automatically, and sends your link, discount code or menu to the customer's DMs within seconds — so no "how much?" or "where's the link?" goes unanswered.
+
+Built for online stores and content creators in Saudi Arabia. Shayyek works only through Meta's official Instagram API and never asks for your Instagram password.
+
+HOW IT WORKS
+1. A follower comments on your post or reel, or replies to your story, with a keyword you choose.
+2. Shayyek replies publicly and sends the message and link in a private message.
+3. You follow the results: comments, delivered messages and link clicks.
+
+FEATURES
+• Auto-reply campaigns for comments, story replies and story mentions
+• Private messages with links or codes, buttons and interactive menus
+• One inbox for your conversations, with labels and saved replies
+• Fair giveaways from comments, with a draw video and a winner card
+• Schedule posts, reels and stories, with best-time suggestions
+• Campaign and post analytics, with link click tracking
+• Connect your Salla store to see orders and sales from each campaign
+• Instant push notifications for what matters
+• Staff accounts with limited permissions, and two-step verification
+
+OFFICIAL AND SAFE
+• Uses Meta's official Instagram APIs only
+• No Instagram password — you connect through Meta's own login page
+• Follows Meta's messaging rules to keep your account safe
+
+REQUIREMENTS
+• An Instagram professional account (Business or Creator) — switching is free in Instagram settings
+• A Shayyek account (a free plan is available)
+
+Support: support@shayyek.sa
+Website: https://shayyek.sa
+Privacy policy: https://shayyek.sa/privacy
