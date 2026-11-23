@@ -762,3 +762,14 @@ tr.just-moved { animation: moved 1.2s ease; }
 /* never let long emails/links widen the page on phones */
 .main { min-width: 0; overflow-x: clip; }
 .back-btn { margin: 0 !important; }
+
+/* Unread conversations: very light tint + accent edge so they stand out */
+.inbox-item { position: relative; }
+.inbox-item + .inbox-item { margin-top: 2px; }
+.inbox-item.unread { background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.inbox-item.unread::before { content: ""; position: absolute; inset-block: 10px; inset-inline-start: 0; width: 3px; border-radius: 3px; background: var(--primary); }
+.inbox-item.unread:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.inbox-item.unread strong, .inbox-item.unread .inbox-subj { font-weight: 800; color: var(--text); }
+.inbox-item.unread small { color: var(--text); opacity: .8; }
+.inbox-item.unread time { color: var(--primary); font-weight: 700; }
+.inbox-item.active { background: color-mix(in srgb, var(--primary) 14%, transparent); }

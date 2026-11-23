@@ -279,7 +279,8 @@ function is_automated(array $h, string $from): bool
     return ($auto !== '' && $auto !== 'no')
         || in_array($prec, ['bulk', 'list', 'junk'], true)
         || isset($h['list-unsubscribe']) || isset($h['list-id'])
-        || preg_match('/^(no-?reply|do-?not-?reply|mailer-daemon|postmaster|notifications?|bounces?)[@+.\-]/i', $from);
+        || preg_match('/^(mailer-daemon|postmaster|notifications?|bounces?)[@+.\-]/i', $from)
+        || preg_match('/(no-?reply|do-?not-?reply)[^@]*@/i', $from);
 }
 
 /* ---------------- sync ---------------- */
