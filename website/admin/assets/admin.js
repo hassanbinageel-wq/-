@@ -456,3 +456,14 @@
   if (btn) btn.addEventListener('click', function () { run(true); });
   run(false);
 })();
+
+/* Messages: expand long messages, open a conversation at its newest message */
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-expand]'); if (!b) return;
+  var t = b.previousElementSibling; t.classList.remove('clamp'); b.remove();
+});
+(function () {
+  var chat = document.querySelector('.chat'); if (!chat) return;
+  var last = chat.lastElementChild;
+  if (last && chat.children.length > 2) last.scrollIntoView({ block: 'center' });
+})();

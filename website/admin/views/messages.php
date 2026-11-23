@@ -1,4 +1,17 @@
 <?php
+/** Message text as tidy paragraphs (blank lines collapse into one gap). */
+function msg_html(string $text): string
+{
+    $text = trim(str_replace(["\r\n", "\r"], "\n", $text));
+    $out = '';
+    foreach (preg_split('/\n\s*\n+/', $text) as $p) {
+        if (trim($p) !== '') {
+            $out .= '<p>' . nl2br(e(trim($p))) . '</p>';
+        }
+    }
+    return $out;
+}
+
 $id = (int) ($_GET['id'] ?? 0);
 $msg = null;
 if ($id) {
@@ -66,34 +79,48 @@ $syncOk = (int) setting('_mail_sync_ok');
     <?php if (!$msg): ?>
       <div class="empty"><span class="empty-ic"><?= icon('mail') ?></span><p class="muted">اختر رسالة لعرضها</p></div>
     <?php else: ?>
-      <a class="back only-mobile" href="<?= admin_url('?p=messages') ?>"><?= icon('arrow-right') ?> الرسائل</a>
-      <div class="msg-head">
+      <div class="thread-head">
+        <a class="back-btn only-mobile" href="<?= admin_url('?p=messages') ?>" aria-label="رجوع للرسائل"><?= icon('arrow-right') ?></a>
         <span class="avatar-lg"><?= e(mb_substr($msg['name'], 0, 1)) ?></span>
-        <div>
+        <div class="th-info">
           <h2><?= e($msg['name']) ?></h2>
-          <p class="muted"><?= e(ar_date($msg['created_at'])) ?> — <?= e(date('H:i', strtotime($msg['created_at']))) ?></p>
+          <div class="th-meta">
+            <?php if ($msg['email']): ?><a class="ltr" href="mailto:<?= e($msg['email']) ?>"><?= e($msg['email']) ?></a><?php endif; ?>
+            <?php if ($msg['phone']): ?><a class="ltr" href="tel:<?= e($msg['phone']) ?>"><?= e($msg['phone']) ?></a><?php endif; ?>
+          </div>
         </div>
       </div>
-      <dl class="msg-meta">
-        <?php if ($msg['email']): ?><div><dt>البريد</dt><dd class="ltr"><a href="mailto:<?= e($msg['email']) ?>"><?= e($msg['email']) ?></a></dd></div><?php endif; ?>
-        <?php if ($msg['phone']): ?><div><dt>الجوال</dt><dd class="ltr"><a href="tel:<?= e($msg['phone']) ?>"><?= e($msg['phone']) ?></a></dd></div><?php endif; ?>
-        <?php if ($msg['subject']): ?><div><dt>الموضوع</dt><dd><?= e($msg['subject']) ?></dd></div><?php endif; ?>
-      </dl>
-      <div class="msg-text"><?php if (($msg['source'] ?? 'site') === 'email'): ?><span class="via">عبر الإيميل</span><?php endif; ?><?= nl2br(e($msg['message'])) ?></div>
-      <?php foreach ($replies as $r): $in = ($r['direction'] ?? 'out') === 'in'; $viaMail = ($r['source'] ?? 'site') === 'email'; ?>
-        <?php if ($in): ?>
-          <div class="msg-text msg-in"><span class="reply-meta"><?= icon('mail') ?><?= e($msg['name']) ?> — <?= e(time_ago($r['created_at'])) ?><span class="via">عبر الإيميل</span></span><?= nl2br(e($r['body'])) ?></div>
-        <?php else: ?>
-          <div class="msg-reply"><span class="reply-meta"><?= icon('reply') ?>ردّك — <?= e(time_ago($r['created_at'])) ?><span class="via"><?= $viaMail ? 'من الإيميل' : 'من الموقع' ?></span></span><?= nl2br(e($r['body'])) ?></div>
-        <?php endif; ?>
-      <?php endforeach; ?>
+      <?php if ($msg['subject']): ?><div class="th-subject"><?= icon('mail') ?><span><?= e($msg['subject']) ?></span></div><?php endif; ?>
+      <?php
+        // one list: the first message + every reply, oldest first
+        $thread = [['in' => true, 'body' => $msg['message'], 'at' => $msg['created_at'], 'mail' => ($msg['source'] ?? 'site') === 'email']];
+        foreach ($replies as $r) {
+            $thread[] = ['in' => ($r['direction'] ?? 'out') === 'in', 'body' => $r['body'], 'at' => $r['created_at'], 'mail' => ($r['source'] ?? 'site') === 'email'];
+        }
+        $lastIdx = count($thread) - 1;
+      ?>
+      <div class="chat">
+        <?php foreach ($thread as $i => $t):
+          $body = $t['mail'] ? (strip_quoted($t['body']) ?: $t['body']) : $t['body'];
+          $long = mb_strlen($body) > 700 || substr_count($body, "\n") > 14;
+          $ts = strtotime($t['at']); ?>
+          <div class="bubble <?= $t['in'] ? 'in' : 'out' ?>">
+            <div class="b-meta">
+              <strong><?= $t['in'] ? e($msg['name']) : 'أنت' ?></strong>
+              <span class="tag"><?= $t['in'] ? ($t['mail'] ? 'إيميل' : 'نموذج الموقع') : ($t['mail'] ? 'من الإيميل' : 'من اللوحة') ?></span>
+              <time title="<?= e(date('Y-m-d H:i', $ts)) ?>"><?= e(ar_date($t['at'])) ?> · <?= e(date('H:i', $ts)) ?></time>
+            </div>
+            <div class="b-text<?= $long && $i !== $lastIdx ? ' clamp' : '' ?>"><?= msg_html($body) ?></div>
+            <?php if ($long && $i !== $lastIdx): ?><button type="button" class="b-more" data-expand>عرض الرسالة كاملة</button><?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
       <?php if ($msg['email']): ?>
         <?php if ($canMail): ?>
           <form method="post" class="reply-form" data-dirty-check>
             <?= csrf_field() ?><input type="hidden" name="_do" value="reply"><input type="hidden" name="id" value="<?= $msg['id'] ?>">
-            <label class="field-label" for="replyBody">ردّك (يوصل لـ <span class="ltr"><?= e($msg['email']) ?></span>)</label>
-            <textarea id="replyBody" name="body" rows="5" required placeholder="اكتب ردك هنا…"></textarea>
-            <button class="btn btn-primary" type="submit"><?= icon('send') ?>إرسال الرد</button>
+            <textarea id="replyBody" name="body" rows="4" required placeholder="اكتب ردك هنا… يوصل لإيميل <?= e($msg['email']) ?>"></textarea>
+            <div class="reply-foot"><small class="muted">يوصله كإيميل، ورده يرجع هنا تلقائياً</small><button class="btn btn-primary" type="submit"><?= icon('send') ?>إرسال الرد</button></div>
           </form>
         <?php else: ?>
           <div class="alert alert-warn">عشان ترد من هنا مباشرة، كمّل <a href="<?= admin_url('?p=settings&g=mail') ?>">إعدادات البريد</a> مرة وحدة.</div>

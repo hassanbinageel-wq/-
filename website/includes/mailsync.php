@@ -229,11 +229,13 @@ function strip_quoted(string $text): string
     $keep = [];
     $n = count($lines);
     for ($i = 0; $i < $n; $i++) {
-        $l = rtrim($lines[$i]);
+        $l = rtrim(preg_replace('/[\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}\x{FEFF}]/u', '', $lines[$i]));
         $t = trim($l);
-        $two = $t . ' ' . trim($lines[$i + 1] ?? '');
+        $next = trim(preg_replace('/[\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}\x{FEFF}]/u', '', $lines[$i + 1] ?? ''));
+        $two = $t . ' ' . $next;
         if (preg_match('/^On\s.+wrote:$/i', $t) || preg_match('/^On\s.+wrote:$/i', $two)
-            || preg_match('/^في\s.+(كتب|كتبت)[^:]*:$/u', $t) || preg_match('/^في\s.+(كتب|كتبت)[^:]*:$/u', $two)
+            || preg_match('/^(في|بتاريخ|يوم)\s.+(كتب|كتبت)[^:]*:$/u', $t) || preg_match('/^(في|بتاريخ|يوم)\s.+(كتب|كتبت)[^:]*:$/u', $two)
+            || preg_match('/(wrote|كتب|كتبت)\b.{0,80}@[^\s>]+>?\s*:$/u', $t) || preg_match('/(wrote|كتب|كتبت).{0,80}@[^\s>]+>?\s*:$/u', $two)
             || preg_match('/^-{2,}\s*(Original Message|Forwarded message|الرسالة الأصلية|رسالة معاد توجيهها)/iu', $t)
             || preg_match('/^_{8,}$/', $t)
             || $t === '--'

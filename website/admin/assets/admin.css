@@ -704,3 +704,61 @@ tr.just-moved { animation: moved 1.2s ease; }
   .renew-bar .rb-text .rb-sep, .renew-bar .rb-text b { display: none; }
   .renew-bar .rb-track { order: 9; flex-basis: 100%; max-width: none; height: 5px; }
 }
+
+/* ===== Messages: chat layout ===== */
+.inbox { grid-template-columns: 340px minmax(0, 1fr); }
+.inbox-list { position: sticky; top: 140px; max-height: calc(100vh - 160px); }
+.inbox-view { padding: 0; overflow: hidden; min-width: 0; }
+.inbox-view > .empty { padding: 60px 20px; }
+.thread-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.thread-head .avatar-lg { width: 44px; height: 44px; font-size: 1.05rem; flex: none; }
+.th-info { min-width: 0; }
+.th-info h2 { font-size: 1.08rem; margin: 0; }
+.th-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: .84rem; color: var(--muted); }
+.th-meta a { overflow-wrap: anywhere; }
+.th-meta a:hover { color: var(--primary-2); }
+.th-subject { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-weight: 600; font-size: .9rem; }
+.th-subject svg { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.chat { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+.bubble { max-width: 82%; padding: 12px 16px 10px; border-radius: 16px; border: 1px solid var(--border); background: var(--input); align-self: flex-start; min-width: 0; }
+.bubble.in { border-start-start-radius: 4px; }
+.bubble.out { align-self: flex-end; background: #eff6ff; border-color: #bfdbfe; border-start-end-radius: 4px; }
+[data-theme="dark"] .bubble.out { background: rgba(37, 99, 235, .14); border-color: rgba(37, 99, 235, .35); }
+.b-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 6px; font-size: .78rem; color: var(--muted); }
+.b-meta strong { color: var(--text); font-size: .84rem; }
+.bubble.out .b-meta strong { color: var(--primary); }
+.b-meta .tag { padding: 0 7px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); font-size: 10.5px; font-weight: 600; }
+.b-meta time { margin-inline-start: auto; white-space: nowrap; }
+.b-text { line-height: 1.8; font-size: .93rem; overflow-wrap: anywhere; }
+.b-text p { margin: 0 0 .55em; }
+.b-text p:last-child { margin-bottom: 0; }
+.b-text.clamp { max-height: 14.5em; overflow: hidden; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+.b-more { margin-top: 4px; padding: 0; border: 0; background: none; color: var(--primary-2); font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.inbox-view .reply-form { margin: 0; padding: 14px 20px; border-top: 1px solid var(--border); background: var(--surface); display: grid; gap: 10px; }
+.inbox-view .reply-form textarea { width: 100%; min-height: 96px; resize: vertical; }
+.reply-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.inbox-view .alert { margin: 14px 20px; }
+.inbox-view .msg-actions { margin: 0; padding: 12px 20px 16px; border-top: 1px solid var(--border); }
+.back-btn { display: none; place-items: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); flex: none; }
+.back-btn svg { width: 18px; height: 18px; }
+@media (max-width: 1100px) { .inbox { grid-template-columns: 290px minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .content { padding: 12px 10px 40px; }
+  .card { padding: 16px; }
+  .inbox { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .inbox-list { position: static; max-height: none; padding: 4px; }
+  .inbox-view { padding: 0; border-radius: 14px; }
+  .back-btn.only-mobile { display: inline-grid; }
+  .thread-head { padding: 12px; gap: 10px; }
+  .thread-head .avatar-lg { width: 38px; height: 38px; }
+  .th-subject { padding: 9px 12px; }
+  .chat { padding: 12px 10px; gap: 10px; }
+  .bubble { max-width: 94%; padding: 10px 12px 8px; }
+  .b-text { font-size: .92rem; line-height: 1.75; }
+  .inbox-view .reply-form, .inbox-view .msg-actions { padding: 12px; }
+  .reply-foot .btn { flex: 1; justify-content: center; }
+  .reply-foot small { width: 100%; }
+}
+/* never let long emails/links widen the page on phones */
+.main { min-width: 0; overflow-x: clip; }
+.back-btn { margin: 0 !important; }
