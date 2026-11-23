@@ -28,6 +28,39 @@ function unread_count(): int
     return $n ??= (int) db()->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn();
 }
 
+/** Slim bar at the top of the dashboard: when the domain expires + time left. */
+function renew_bar(): string
+{
+    $exp = (string) setting('domain_expiry');
+    if ((string) setting('renew_bar') === '0' || !$exp || !($end = strtotime($exp))) {
+        return '';
+    }
+    $today = strtotime(date('Y-m-d'));
+    $years = max(1, (int) setting('domain_years') ?: 1);
+    $start = strtotime('-' . $years . ' year', $end);
+    $left = (int) round(($end - $today) / 86400);
+    $pct = max(0, min(100, round(($today - $start) / max(1, $end - $start) * 100)));
+    $tone = $left < 0 ? 'over' : ($left <= 30 ? 'red' : ($left <= 60 ? 'amber' : 'ok'));
+    if ($left < 0) {
+        $txt = 'انتهى الدومين من ' . abs($left) . ' يوم — جدّده الآن!';
+    } elseif ($left === 0) {
+        $txt = 'الدومين ينتهي اليوم — جدّده الآن!';
+    } else {
+        $m = intdiv($left, 30);
+        $txt = 'باقي ' . $left . ' يوم' . ($left >= 60 ? ' (≈ ' . $m . ' شهور)' : '');
+    }
+    $domain = (string) setting('domain_name') ?: 'الدومين';
+    $url = (string) setting('renew_url') ?: 'https://hpanel.hostinger.com/domains';
+    return '<div class="renew-bar tone-' . $tone . '" role="status">'
+        . '<span class="rb-ic">' . icon('globe') . '</span>'
+        . '<span class="rb-text"><b class="ltr">' . e($domain) . '</b><span class="rb-sep">—</span>ينتهي ' . e(ar_date(date('Y-m-d', $end))) . '</span>'
+        . '<span class="rb-track" title="' . $pct . '% من مدة الاشتراك"><span style="width:' . $pct . '%"></span></span>'
+        . '<span class="rb-left">' . e($txt) . '</span>'
+        . '<a class="rb-btn" href="' . e($url) . '" target="_blank" rel="noopener">تجديد</a>'
+        . '<a class="rb-edit" href="' . e(admin_url('?p=settings&g=renewal')) . '" aria-label="تعديل التاريخ" title="تعديل التاريخ">' . icon('pen') . '</a>'
+        . '</div>';
+}
+
 function admin_start(string $title, string $active): void
 {
     $user = current_user();
@@ -73,6 +106,8 @@ function admin_start(string $title, string $active): void
   </aside>
   <div class="side-backdrop" id="sideBackdrop"></div>
   <div class="main">
+    <div class="top-stack">
+    <?= renew_bar() ?>
     <header class="topbar">
       <button class="icon-btn menu-toggle" id="menuToggle" aria-label="القائمة"><?= icon('menu') ?></button>
       <h1><?= e($title) ?></h1>
@@ -82,6 +117,7 @@ function admin_start(string $title, string $active): void
         <a class="user-chip" href="<?= admin_url('?p=account') ?>"><span class="avatar-sm"><?= e(mb_strtoupper(mb_substr($user['username'] ?? 'A', 0, 1))) ?></span><span><?= e($user['username'] ?? '') ?></span></a>
       </div>
     </header>
+    </div>
     <main class="content">
       <?php if ((string) setting('maintenance') === '1'): ?>
         <div class="soon-banner">

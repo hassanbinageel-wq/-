@@ -366,6 +366,13 @@ function settings_schema(): array
             'imap_port'     => ['label' => 'منفذ IMAP', 'type' => 'number', 'default' => 993],
             'imap_secure'   => ['label' => 'تشفير IMAP', 'type' => 'select', 'options' => ['ssl' => 'SSL (993)', 'tls' => 'TLS (143)', 'none' => 'بدون'], 'default' => 'ssl'],
         ]],
+        'renewal' => ['title' => 'التجديد', 'icon' => 'calendar', 'fields' => [
+            'renew_bar'     => ['label' => 'إظهار شريط التجديد أعلى لوحة التحكم', 'type' => 'bool', 'default' => 1],
+            'domain_name'   => ['label' => 'الدومين', 'type' => 'text', 'default' => 'hsnpmt.com'],
+            'domain_expiry' => ['label' => 'تاريخ انتهاء الدومين', 'type' => 'date', 'default' => '2027-04-22', 'hint' => 'بعد ما تجدد، غيّر التاريخ هنا للتاريخ الجديد'],
+            'domain_years'  => ['label' => 'مدة الاشتراك (بالسنوات)', 'type' => 'number', 'default' => 1],
+            'renew_url'     => ['label' => 'رابط التجديد', 'type' => 'url', 'default' => 'https://hpanel.hostinger.com/domains'],
+        ]],
         'appearance' => ['title' => 'المظهر', 'icon' => 'pen', 'fields' => [
             'accent_color'  => ['label' => 'اللون الأساسي', 'type' => 'color', 'default' => '#3b82f6'],
             'accent2_color' => ['label' => 'اللون الثانوي (للتدرّج)', 'type' => 'color', 'default' => '#8b5cf6'],

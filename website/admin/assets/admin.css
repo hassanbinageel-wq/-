@@ -677,3 +677,30 @@ tr.just-moved { animation: moved 1.2s ease; }
 .msg-in .reply-meta svg { width: 15px; height: 15px; }
 .inbox-item small .you { font-weight: 700; color: var(--text); }
 @media (max-width: 640px) { .sync-status { width: 100%; } }
+
+/* Domain renewal bar (always at the top of the dashboard) */
+.top-stack { position: sticky; top: 0; z-index: 30; }
+.top-stack .topbar { position: static; }
+.renew-bar { --rb: #2563eb; --rb-bg: #eff6ff; --rb-line: #bfdbfe; display: flex; align-items: center; gap: 12px; padding: 8px 28px; font-size: .84rem; font-weight: 600; color: var(--text); background: var(--rb-bg); border-bottom: 1px solid var(--rb-line); }
+.renew-bar.tone-amber { --rb: #d97706; --rb-bg: #fffbeb; --rb-line: #fde68a; }
+.renew-bar.tone-red, .renew-bar.tone-over { --rb: #dc2626; --rb-bg: #fef2f2; --rb-line: #fecaca; }
+[data-theme="dark"] .renew-bar { --rb-bg: color-mix(in srgb, var(--rb) 14%, #0b1222); --rb-line: color-mix(in srgb, var(--rb) 35%, transparent); }
+.renew-bar .rb-ic { display: grid; place-items: center; color: var(--rb); }
+.renew-bar .rb-ic svg { width: 17px; height: 17px; }
+.renew-bar .rb-text { white-space: nowrap; }
+.renew-bar .rb-sep { margin: 0 6px; color: var(--muted); }
+.renew-bar .rb-track { flex: 1; min-width: 60px; max-width: 320px; height: 7px; border-radius: 99px; background: color-mix(in srgb, var(--rb) 16%, transparent); overflow: hidden; }
+.renew-bar .rb-track span { display: block; height: 100%; border-radius: inherit; background: var(--rb); }
+.renew-bar .rb-left { color: var(--rb); white-space: nowrap; }
+.renew-bar .rb-btn { margin-inline-start: auto; padding: 4px 14px; border-radius: 99px; background: var(--rb); color: #fff; font-weight: 700; font-size: .8rem; white-space: nowrap; }
+.renew-bar .rb-btn:hover { filter: brightness(1.08); }
+.renew-bar .rb-edit { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--muted); }
+.renew-bar .rb-edit:hover { background: color-mix(in srgb, var(--rb) 12%, transparent); color: var(--rb); }
+.renew-bar .rb-edit svg { width: 15px; height: 15px; }
+.renew-bar.tone-over .rb-left, .renew-bar.tone-red .rb-left { animation: rbPulse 1.6s ease-in-out infinite; }
+@keyframes rbPulse { 50% { opacity: .55; } }
+@media (max-width: 760px) {
+  .renew-bar { padding: 7px 14px; gap: 8px; font-size: .78rem; flex-wrap: wrap; }
+  .renew-bar .rb-text .rb-sep, .renew-bar .rb-text b { display: none; }
+  .renew-bar .rb-track { order: 9; flex-basis: 100%; max-width: none; height: 5px; }
+}
