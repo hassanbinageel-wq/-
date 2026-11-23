@@ -23,6 +23,16 @@ function mail_layout(string $title, string $bodyHtml): string
         . '</div></body></html>';
 }
 
+/** Message-ID of the last email sent (set when sending, read after). */
+function mail_last_id(?string $set = null): string
+{
+    static $id = '';
+    if ($set !== null) {
+        $id = $set;
+    }
+    return $id;
+}
+
 function mail_header_text(string $s): string
 {
     return '=?UTF-8?B?' . base64_encode(str_replace(["\r", "\n"], ' ', $s)) . '?=';
@@ -45,7 +55,7 @@ function send_mail(string $to, string $subject, string $html, ?string $replyTo =
     $headers = [
         'Date: ' . date('r'),
         'From: ' . mail_header_text($fromName) . ' <' . $from . '>',
-        'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . (explode('@', $from)[1] ?? $host) . '>',
+        'Message-ID: <' . mail_last_id(bin2hex(random_bytes(12)) . '@' . (explode('@', $from)[1] ?? $host)) . '>',
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=UTF-8',
         'Content-Transfer-Encoding: base64',

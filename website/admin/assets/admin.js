@@ -425,3 +425,34 @@
     window.addEventListener('drop', function (e) { if (!e.target.closest || !e.target.closest('.dropzone')) e.preventDefault(); });
   }
 })();
+
+/* Mailbox sync: pull replies written in Webmail/phone + clients' emails into Messages */
+(function () {
+  var st = document.getElementById('syncStatus');
+  var dash = document.querySelector('[data-mail-sync]');
+  var el = st || dash;
+  if (!el) return;
+  var btn = document.getElementById('syncNow');
+  function run(force) {
+    var fd = new FormData();
+    fd.append('_csrf', el.dataset.csrf); fd.append('_do', 'mail_sync');
+    if (force) fd.append('force', '1'); else fd.append('gap', st ? '60' : '300');
+    if (st) { st.classList.add('busy'); st.classList.remove('err'); st.lastElementChild.textContent = 'جاري المزامنة مع الإيميل…'; }
+    if (btn) btn.disabled = true;
+    return fetch(el.dataset.sync, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var badge = document.querySelector('.side-nav a[href*="p=messages"] .badge, a[href*="p=messages"] .badge');
+        if (badge) { badge.textContent = d.unread; badge.hidden = !d.unread; }
+        if (!st) return;
+        st.classList.remove('busy');
+        if (d.error) { st.classList.add('err'); st.lastElementChild.textContent = 'تعذّرت المزامنة: ' + d.error; }
+        else if (d.new > 0) { st.lastElementChild.textContent = 'وصل ' + d.new + ' جديد — جاري التحديث…'; location.reload(); }
+        else st.lastElementChild.textContent = 'متزامن مع الإيميل — الآن';
+      })
+      .catch(function () { if (st) { st.classList.remove('busy'); st.lastElementChild.textContent = 'تعذّرت المزامنة'; } })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+  if (btn) btn.addEventListener('click', function () { run(true); });
+  run(false);
+})();

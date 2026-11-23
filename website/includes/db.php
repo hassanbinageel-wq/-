@@ -30,7 +30,7 @@ function col_type(array $f): string
 function migrate(PDO $pdo): array
 {
     $pdo->exec('CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT)');
-    $sig = md5(json_encode(array_map(fn($e) => array_map(fn($f) => $f['type'], $e['fields']), entities())) . 'v2');
+    $sig = md5(json_encode(array_map(fn($e) => array_map(fn($f) => $f['type'], $e['fields']), entities())) . 'v3');
     $cur = $pdo->query("SELECT value FROM settings WHERE name = '_schema'")->fetchColumn();
     if ($cur === $sig) {
         return [];
@@ -62,6 +62,21 @@ function migrate(PDO $pdo): array
     $pdo->exec('CREATE TABLE IF NOT EXISTS message_replies (
         id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER, body TEXT, created_at TEXT
     )');
+    // conversation sync with the mailbox (replies from Webmail/phone, clients' direct emails)
+    $addCols = [
+        'messages' => ['last_at' => 'TEXT', 'source' => "TEXT DEFAULT 'site'", 'msgid' => 'TEXT'],
+        'message_replies' => ['direction' => "TEXT DEFAULT 'out'", 'source' => "TEXT DEFAULT 'site'", 'msgid' => 'TEXT'],
+    ];
+    foreach ($addCols as $tbl => $cols) {
+        $have = array_column($pdo->query("PRAGMA table_info($tbl)")->fetchAll(), 'name');
+        foreach ($cols as $c => $type) {
+            if (!in_array($c, $have, true)) {
+                $pdo->exec("ALTER TABLE $tbl ADD COLUMN $c $type");
+            }
+        }
+    }
+    $pdo->exec('CREATE INDEX IF NOT EXISTS replies_msgid ON message_replies(msgid)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS messages_msgid ON messages(msgid)');
 
     foreach (entities() as $table => $def) {
         $exists = $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = " . $pdo->quote($table))->fetchColumn();

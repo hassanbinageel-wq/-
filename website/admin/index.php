@@ -141,6 +141,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect($self(['p' => 'settings', 'g' => $g]));
         }
 
+        if ($do === 'mail_sync') { // background sync from the Messages page / dashboard
+            $r = mail_sync(isset($_POST['force']) ? 0 : (int) ($_POST['gap'] ?? 60));
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($r + ['unread' => (int) db()->query('SELECT COUNT(*) FROM messages WHERE is_read = 0')->fetchColumn()], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         if ($page === 'messages') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($do === 'delete' && $id) {
@@ -170,7 +176,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$ok) {
                     throw new RuntimeException('ما انرسل الرد: ' . $err);
                 }
-                db()->prepare('INSERT INTO message_replies (message_id, body, created_at) VALUES (?, ?, ?)')->execute([$id, $body, date('Y-m-d H:i:s')]);
+                $now = date('Y-m-d H:i:s');
+                db()->prepare("INSERT INTO message_replies (message_id, body, created_at, direction, source, msgid) VALUES (?, ?, ?, 'out', 'site', ?)")->execute([$id, $body, $now, mail_last_id()]);
+                db()->prepare('UPDATE messages SET last_at = ? WHERE id = ?')->execute([$now, $id]);
                 flash('تم إرسال الرد إلى ' . $m['email'] . ' ✓');
                 redirect($self(['p' => 'messages', 'id' => $id]));
             }

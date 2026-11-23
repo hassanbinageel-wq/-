@@ -104,3 +104,4 @@ foreach (admin_menu() as $k => $item) {
     </section>
   <?php endforeach; ?>
 </div>
+<?php if (mail_sync_enabled()): ?><span hidden data-mail-sync data-sync="<?= e(admin_url('?p=messages')) ?>" data-csrf="<?= e(csrf_token()) ?>"></span><?php endif; ?>

@@ -9,24 +9,38 @@ if ($id) {
         db()->prepare('UPDATE messages SET is_read = 1 WHERE id = ?')->execute([$id]);
     }
 }
-$list = db()->query('SELECT * FROM messages ORDER BY id DESC LIMIT 300')->fetchAll();
+$list = db()->query("SELECT m.*, (SELECT r.body FROM message_replies r WHERE r.message_id = m.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS last_body,
+    (SELECT r.direction FROM message_replies r WHERE r.message_id = m.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS last_dir
+    FROM messages m ORDER BY COALESCE(m.last_at, m.created_at) DESC, m.id DESC LIMIT 300")->fetchAll();
 $replies = [];
 if ($msg) {
-    $st = db()->prepare('SELECT * FROM message_replies WHERE message_id = ? ORDER BY id');
+    $st = db()->prepare('SELECT * FROM message_replies WHERE message_id = ? ORDER BY created_at, id');
     $st->execute([$msg['id']]);
     $replies = $st->fetchAll();
 }
 $canMail = smtp_configured();
+$syncOn = mail_sync_enabled();
+$syncErr = (string) setting('_mail_sync_err');
+$syncOk = (int) setting('_mail_sync_ok');
 ?>
 <div class="page-head">
-  <p class="muted">الرسائل اللي توصلك من نموذج «تواصل معي» في الموقع</p>
-  <?php if ($list): ?>
+  <p class="muted">رسائل نموذج «تواصل معي»<?= $syncOn ? ' + إيميلات العملاء وردودك من الإيميل' : '' ?></p>
   <div class="page-actions">
+    <?php if ($syncOn): ?>
+      <span class="sync-status <?= $syncErr ? 'err' : '' ?>" id="syncStatus" data-sync="<?= e(admin_url('?p=messages')) ?>" data-csrf="<?= e(csrf_token()) ?>">
+        <?= icon('refresh') ?><span><?= $syncErr ? 'تعذّرت المزامنة' : ($syncOk ? 'متزامن مع الإيميل — ' . e(time_ago(date('Y-m-d H:i:s', $syncOk))) : 'جاري المزامنة مع الإيميل…') ?></span>
+      </span>
+      <button class="btn btn-ghost" type="button" id="syncNow"><?= icon('refresh') ?>مزامنة الآن</button>
+    <?php endif; ?>
+  <?php if ($list): ?>
     <div class="search"><?= icon('search') ?><input type="search" placeholder="بحث في الرسائل…" data-list-search="#msgList"></div>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="_do" value="read_all"><button class="btn btn-ghost"><?= icon('check') ?>تعليم الكل كمقروء</button></form>
-  </div>
   <?php endif; ?>
+  </div>
 </div>
+<?php if ($syncOn && $syncErr): ?>
+  <div class="alert alert-warn">ما قدرنا نجيب الإيميلات: <?= e($syncErr) ?> — تأكد من <a href="<?= admin_url('?p=settings&g=mail') ?>">إعدادات البريد</a>.</div>
+<?php endif; ?>
 
 <?php if (!$list): ?>
   <div class="card empty">
@@ -41,9 +55,9 @@ $canMail = smtp_configured();
       <a class="inbox-item <?= $m['is_read'] || ($msg && $msg['id'] == $m['id']) ? '' : 'unread' ?> <?= $msg && $msg['id'] == $m['id'] ? 'active' : '' ?>" href="<?= admin_url('?p=messages&id=' . $m['id']) ?>">
         <span class="avatar-sm"><?= e(mb_substr($m['name'], 0, 1)) ?></span>
         <span class="inbox-body">
-          <span class="inbox-top"><strong><?= e($m['name']) ?></strong><time><?= e(time_ago($m['created_at'])) ?></time></span>
+          <span class="inbox-top"><strong><?= e($m['name']) ?></strong><time><?= e(time_ago($m['last_at'] ?: $m['created_at'])) ?></time></span>
           <?php if ($m['subject']): ?><span class="inbox-subj"><?= e($m['subject']) ?></span><?php endif; ?>
-          <small><?= e(excerpt($m['message'], 80)) ?></small>
+          <small><?= $m['last_body'] !== null ? ($m['last_dir'] === 'out' ? '<b class="you">أنت:</b> ' : '') . e(excerpt($m['last_body'], 80)) : e(excerpt($m['message'], 80)) ?></small>
         </span>
       </a>
     <?php endforeach; ?>
@@ -65,9 +79,13 @@ $canMail = smtp_configured();
         <?php if ($msg['phone']): ?><div><dt>الجوال</dt><dd class="ltr"><a href="tel:<?= e($msg['phone']) ?>"><?= e($msg['phone']) ?></a></dd></div><?php endif; ?>
         <?php if ($msg['subject']): ?><div><dt>الموضوع</dt><dd><?= e($msg['subject']) ?></dd></div><?php endif; ?>
       </dl>
-      <div class="msg-text"><?= nl2br(e($msg['message'])) ?></div>
-      <?php foreach ($replies as $r): ?>
-        <div class="msg-reply"><span class="reply-meta"><?= icon('reply') ?>ردّك — <?= e(time_ago($r['created_at'])) ?></span><?= nl2br(e($r['body'])) ?></div>
+      <div class="msg-text"><?php if (($msg['source'] ?? 'site') === 'email'): ?><span class="via">عبر الإيميل</span><?php endif; ?><?= nl2br(e($msg['message'])) ?></div>
+      <?php foreach ($replies as $r): $in = ($r['direction'] ?? 'out') === 'in'; $viaMail = ($r['source'] ?? 'site') === 'email'; ?>
+        <?php if ($in): ?>
+          <div class="msg-text msg-in"><span class="reply-meta"><?= icon('mail') ?><?= e($msg['name']) ?> — <?= e(time_ago($r['created_at'])) ?><span class="via">عبر الإيميل</span></span><?= nl2br(e($r['body'])) ?></div>
+        <?php else: ?>
+          <div class="msg-reply"><span class="reply-meta"><?= icon('reply') ?>ردّك — <?= e(time_ago($r['created_at'])) ?><span class="via"><?= $viaMail ? 'من الإيميل' : 'من الموقع' ?></span></span><?= nl2br(e($r['body'])) ?></div>
+        <?php endif; ?>
       <?php endforeach; ?>
       <?php if ($msg['email']): ?>
         <?php if ($canMail): ?>

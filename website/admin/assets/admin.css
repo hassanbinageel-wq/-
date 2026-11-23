@@ -663,3 +663,17 @@ tr.just-moved { animation: moved 1.2s ease; }
 
 .auth-card .remember { display: flex; align-items: flex-start; gap: 8px; margin: 2px 0 14px; font-size: .86rem; color: var(--muted); cursor: pointer; text-align: start; line-height: 1.6; }
 .auth-card .remember input { width: 17px; height: 17px; margin-top: 3px; accent-color: var(--primary); flex: none; }
+
+/* Messages: mailbox sync + conversation */
+.sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; color: var(--muted); font-weight: 600; }
+.sync-status svg { width: 16px; height: 16px; }
+.sync-status.busy svg { animation: spin 1s linear infinite; }
+.sync-status.err { color: #dc2626; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.msg-text .via, .reply-meta .via { display: inline-block; margin-inline-start: 8px; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); vertical-align: middle; }
+.msg-text > .via { margin: 0 0 8px; display: table; }
+.msg-in { margin-top: 14px; }
+.msg-in .reply-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: .82rem; color: var(--muted); font-weight: 600; }
+.msg-in .reply-meta svg { width: 15px; height: 15px; }
+.inbox-item small .you { font-weight: 700; color: var(--text); }
+@media (max-width: 640px) { .sync-status { width: 100%; } }

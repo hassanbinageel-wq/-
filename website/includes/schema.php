@@ -361,6 +361,10 @@ function settings_schema(): array
             'mail_from_name'=> ['label' => 'اسم المرسل', 'type' => 'text', 'default' => 'حسن'],
             'verify_contact'=> ['label' => 'تأكيد إيميل الزائر برمز قبل إرسال رسالته', 'type' => 'bool', 'default' => 1],
             'notify_email'  => ['label' => 'أرسل لي إيميل عند وصول رسالة جديدة', 'type' => 'bool', 'default' => 1],
+            'mail_sync'     => ['label' => 'مزامنة الرسائل مع الإيميل (ردودك من Webmail/الجوال وإيميلات العملاء تظهر في «الرسائل»)', 'type' => 'bool', 'default' => 1],
+            'imap_host'     => ['label' => 'خادم IMAP (للمزامنة)', 'type' => 'text', 'default' => 'imap.hostinger.com'],
+            'imap_port'     => ['label' => 'منفذ IMAP', 'type' => 'number', 'default' => 993],
+            'imap_secure'   => ['label' => 'تشفير IMAP', 'type' => 'select', 'options' => ['ssl' => 'SSL (993)', 'tls' => 'TLS (143)', 'none' => 'بدون'], 'default' => 'ssl'],
         ]],
         'appearance' => ['title' => 'المظهر', 'icon' => 'pen', 'fields' => [
             'accent_color'  => ['label' => 'اللون الأساسي', 'type' => 'color', 'default' => '#3b82f6'],

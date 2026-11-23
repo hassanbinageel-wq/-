@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-define('APP_VERSION', '2026.11.08-2');
+define('APP_VERSION', '2026.11.23');
 define('ROOT', dirname(__DIR__));
 define('DATA_DIR', ROOT . '/data');
 define('UPLOAD_DIR', ROOT . '/uploads');
@@ -37,3 +37,4 @@ require __DIR__ . '/schema.php';
 require __DIR__ . '/db.php';
 require __DIR__ . '/helpers.php';
 require __DIR__ . '/mailer.php';
+require __DIR__ . '/mailsync.php';
