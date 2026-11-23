@@ -763,13 +763,16 @@ tr.just-moved { animation: moved 1.2s ease; }
 .main { min-width: 0; overflow-x: clip; }
 .back-btn { margin: 0 !important; }
 
-/* Unread conversations: very light tint + accent edge so they stand out */
+/* Unread conversations: very light red tint + thin red edge + red date */
 .inbox-item { position: relative; }
 .inbox-item + .inbox-item { margin-top: 2px; }
-.inbox-item.unread { background: color-mix(in srgb, var(--primary) 6%, transparent); }
-.inbox-item.unread::before { content: ""; position: absolute; inset-block: 10px; inset-inline-start: 0; width: 3px; border-radius: 3px; background: var(--primary); }
-.inbox-item.unread:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.inbox-item.unread { background: #fef2f2; }
+[data-theme="dark"] .inbox-item.unread { background: rgba(239, 68, 68, .09); }
+.inbox-item.unread::before { content: ""; position: absolute; inset-block: 10px; inset-inline-start: 0; width: 3px; border-radius: 3px; background: #ef4444; }
+.inbox-item.unread:hover { background: #fee2e2; }
+[data-theme="dark"] .inbox-item.unread:hover { background: rgba(239, 68, 68, .14); }
+.inbox-item.unread strong::before { display: none; }
 .inbox-item.unread strong, .inbox-item.unread .inbox-subj { font-weight: 800; color: var(--text); }
 .inbox-item.unread small { color: var(--text); opacity: .8; }
-.inbox-item.unread time { color: var(--primary); font-weight: 700; }
+.inbox-item.unread time { color: #dc2626; font-weight: 700; }
 .inbox-item.active { background: color-mix(in srgb, var(--primary) 14%, transparent); }
