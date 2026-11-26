@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>خريطة العلامة — شيّك</title>
+<style>
+@font-face { font-family: "Thmanyah"; font-weight: 400; src: url("thmanyahsans-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Thmanyah"; font-weight: 500; src: url("thmanyahsans-Medium.woff2") format("woff2"); }
+@font-face { font-family: "Thmanyah"; font-weight: 700; src: url("thmanyahsans-Bold.woff2") format("woff2"); }
+@font-face { font-family: "Thmanyah"; font-weight: 900; src: url("thmanyahsans-Black.woff2") format("woff2"); }
+@page { size: A4; margin: 0; }
+:root {
+  --ink: #1e1b2e; --muted: #6b6880; --line: #ebe8f3; --soft: #f7f5fb;
+  --c1: #6947c1; --c2: #9c309f; --c3: #e03670; --c4: #f37e2e; --c5: #e0a63a;
+  --grad: linear-gradient(120deg, #6947c1 0%, #9c309f 30%, #e03670 60%, #f37e2e 85%, #fbc664 100%);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #fff; }
+body { font-family: "Thmanyah", sans-serif; color: var(--ink); font-size: 10.6pt; line-height: 1.75; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { width: 210mm; height: 297mm; position: relative; overflow: hidden; padding: 20mm 15mm 17mm; page-break-after: always; }
+.page:last-child { page-break-after: auto; }
+.topbar { position: absolute; inset: 0 0 auto 0; height: 4mm; background: var(--grad); }
+.head { position: absolute; top: 8mm; inset-inline: 15mm; display: flex; align-items: center; justify-content: space-between; font-size: 8.5pt; color: var(--muted); }
+.head img { height: 7mm; }
+.foot { position: absolute; bottom: 7mm; inset-inline: 15mm; display: flex; justify-content: space-between; font-size: 8pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 2.5mm; }
+
+/* cover */
+.cover { padding: 0; background: #fff; }
+.cover .glow { position: absolute; width: 170mm; height: 170mm; border-radius: 50%; filter: blur(30mm); opacity: .22; }
+.cover .g1 { background: #9c309f; top: -40mm; right: -50mm; }
+.cover .g2 { background: #f37e2e; bottom: -60mm; left: -50mm; }
+.cover .inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 25mm; }
+.cover .logo { width: 120mm; margin-bottom: 16mm; }
+.cover h1 { font-size: 34pt; font-weight: 900; line-height: 1.25; }
+.cover h1 span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.cover .sub { font-size: 13pt; color: var(--muted); margin-top: 5mm; }
+.cover .meta { margin-top: 20mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; width: 100%; }
+.cover .meta div { border: 1px solid var(--line); border-radius: 4mm; padding: 4mm 3mm; background: rgba(255,255,255,.8); }
+.cover .meta b { display: block; font-size: 11pt; }
+.cover .meta span { font-size: 8.5pt; color: var(--muted); }
+.cover .band { position: absolute; bottom: 0; inset-inline: 0; height: 6mm; background: var(--grad); }
+
+/* summary */
+.intro { font-size: 11pt; color: #3c3851; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 3mm; }
+.pill { border-radius: 99px; padding: .6mm 3.2mm; font-size: 8.8pt; font-weight: 700; background: var(--soft); border: 1px solid var(--line); }
+
+/* phases */
+.phase { display: flex; align-items: center; justify-content: space-between; border-radius: 3.5mm; padding: 2.6mm 5mm; color: #fff; margin: 0 0 3.5mm; }
+.phase b { font-size: 13pt; font-weight: 900; }
+.phase span { font-size: 9pt; opacity: .9; }
+.q { border: 1px solid var(--line); border-radius: 3.5mm; padding: 3.2mm 4.5mm 3.4mm; margin-bottom: 3mm; display: grid; grid-template-columns: 9mm 1fr; gap: 3mm; break-inside: avoid; }
+.q .n { font-size: 17pt; font-weight: 900; line-height: 1.1; color: var(--accent); }
+.q h3 { font-size: 11.5pt; font-weight: 900; line-height: 1.4; }
+.q h3 small { font-size: 8.6pt; font-weight: 500; color: var(--muted); margin-inline-start: 2mm; }
+.q p, .q li { color: #33304a; }
+.q ul { padding-inline-start: 4.5mm; }
+.q li { margin: .4mm 0; }
+.q li::marker { color: var(--accent); }
+.ans { font-weight: 700; color: var(--accent); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5mm 4mm; margin-top: 1.5mm; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5mm; margin-top: 1.5mm; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5mm; margin-top: 1.5mm; }
+.box { background: var(--soft); border-radius: 2.5mm; padding: 2.2mm 3mm; font-size: 9.6pt; line-height: 1.6; }
+.box b { display: block; color: var(--accent); font-size: 9.2pt; margin-bottom: .5mm; }
+.tag { display: inline-block; border-radius: 99px; padding: 0 2.4mm; font-size: 8pt; font-weight: 700; color: #fff; background: var(--accent); margin-inline-start: 1.5mm; vertical-align: middle; }
+.note { font-size: 8.4pt; color: var(--muted); margin-top: 1.5mm; }
+.big { font-size: 12.5pt; font-weight: 900; line-height: 1.6; }
+.slogans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5mm; margin-top: 1.5mm; }
+.slogans div { border-radius: 2.5mm; padding: 3mm; text-align: center; font-weight: 900; font-size: 11.5pt; color: #fff; background: var(--grad); }
+.scale { display: grid; grid-template-columns: 17mm 1fr 17mm; align-items: center; gap: 2mm; font-size: 9pt; margin: .8mm 0; }
+.scale .l { text-align: left; }
+.dots { display: flex; justify-content: space-between; direction: rtl; }
+.dots i { width: 3.4mm; height: 3.4mm; border-radius: 50%; border: 1.2px solid #cfc9e0; display: block; }
+.dots i.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 1mm rgba(0,0,0,.04); }
+.swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; margin-top: 1.5mm; }
+.sw { border-radius: 2.5mm; height: 15mm; color: #fff; font-size: 8pt; font-weight: 700; display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5mm 2mm; line-height: 1.3; }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 1.5mm; }
+.charts svg { width: 100%; height: auto; display: block; }
+.charts .cap { text-align: center; font-size: 8.6pt; color: var(--muted); margin-top: 1mm; }
+table.comp { width: 100%; border-collapse: collapse; font-size: 9.2pt; margin-top: 1.5mm; }
+table.comp th { text-align: right; background: var(--soft); padding: 1.6mm 2.2mm; font-weight: 700; }
+table.comp td { padding: 1.6mm 2.2mm; border-top: 1px solid var(--line); vertical-align: top; }
+.values { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2mm; margin-top: 1.5mm; }
+.values div { border-radius: 2.5mm; border: 1px solid var(--line); padding: 2.5mm 2mm; text-align: center; font-size: 8.8pt; line-height: 1.5; }
+.values b { display: block; font-size: 10.5pt; color: var(--accent); }
+.closing { margin-top: 6mm; border-radius: 4mm; padding: 6mm; color: #fff; background: var(--grad); text-align: center; }
+.closing b { font-size: 15pt; font-weight: 900; display: block; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="page cover">
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="inner">
+    <img class="logo" src="logo-light.svg" alt="شيّك">
+    <h1>خريطة العلامة التجارية<br><span>Brand Map</span></h1>
+    <p class="sub">إجابات لعبة «براند ماب» لبناء استراتيجية علامة «شيّك»</p>
+    <div class="meta">
+      <div><b>شيّك · Shayyek</b><span>العلامة</span></div>
+      <div><b>ردود إنستقرام التلقائية</b><span>المجال</span></div>
+      <div><b>shayyek.sa</b><span>الموقع</span></div>
+    </div>
+  </div>
+  <div class="band"></div>
+</section>
+
+<!-- ============ PAGE: SUMMARY + MARKET ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>خريطة العلامة · شيّك</span></div>
+
+  <p class="intro"><b>شيّك</b> منصة سعودية تخلّي حساب الإنستقرام يرد بنفسه: تعليق بكلمة معيّنة ← رد عام على التعليق ← رسالة خاصة فيها الرابط أو الملف أو الكود. وفوقها: التحقق من المتابعة قبل الإرسال، سحوبات عادلة على التعليقات، صندوق رسائل موحّد، جدولة منشورات، وتحليلات وتتبّع الروابط. تعمل بواجهات Meta الرسمية فقط (معتمدة من مراجعة Meta)، وبالعربي من أول شاشة لآخر شاشة، على الويب وتطبيق أندرويد.</p>
+  <div class="pill-row">
+    <span class="pill">ربط رسمي مع Meta</span><span class="pill">عربي بالكامل</span><span class="pill">باقة مجانية</span><span class="pill">دفع مدى · Apple Pay · بطاقات</span><span class="pill">ويب + تطبيق</span>
+  </div>
+
+  <div style="height:5mm"></div>
+  <div class="phase" style="background:#6947c1"><b>المرحلة الأولى · السوق</b><span>أين نلعب؟</span></div>
+  <div style="--accent:#6947c1">
+    <div class="q"><div class="n">1</div><div><h3>دورة حياة السوق <small>في أيّ مرحلة سوقك؟</small></h3>
+      <p><span class="ans">مرحلة النمو.</span> أتمتة رسائل الإنستقرام معروفة عالميًا من سنوات، لكن في السعودية والخليج ما زالت في بدايتها: أغلب المتاجر وصنّاع المحتوى يردّون يدويًا، والأدوات الموجودة أجنبية أو مترجمة. الطلب يكبر بسرعة مع موجة «علّق بكلمة ويوصلك الرابط».</p></div></div>
+
+    <div class="q"><div class="n">2</div><div><h3>اتجاهات السوق <small>أبرز الاتجاهات المؤثرة (PESTLE)</small></h3>
+      <div class="grid2">
+        <div class="box"><b>P · سياسي</b>رؤية 2030 ودعم التحول الرقمي وريادة الأعمال والمنشآت الصغيرة.</div>
+        <div class="box"><b>T · تقني</b>Meta تفتح واجهات الرسائل رسميًا وتغلق الطرق غير الرسمية؛ والذكاء الاصطناعي يرفع توقّعات سرعة الرد.</div>
+        <div class="box"><b>E · اقتصادي</b>نمو التجارة الإلكترونية ومنصات المتاجر (سلة، زد)، وضغط على المتاجر الصغيرة لتقليل تكلفة خدمة العملاء.</div>
+        <div class="box"><b>L · قانوني</b>نظام حماية البيانات الشخصية، ضريبة القيمة المضافة 15%، وسياسات Meta الصارمة للرسائل (نافذة 24 ساعة).</div>
+        <div class="box"><b>S · اجتماعي</b>الإنستقرام قناة شراء أساسية، والجمهور يتوقّع ردًّا فوريًا وبلهجته؛ صعود صنّاع المحتوى والسحوبات.</div>
+        <div class="box"><b>E · بيئي</b>أثر محدود؛ تشغيل سحابي بلا خوادم خاصة، ولا ورق ولا شحن.</div>
+      </div></div></div>
+  </div>
+
+  <div class="foot"><span>شيّك · Shayyek</span><span>2</span></div>
+</section>
+
+<!-- ============ PAGE: MARKET cont. ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>المرحلة الأولى · السوق</span></div>
+  <div style="--accent:#6947c1">
+    <div class="q"><div class="n">3</div><div><h3>المنافسون <small>من أخطر منافسيك؟</small></h3>
+      <table class="comp">
+        <tr><th>المنافس</th><th>الخطورة</th><th>أهم قوة</th><th>أهم ضعف</th></tr>
+        <tr><td><b>ManyChat</b> (عالمي)</td><td>عالية</td><td>اسم معروف، ميزات كثيرة، تكاملات واسعة</td><td>إنجليزي ومعقّد للمبتدئ، تسعير بالدولار، لا دفع بمدى، دعم غير محلي</td></tr>
+        <tr><td><b>منصات عربية مشابهة</b> (مثل «رقي»)</td><td>متوسطة</td><td>عربية، قريبة من السوق، باقة مجانية</td><td>نطاق ميزات أضيق (سحوبات، تحقق متابعة، تحليلات المتجر)</td></tr>
+        <tr><td><b>الرد اليدوي / موظف</b></td><td>متوسطة</td><td>مجاني ظاهريًا ومألوف</td><td>بطيء، يضيع عملاء الليل، لا يتوسّع مع الانتشار</td></tr>
+      </table>
+      <p class="note">التقييم تقديري من ملاحظة السوق، ويُحدَّث بمراجعة دورية للمنافسين.</p></div></div>
+
+    <div class="q"><div class="n">4</div><div><h3>خصائص السوق <small>كمية حواجز الدخول؟</small></h3>
+      <p><span class="ans">متوسطة إلى عالية.</span> الفكرة سهلة التقليد، لكن الدخول الحقيقي صعب: مراجعة Meta وصلاحيات Advanced Access، التحقق من النشاط التجاري، الالتزام بسياسات الرسائل، بوابة دفع محلية، وبناء ثقة العملاء بأداة تتحدث باسم حساباتهم.</p></div></div>
+
+    <div class="q"><div class="n">5</div><div><h3>خصائص السوق <small>كم عدد المصنّعين؟</small></h3>
+      <p><span class="ans">قليل محليًا، كثير عالميًا.</span> عشرات الأدوات العالمية، وعدد محدود من الأدوات العربية والسعودية المتخصّصة في الإنستقرام.</p></div></div>
+
+    <div class="q"><div class="n">6</div><div><h3>خصائص السوق <small>ما هو نوع المنتجات؟</small></h3>
+      <p><span class="ans">برمجيات خدمة باشتراك شهري (SaaS).</span> تُستخدم عبر الويب والتطبيق، بباقات حسب عدد الرسائل الشهرية، مع حزم شحن رسائل إضافية.</p></div></div>
+  </div>
+
+  <div class="phase" style="background:#9c309f;margin-top:4mm"><b>المرحلة الثانية · الجمهور</b><span>لمن نعمل؟</span></div>
+  <div style="--accent:#9c309f">
+    <div class="q"><div class="n">1</div><div><h3>شريحة العملاء <small>من هو عميلك الأساسي؟</small></h3>
+      <p>أصحاب <b>المتاجر الإلكترونية والمشاريع الصغيرة</b> في السعودية والخليج اللي يبيعون ويسوّقون عبر الإنستقرام.</p></div></div>
+    <div class="q"><div class="n">2</div><div><h3>شريحة العملاء <small>من هي الشريحة الأهم ومحرّكها؟</small></h3>
+      <p><b>صنّاع المحتوى والمدرّبون والمتاجر النشطة</b> اللي منشوراتهم تجيب مئات التعليقات. محرّكهم: <span class="ans">ما يضيع أي عميل مهتم</span> + توفير الوقت + ظهور احترافي.</p></div></div>
+  </div>
+  <div class="foot"><span>شيّك · Shayyek</span><span>3</span></div>
+</section>
+
+<!-- ============ PAGE: AUDIENCE cont. + PRODUCTS ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>المرحلة الثانية · الجمهور</span></div>
+  <div style="--accent:#9c309f">
+    <div class="q"><div class="n">3</div><div><h3>شريحة الدخل <small>ما شريحة الدخل الأقرب لعميلك؟</small></h3>
+      <p><span class="ans">متوسطة.</span> منشأة صغيرة أو فرد يدير مشروعه؛ حساس للسعر، يبدأ بالمجاني أو الأساسية (19.5 ر.س شهريًا) ويترقّى لما يكبر الانتشار.</p></div></div>
+
+    <div class="q"><div class="n">4</div><div><h3>ملف العميل <small>من هو عميلك المثالي؟</small></h3>
+      <div class="grid3">
+        <div class="box"><b>السمات والقصة</b>«نورة»، 29 سنة، عندها متجر عبايات/عطور على الإنستقرام وسلة. تنشر يوميًا وتسوي عروضًا وسحوبات. تدير كل شي بنفسها من جوالها.</div>
+        <div class="box"><b>المشاكل</b>مئات التعليقات «بكم؟» و«أبي الرابط» تضيع؛ الرد اليدوي ياخذ ساعات؛ عملاء الليل يروحون للمنافس؛ السحوبات تاخذ وقت وتثير شكوك العدالة.</div>
+        <div class="box"><b>الحلول التي يطلبها</b>رد تلقائي فوري بلهجتها، يرسل الرابط بالخاص، يتأكد إن الشخص متابع، سحب عادل بفيديو، وأرقام توضح وش اللي يجيب مبيعات.</div>
+      </div></div></div>
+
+    <div class="q"><div class="n">5</div><div><h3>يوم في حياة عميلي <small>من الاستيقاظ إلى النوم، وأين تدخل علامتك؟</small></h3>
+      <ul>
+        <li><b>8 ص</b> تصحى على إشعار شيّك: «تفاعل الليل: 140 تعليق، انرسل لهم الرابط».</li>
+        <li><b>11 ص</b> تجهّز منشور العرض وتجدوله من شيّك لوقت الذروة.</li>
+        <li><b>4 م</b> المنشور ينزل، والتعليقات تتدفّق؛ شيّك يرد ويرسل كود الخصم لكل متابع.</li>
+        <li><b>9 م</b> تفتح صندوق الرسائل الموحّد وترد بنفسها على الحالات الخاصة فقط.</li>
+        <li><b>11 م</b> تشوف التحليلات: أي منشور جاب أكثر ضغطات وأين تستثمر بكرة. تنام وشيّك شغّال.</li>
+      </ul></div></div>
+  </div>
+
+  <div class="phase" style="background:#e03670;margin-top:4mm"><b>المرحلة الثالثة · المنتجات</b><span>ماذا نقدّم؟</span></div>
+  <div style="--accent:#e03670">
+    <div class="q"><div class="n">1</div><div><h3>المنتجات <small>ما نوع المنتج / الخدمة؟</small></h3>
+      <p>خدمة برمجية باشتراك: <b>ردود تلقائية على التعليقات والرسائل</b> · <b>التحقق من المتابعة</b> · <b>سحوبات عادلة</b> · <b>صندوق رسائل موحّد</b> · <b>جدولة المنشورات</b> · <b>تحليلات وتتبّع الروابط</b> · <b>تحليل المتجر</b>. الباقات: المجانية، الأساسية، المتقدمة، الاحترافية + حزم شحن رسائل.</p></div></div>
+    <div class="q"><div class="n">2</div><div><h3>البديل الحقيقي <small>لو لم نوجد سيضطر عميلي إلى؟</small></h3>
+      <p>الرد اليدوي لساعات، أو توظيف شخص للرسائل، أو أداة أجنبية معقّدة وبالدولار وما تفهم لهجته.</p></div></div>
+  </div>
+  <div class="foot"><span>شيّك · Shayyek</span><span>4</span></div>
+</section>
+
+<!-- ============ PAGE: PRODUCTS cont. + PERSONALITY ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>المرحلة الثالثة · المنتجات</span></div>
+  <div style="--accent:#e03670">
+    <div class="q"><div class="n">3</div><div><h3>عرض القيمة <small>ما القيمة الأساسية لبراندك؟</small></h3>
+      <p class="big">كل تعليق يتحوّل لعميل — تلقائيًا، بالعربي، وبطريقة Meta الرسمية الآمنة.</p></div></div>
+    <div class="q"><div class="n">4</div><div><h3>التحليل الرباعي (SWOT)</h3>
+      <div class="grid4">
+        <div class="box"><b>نقاط القوة</b>ربط رسمي ومعتمد من Meta · عربي بالكامل · دفع محلي (مدى/Apple Pay) · باقة مجانية · ميزات فريدة (تحقق المتابعة، السحوبات بالفيديو) · ويب وتطبيق.</div>
+        <div class="box"><b>نقاط الضعف</b>علامة جديدة بلا تاريخ · فريق صغير · الاعتماد على منصة واحدة (إنستقرام) · قاعدة عملاء في بدايتها.</div>
+        <div class="box"><b>الفرص</b>تكامل سلة وزد · السوق الخليجي · الذكاء الاصطناعي في الردود · شراكات مع وكالات التسويق والمدرّبين · واتساب لاحقًا.</div>
+        <div class="box"><b>التهديدات</b>تغيّر سياسات Meta أو حدودها · دخول منافس عالمي بالعربي · حرب أسعار · أدوات مجانية مدمجة من Meta نفسها.</div>
+      </div></div></div>
+  </div>
+
+  <div class="phase" style="background:#f37e2e;margin-top:4mm"><b>المرحلة الرابعة · الشخصية</b><span>كيف نبدو ونتكلّم؟</span></div>
+  <div style="--accent:#e2701f">
+    <div class="q"><div class="n">1</div><div><h3>نبرة الصوت <small>ما النبرة الأقرب لبراندك؟</small></h3>
+      <p><span class="ans">ودودة، واضحة، سعودية بيضاء.</span> نكلّم العميل مثل صديق يفهم في التسويق: جمل قصيرة، بدون مصطلحات تقنية، ومع ذلك واثقة ومحترفة.</p></div></div>
+    <div class="q"><div class="n">2</div><div><h3>عمر البراند <small>هل البراند شبابي أم راسخ؟</small></h3>
+      <p><span class="ans">شبابي</span> (روح العشرينات والثلاثينات)، لكن بتصرّف مسؤول وموثوق لأنه يتكلّم باسم حسابات عملائه.</p></div></div>
+    <div class="q"><div class="n">3</div><div><h3>سمات العلامة</h3>
+      <div class="grid3">
+        <div class="box"><b>المجتمع يصفنا بـ</b>«أداة سهلة وتوفّر وقت»</div>
+        <div class="box"><b>عملاؤنا</b>أصحاب مشاريع طموحين يبيعون عبر المحتوى</div>
+        <div class="box"><b>صوتنا</b>قريب، سريع، مطمئن</div>
+        <div class="box"><b>قيمتنا (الأثر)</b>ولا تعليق يضيع، ووقت أكثر للإبداع</div>
+        <div class="box"><b>ميزتنا الفارقة</b>رسمي + عربي + سعودي الدفع والدعم</div>
+        <div class="box"><b>وعدنا</b>«شيّك يرد عنك، وأنت ركّز على شغلك»</div>
+      </div></div></div>
+  </div>
+  <div class="foot"><span>شيّك · Shayyek</span><span>5</span></div>
+</section>
+
+<!-- ============ PAGE: PERSONALITY cont. + MESSAGE ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>المرحلة الرابعة · الشخصية</span></div>
+  <div style="--accent:#e2701f">
+    <div class="q"><div class="n">4</div><div><h3>نموذج Archetype <small>أيّ نموذج تتبنّاه علامتك؟</small></h3>
+      <p><span class="ans">المساعد الذكي: «الساحر» (The Magician) بلمسة «الصديق» (Everyman).</span> الساحر لأنه يحوّل الفوضى (مئات التعليقات) لنتيجة تلقائية تشبه السحر، والصديق لأنه قريب ومفهوم وبسعر في المتناول.</p></div></div>
+
+    <div class="q"><div class="n">5</div><div><h3>الطباع الإنسانية <small>أين تقع علامتك على المقاييس؟</small></h3>
+      <div class="grid2" style="gap:1mm 8mm">
+        <div>
+          <div class="scale"><span>أنثوية</span><div class="dots"><i></i><i></i><i></i><i class="on"></i><i></i><i></i><i></i></div><span class="l">ذكورية</span></div>
+          <div class="scale"><span>بسيطة</span><div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="l">مركّبة</span></div>
+          <div class="scale"><span>شابة</span><div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><span class="l">راسخة</span></div>
+          <div class="scale"><span>كلاسيكية</span><div class="dots"><i></i><i></i><i></i><i></i><i></i><i class="on"></i><i></i></div><span class="l">عصرية</span></div>
+          <div class="scale"><span>ودودة</span><div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><span class="l">رسمية</span></div>
+        </div>
+        <div>
+          <div class="scale"><span>اقتصادية</span><div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><span class="l">باهظة</span></div>
+          <div class="scale"><span>مرحة</span><div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div><span class="l">جادّة</span></div>
+          <div class="scale"><span>غير مألوفة</span><div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div><span class="l">سائدة</span></div>
+          <div class="scale"><span>صناعية</span><div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i><i></i><i></i></div><span class="l">طبيعية</span></div>
+        </div>
+      </div></div></div>
+  </div>
+
+  <div class="phase" style="background:#6947c1;margin-top:4mm"><b>المرحلة الخامسة · الرسالة</b><span>ماذا نقول؟</span></div>
+  <div style="--accent:#6947c1">
+    <div class="q"><div class="n">1</div><div><h3>بيان التموضع <small>املأ قالب التموضع</small></h3>
+      <div class="grid3">
+        <div class="box"><b>لـ (الشريحة)</b>أصحاب المتاجر وصنّاع المحتوى في السعودية اللي يبيعون عبر الإنستقرام</div>
+        <div class="box"><b>نحن (الفئة) التي</b>منصة ردود تلقائية تحوّل كل تعليق ورسالة لعميل محتمل خلال ثوانٍ</div>
+        <div class="box"><b>الميزة الفارقة</b>لأننا الوحيدين اللي نجمع الربط الرسمي مع Meta، والعربية الكاملة، والدفع والدعم المحلي في أداة وحدة</div>
+      </div></div></div>
+    <div class="q"><div class="n">2</div><div><h3>الشعار اللفظي <small>2–5 كلمات، سهلة التذكّر، تلخّص روح البراند</small></h3>
+      <div class="slogans"><div>شيّك يرد عنك</div><div>ولا تعليق يضيع</div><div>علّق… ويوصلك</div></div>
+      <p class="note">المقترح المفضّل: «شيّك يرد عنك» — يجمع الاسم والوعد في ثلاث كلمات.</p></div></div>
+    <div class="q"><div class="n">3</div><div><h3>مفردات العلامة <small>قاموس علامتك الصغير</small></h3>
+      <div class="grid2">
+        <div class="box"><b>كلمات نقولها</b>شيّك · تلقائيًا · على طول · ولا تعليق يضيع · عميلك · تابعنا ويوصلك · رسمي وآمن · بالعربي · بدون تعقيد</div>
+        <div class="box"><b>كلمات نتجنّبها</b>بوت · سبام · رسائل عشوائية · اختراق/ثغرة · مصطلحات تقنية (API, Webhook) · وعود مبالغ فيها («مبيعات مضمونة»)</div>
+      </div></div></div>
+
+  </div>
+  <div class="foot"><span>شيّك · Shayyek</span><span>6</span></div>
+</section>
+
+<!-- ============ PAGE: MESSAGE cont. ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>المرحلة الخامسة · الرسالة</span></div>
+  <div style="--accent:#6947c1">
+    <div class="q"><div class="n">4</div><div><h3>مصفوفة التموضع <small>أين موقعك مقابل المنافسين؟ (تقديري)</small></h3>
+      <div class="charts">
+        <div>
+          <svg viewBox="0 0 220 200" font-family="Thmanyah" font-size="8">
+            <rect x="30" y="10" width="180" height="160" fill="#f7f5fb" rx="4"/>
+            <g stroke="#e4e0ee" stroke-width=".6">
+              <line x1="48" y1="10" x2="48" y2="170"/><line x1="66" y1="10" x2="66" y2="170"/><line x1="84" y1="10" x2="84" y2="170"/><line x1="102" y1="10" x2="102" y2="170"/><line x1="120" y1="10" x2="120" y2="170" stroke="#cfc9e0"/><line x1="138" y1="10" x2="138" y2="170"/><line x1="156" y1="10" x2="156" y2="170"/><line x1="174" y1="10" x2="174" y2="170"/><line x1="192" y1="10" x2="192" y2="170"/>
+              <line x1="30" y1="26" x2="210" y2="26"/><line x1="30" y1="42" x2="210" y2="42"/><line x1="30" y1="58" x2="210" y2="58"/><line x1="30" y1="74" x2="210" y2="74"/><line x1="30" y1="90" x2="210" y2="90" stroke="#cfc9e0"/><line x1="30" y1="106" x2="210" y2="106"/><line x1="30" y1="122" x2="210" y2="122"/><line x1="30" y1="138" x2="210" y2="138"/><line x1="30" y1="154" x2="210" y2="154"/>
+            </g>
+            <circle cx="183" cy="26" r="7" fill="#e03670"/><text x="183" y="44" text-anchor="middle" font-weight="700" fill="#1e1b2e">شيّك</text>
+            <circle cx="66" cy="138" r="5" fill="#9b98ad"/><text x="66" y="153" text-anchor="middle" fill="#55526a">ManyChat</text>
+            <circle cx="147" cy="58" r="5" fill="#9b98ad"/><text x="147" y="73" text-anchor="middle" fill="#55526a">منصات عربية</text>
+            <circle cx="48" cy="58" r="5" fill="#9b98ad"/><text x="48" y="73" text-anchor="middle" fill="#55526a">رد يدوي</text>
+            <text x="120" y="192" text-anchor="middle" fill="#6b6880">سهولة الاستخدام</text>
+            <text x="14" y="90" text-anchor="middle" fill="#6b6880" transform="rotate(-90 14 90)">ملاءمة السوق السعودي</text>
+            <text x="34" y="180" font-size="7" fill="#9b98ad">منخفض</text><text x="206" y="180" font-size="7" fill="#9b98ad" text-anchor="end">مرتفع</text>
+            <text x="27" y="16" font-size="7" fill="#9b98ad" text-anchor="end">مرتفع</text>
+          </svg>
+          <p class="cap">سهولة الاستخدام × ملاءمة السوق المحلي</p>
+        </div>
+        <div>
+          <svg viewBox="0 0 220 200" font-family="Thmanyah" font-size="8">
+            <rect x="30" y="10" width="180" height="160" fill="#f7f5fb" rx="4"/>
+            <g stroke="#e4e0ee" stroke-width=".6">
+              <line x1="48" y1="10" x2="48" y2="170"/><line x1="66" y1="10" x2="66" y2="170"/><line x1="84" y1="10" x2="84" y2="170"/><line x1="102" y1="10" x2="102" y2="170"/><line x1="120" y1="10" x2="120" y2="170" stroke="#cfc9e0"/><line x1="138" y1="10" x2="138" y2="170"/><line x1="156" y1="10" x2="156" y2="170"/><line x1="174" y1="10" x2="174" y2="170"/><line x1="192" y1="10" x2="192" y2="170"/>
+              <line x1="30" y1="26" x2="210" y2="26"/><line x1="30" y1="42" x2="210" y2="42"/><line x1="30" y1="58" x2="210" y2="58"/><line x1="30" y1="74" x2="210" y2="74"/><line x1="30" y1="90" x2="210" y2="90" stroke="#cfc9e0"/><line x1="30" y1="106" x2="210" y2="106"/><line x1="30" y1="122" x2="210" y2="122"/><line x1="30" y1="138" x2="210" y2="138"/><line x1="30" y1="154" x2="210" y2="154"/>
+            </g>
+            <circle cx="66" cy="34" r="7" fill="#e03670"/><text x="66" y="52" text-anchor="middle" font-weight="700" fill="#1e1b2e">شيّك</text>
+            <circle cx="183" cy="26" r="5" fill="#9b98ad"/><text x="183" y="41" text-anchor="middle" fill="#55526a">ManyChat</text>
+            <circle cx="66" cy="106" r="5" fill="#9b98ad"/><text x="66" y="121" text-anchor="middle" fill="#55526a">منصات عربية</text>
+            <circle cx="156" cy="154" r="5" fill="#9b98ad"/><text x="156" y="166" text-anchor="middle" fill="#55526a">موظف رد</text>
+            <text x="120" y="192" text-anchor="middle" fill="#6b6880">السعر الشهري</text>
+            <text x="14" y="90" text-anchor="middle" fill="#6b6880" transform="rotate(-90 14 90)">عمق الميزات</text>
+            <text x="34" y="180" font-size="7" fill="#9b98ad">منخفض</text><text x="206" y="180" font-size="7" fill="#9b98ad" text-anchor="end">مرتفع</text>
+            <text x="27" y="16" font-size="7" fill="#9b98ad" text-anchor="end">مرتفع</text>
+          </svg>
+          <p class="cap">السعر × عمق الميزات</p>
+        </div>
+      </div>
+      <p class="note">المواقع تقديرية لتوضيح الفكرة: شيّك يستهدف الزاوية «سهل + محلي» و«ميزات قوية بسعر منخفض».</p></div></div>
+  </div>
+
+  <div class="phase" style="background:#9c309f;margin-top:4mm"><b>المرحلة السادسة · التسمية</b><span>بأي اسم نُعرف؟</span></div>
+  <div style="--accent:#9c309f">
+    <div class="q"><div class="n">1</div><div><h3>نوع الاسم <small>أيّ نوع اسم تختاره؟</small></h3>
+      <p><span class="ans">اسم وصفي–إيحائي من اللهجة.</span> «شيّك» فعل أمر عامّي يعني «تحقّق/راجع»، ويوحي بالتحقق من المتابعة وبالسرعة، وسهل النطق والكتابة بالإنجليزي (Shayyek).</p></div></div>
+    <div class="q"><div class="n">2</div><div><h3>بذور التوليد <small>المادة الأهم للمحرّك</small></h3>
+      <div class="grid4">
+        <div class="box"><b>كلمات بذرة</b>شيّك · رد · تحقّق · تعليق · يوصلك</div>
+        <div class="box"><b>مرجع / لهجة</b>اللهجة السعودية البيضاء: «شيّك عليه»، «يوصلك على طول»</div>
+        <div class="box"><b>دلالات تُجنّب</b>بوت، سبام، أي إيحاء بالاحتيال أو الإزعاج</div>
+        <div class="box"><b>منافسون للابتعاد</b>الأسماء الأجنبية الطويلة، وأي اسم يشبه علامات Meta</div>
+      </div></div></div>
+
+  </div>
+  <div class="foot"><span>شيّك · Shayyek</span><span>7</span></div>
+</section>
+
+<!-- ============ PAGE: NAMING cont. + VISUAL ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>المرحلة السادسة · التسمية</span></div>
+  <div style="--accent:#9c309f">
+    <div class="q"><div class="n">3</div><div><h3>دليل النطاقات <small>تحقّق من توفّرها</small></h3>
+      <div class="grid3">
+        <div class="box"><b>shayyek.sa</b>محجوز لنا ✓ (الموقع الرسمي)</div>
+        <div class="box"><b>shayyek.com</b>يُتحقّق منه</div>
+        <div class="box"><b>إنستقرام · إكس · تيك توك</b>يُتحقّق من توفّر @shayyek ويُحجز بنفس الاسم</div>
+      </div>
+      <p class="note">ما تأكّدنا من توفّر .com وحسابات التواصل؛ تحتاج فحص قبل الإطلاق.</p></div></div>
+
+    <div class="q"><div class="n">4</div><div><h3>بين حرفين <small>بأي لسان يولد اسمك؟</small></h3>
+      <p><span class="ans">عربي سعودي أولًا</span> «شيّك»، ويُكتب بالإنجليزي <b>Shayyek</b> بنطق قريب من الأصل.</p></div></div>
+  </div>
+
+  <div class="phase" style="background:#e03670;margin-top:4mm"><b>المرحلة السابعة · الهوية البصرية</b><span>كيف نُرى؟</span></div>
+  <div style="--accent:#e03670">
+    <div class="q"><div class="n">1</div><div><h3>المزاج البصري <small>ما الإحساس البصري الأقرب لبراندك؟</small></h3>
+      <p><span class="ans">عصري، حيوي، نظيف.</span> خلفيات فاتحة ومساحات بيضاء، تدرّج لوني دافئ، زوايا دائرية، وحركة خفيفة توحي بالسرعة.</p></div></div>
+    <div class="q"><div class="n">2</div><div><h3>نوع الشعار <small>ما نوع الشعار الأنسب لك؟</small></h3>
+      <div style="display:flex;align-items:center;gap:6mm"><img src="logo-light.svg" style="height:13mm" alt=""><img src="mark.svg" style="height:13mm" alt="">
+      <p style="flex:1"><span class="ans">شعار مركّب:</span> كلمة «شيّك» مع رمز السهم/الإرسال، ويُستخدم الرمز وحده أيقونة للتطبيق.</p></div></div></div>
+    <div class="q"><div class="n">3</div><div><h3>الألوان <small>ما الألوان التي تخدم تموضعك؟</small></h3>
+      <div class="swatches">
+        <div class="sw" style="background:#6947c1">بنفسجي<br>#6947C1</div>
+        <div class="sw" style="background:#9c309f">أرجواني<br>#9C309F</div>
+        <div class="sw" style="background:#e03670">وردي<br>#E03670</div>
+        <div class="sw" style="background:#f37e2e">برتقالي<br>#F37E2E</div>
+        <div class="sw" style="background:#fbc664;color:#5a3d00">ذهبي<br>#FBC664</div>
+      </div>
+      <p class="note">البنفسجي للثقة والتقنية، والانتقال للبرتقالي والذهبي للحماس والطاقة؛ الكتابة بالداكن #1E1B2E على خلفية بيضاء.</p></div></div>
+  </div>
+  <div class="foot"><span>شيّك · Shayyek</span><span>8</span></div>
+</section>
+
+<!-- ============ PAGE: CORE ============ -->
+<section class="page">
+  <div class="topbar"></div>
+  <div class="head"><img src="logo-light.svg" alt=""><span>المرحلة الثامنة · الجوهر</span></div>
+  <div class="phase" style="background:#f37e2e"><b>المرحلة الثامنة · الجوهر</b><span>لماذا نوجد؟</span></div>
+  <div style="--accent:#e2701f">
+    <div class="q"><div class="n">1</div><div><h3>الغرض <small>لماذا توجد علامتك؟</small></h3>
+      <p class="big">لأن كل صاحب مشروع يستاهل إن جمهوره يُخدم في ثوانٍ، حتى وهو نايم.</p></div></div>
+    <div class="q"><div class="n">2</div><div><h3>الرؤية <small>أي مستقبل تصنعه؟</small></h3>
+      <p>أن تكون شيّك <b>الأداة الأولى عربيًا</b> لتحويل تفاعل السوشال ميديا إلى مبيعات، وأن يصير «علّق ويوصلك» تجربة معتادة في كل متجر سعودي وخليجي.</p></div></div>
+    <div class="q"><div class="n">3</div><div><h3>الرسالة المؤسسية <small>كيف تصنع هذا المستقبل؟</small></h3>
+      <p>نبني أداة <b>عربية، بسيطة، ورسمية</b> تربط حسابات عملائنا بـ Meta بأمان، وتردّ نيابةً عنهم بلغتهم، وتعطيهم أرقامًا واضحة — بأسعار في متناول المشاريع الصغيرة، ودعم محلي قريب.</p></div></div>
+    <div class="q"><div class="n">4</div><div><h3>القيم <small>3–5 قيم تحكم القرارات الصعبة</small></h3>
+      <div class="values">
+        <div><b>الثقة أولًا</b>واجهات Meta الرسمية فقط، ولا رسائل مزعجة</div>
+        <div><b>البساطة</b>إذا احتاجت شرحًا طويلًا، نعيد تصميمها</div>
+        <div><b>الخصوصية</b>بيانات كل عميل معزولة ومحمية</div>
+        <div><b>السرعة</b>الرد خلال ثوانٍ، والدعم بنفس الروح</div>
+        <div><b>الصدق</b>أرقام حقيقية، بلا وعود مبالغ فيها</div>
+      </div></div></div>
+  </div>
+
+  <div class="closing">
+    <b>شيّك يرد عنك… وأنت ركّز على شغلك</b>
+    <span>shayyek.sa</span>
+  </div>
+  <div class="foot"><span>شيّك · Shayyek</span><span>9</span></div>
+</section>
+
+</body>
+</html>
